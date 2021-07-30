@@ -41,6 +41,11 @@
       <version>${mysql.conn.version}</version>
       <optional>true</optional>
     </dependency>
+    
+    <dependency>
+ 	  <groupId>io.vertx</groupId>
+ 	  <artifactId>vertx-web-client</artifactId>
+ 	  </dependency>
   </dependencies>
 
   <build>

@@ -3,6 +3,7 @@ package io.nms.central.microservice.topology;
 import java.util.List;
 
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
+import io.nms.central.microservice.topology.model.CrossConnect;
 import io.nms.central.microservice.topology.model.PrefixAnn;
 import io.nms.central.microservice.topology.model.Route;
 import io.nms.central.microservice.topology.model.Vconnection;
@@ -244,6 +245,20 @@ public interface TopologyService {
 	
 	@Fluent	
 	TopologyService deleteRoute(String routeId, Handler<AsyncResult<Void>> resultHandler);
+
+	
+	/* CrossConnect */
+	@Fluent	
+	TopologyService addCrossConnect(CrossConnect crossConnect, Handler<AsyncResult<Integer>> resultHandler);
+	
+	@Fluent	
+	TopologyService getCrossConnectById(String crossConnectId, Handler<AsyncResult<CrossConnect>> resultHandler);
+	
+	@Fluent	
+	TopologyService getCrossConnectsBySwtich(String switchId, Handler<AsyncResult<List<CrossConnect>>> resultHandler);
+	
+	@Fluent	
+	TopologyService deleteCrossConnect(String crossConnectId, Handler<AsyncResult<Void>> resultHandler);
 	
 
 	/* Status management */

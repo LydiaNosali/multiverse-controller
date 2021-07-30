@@ -5,6 +5,7 @@ import java.util.Base64;
 import io.nms.central.microservice.common.RestAPIVerticle;
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.nms.central.microservice.topology.TopologyService;
+import io.nms.central.microservice.topology.model.CrossConnect;
 import io.nms.central.microservice.topology.model.PrefixAnn;
 import io.nms.central.microservice.topology.model.Route;
 import io.nms.central.microservice.topology.model.Vconnection;
@@ -78,6 +79,10 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private static final String API_ALL_ROUTES = "/route";
 	private static final String API_ROUTES_BY_SUBNET = "/subnet/:subnetId/routes";
 	private static final String API_ROUTES_BY_NODE = "/node/:nodeId/routes";
+
+	private static final String API_ONE_CROSS_CONNECT = "/cross-connect/:xcId";
+	private static final String API_ALL_CROSS_CONNECTS = "/cross-connect";
+	private static final String API_CROSS_CONNECTS_BY_SWITCH = "/switch/:switchId/cross-connects";
 
 	private final TopologyService service;
 
@@ -154,6 +159,11 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		router.get(API_PAS_BY_NODE).handler(this::checkAdminRole).handler(this::apiGetPrefixAnnsByNode);
 		router.get(API_ONE_PA).handler(this::checkAdminRole).handler(this::apiGetPrefixAnn);
 		router.delete(API_ONE_PA).handler(this::checkAdminRole).handler(this::apiDeletePrefixAnn);
+		
+		router.post(API_ALL_CROSS_CONNECTS).handler(this::checkAdminRole).handler(this::apiAddCrossConnect);
+		router.get(API_CROSS_CONNECTS_BY_SWITCH).handler(this::checkAdminRole).handler(this::apiGetCrossConnectsBySwitch);
+		router.get(API_ONE_CROSS_CONNECT).handler(this::checkAdminRole).handler(this::apiGetCrossConnectById);
+		router.delete(API_ONE_CROSS_CONNECT).handler(this::checkAdminRole).handler(this::apiDeleteCrossConnect);
 
 		// agent only
 		router.delete(API_ONE_PA_BY_NAME).handler(this::checkAgentRole).handler(this::apiDeleteOnePaByName);
@@ -483,6 +493,28 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		String name = context.request().getParam("name");
 		int originId = principal.getInteger("nodeId"); 
 		service.deletePrefixAnnByName(originId, name, deleteResultHandler(context));
+	}
+
+	// CrossConnect API
+	private void apiAddCrossConnect(RoutingContext context) {
+		try {
+			final CrossConnect crossConnect = JSONUtils.json2PojoE(context.getBodyAsString(), CrossConnect.class);
+			service.addCrossConnect(crossConnect, createResultHandler(context, "/cross-connect"));
+		} catch (Exception e) {
+			badRequest(context, e);
+		}
+	}
+	private void apiGetCrossConnectById(RoutingContext context) {
+		String xcId = context.request().getParam("xcId");
+		service.getCrossConnectById(xcId, resultHandlerNonEmpty(context));
+	}
+	private void apiGetCrossConnectsBySwitch(RoutingContext context) {
+		String switchId = context.request().getParam("switchId");
+		service.getCrossConnectsBySwtich(switchId, resultHandler(context, Json::encodePrettily));
+	}
+	private void apiDeleteCrossConnect(RoutingContext context) {
+		String xcId = context.request().getParam("xcId");
+		service.deleteCrossConnect(xcId, deleteResultHandler(context));
 	}
 
 	// Route API

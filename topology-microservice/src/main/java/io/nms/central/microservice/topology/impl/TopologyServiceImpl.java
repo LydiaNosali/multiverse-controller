@@ -12,6 +12,7 @@ import io.nms.central.microservice.common.functional.JSONUtils;
 import io.nms.central.microservice.common.service.JdbcRepositoryWrapper;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.nms.central.microservice.topology.TopologyService;
+import io.nms.central.microservice.topology.model.CrossConnect;
 import io.nms.central.microservice.topology.model.Edge;
 import io.nms.central.microservice.topology.model.EtherConnInfo;
 import io.nms.central.microservice.topology.model.NdnConnInfo;
@@ -36,6 +37,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.client.WebClient;
 
 /**
  *
@@ -44,10 +46,12 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 
 	private static final Logger logger = LoggerFactory.getLogger(TopologyServiceImpl.class);
 	private Routing routing;
+	private WebClient webClient;
 
 	public TopologyServiceImpl(Vertx vertx, JsonObject config) {
 		super(vertx, config);
 		routing = new Routing();
+		webClient = WebClient.create(vertx);
 	}
 
 	@Override
@@ -62,6 +66,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		statements.add(ApiSql.CREATE_TABLE_VCONNECTION);
 		statements.add(ApiSql.CREATE_TABLE_PA);
 		statements.add(ApiSql.CREATE_TABLE_ROUTE);
+		statements.add(ApiSql.CREATE_TABLE_CROSS_CONNECTS);
 		client.getConnection(conn -> {
 			if (conn.succeeded()) {
 				conn.result().batch(statements, r -> {
@@ -989,6 +994,95 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			}
 		});
 		return promise.future();
+	}
+
+
+	/********** CrossConnect **********/
+	@Override
+	public TopologyService addCrossConnect(CrossConnect crossConnect, Handler<AsyncResult<Integer>> resultHandler) {
+		JsonArray checkParams = new JsonArray()
+				.add(crossConnect.getSwitchId())
+				.add(crossConnect.getIngressPortId())
+				.add(crossConnect.getEgressPortId());
+		
+		this.retrieveOne(checkParams, ApiSql.XC_CHECK_AND_GET_INFO).map(option -> option.orElse(null))
+			.onComplete(res -> {
+				if (res.succeeded()) {
+					if (res.result() != null) {
+						/* webClient
+							.post(8008, res.result().getString("switchIpAddr").split("/")[0], "/api/data/cross-connects")
+							.sendJsonObject(new JsonObject()
+								.put("ingress", res.result().getString("ingressPort"))
+								.put("egress", res.result().getString("egressPort")), ar -> {
+									if (ar.succeeded()) {
+										// TODO: check DB insert result
+										insertAndGetId(params, ApiSql.INSERT_CROSS_CONNECT, resultHandler);
+									} else {
+										resultHandler.handle(Future.failedFuture("Failed to create Cross-connect"));
+									}
+							}); */
+						JsonArray params = new JsonArray()
+								.add(crossConnect.getName())
+								.add(crossConnect.getLabel())
+								.add(crossConnect.getDescription())
+								.add(crossConnect.getSwitchId())
+								.add(crossConnect.getIngressPortId())
+								.add(crossConnect.getEgressPortId());
+						insertAndGetId(params, ApiSql.INSERT_CROSS_CONNECT, resultHandler);
+					} else {
+						resultHandler.handle(Future.failedFuture("Cross-connect ports are not correct"));
+					}
+				} else {
+					resultHandler.handle(Future.failedFuture("Failed to check Cross-connect data"));
+				}
+		});
+		return this;
+	}
+
+	@Override
+	public TopologyService getCrossConnectById(String crossConnectId, Handler<AsyncResult<CrossConnect>> resultHandler) {
+		this.retrieveOne(crossConnectId, ApiSql.FETCH_CROSS_CONNECT_BY_ID).map(option -> option.map(json -> {
+			return JSONUtils.json2Pojo(json.encode(), CrossConnect.class);
+		}).orElse(null)).onComplete(resultHandler);
+		return this;
+	}
+
+	@Override
+	public TopologyService getCrossConnectsBySwtich(String switchId, Handler<AsyncResult<List<CrossConnect>>> resultHandler) {
+		JsonArray params = new JsonArray().add(switchId);
+		this.retrieveMany(params, ApiSql.FETCH_CROSS_CONNECTS_BY_SWITCH).map(rawList -> rawList.stream().map(row -> {
+			return JSONUtils.json2Pojo(row.encode(), CrossConnect.class);
+		}).collect(Collectors.toList())).onComplete(resultHandler);
+		return this;
+	}
+
+	@Override
+	public TopologyService deleteCrossConnect(String crossConnectId, Handler<AsyncResult<Void>> resultHandler) {		
+		this.retrieveOne(crossConnectId, ApiSql.XC_GET_INFO).map(option -> option.orElse(null))
+			.onComplete(res -> {
+				if (res.succeeded()) {
+					if (res.result() != null) {
+						/* String requestPath = "/api/data/cross-connects/" 
+								+ String.valueOf(res.result().getString("ingressPort"));
+						webClient
+							.delete(8008, res.result().getString("switchIpAddr").split("/")[0], requestPath) 
+							.send(ar -> {
+								if (ar.succeeded()) {
+									// TODO: check DB delete result
+									removeOne(crossConnectId, ApiSql.DELETE_CROSS_CONNECT, resultHandler);
+								} else {
+									resultHandler.handle(Future.failedFuture("Failed to delete Cross-connect on the switch"));
+								}
+							}); */
+							removeOne(crossConnectId, ApiSql.DELETE_CROSS_CONNECT, resultHandler);
+						} else {
+							resultHandler.handle(Future.failedFuture("Cross-connect does not exist"));
+						}
+				} else {
+					resultHandler.handle(Future.failedFuture(res.cause()));
+				}
+		});
+		return this;
 	}
 
 
