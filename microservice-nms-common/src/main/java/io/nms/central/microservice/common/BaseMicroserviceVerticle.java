@@ -17,6 +17,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.Promise;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import io.vertx.servicediscovery.ServiceDiscoveryOptions;
@@ -104,20 +105,18 @@ public abstract class BaseMicroserviceVerticle extends AbstractVerticle {
         throw new IllegalStateException("Cannot create discovery service");
       }
     }
-
-    Future<Void> future = Future.future();
     // publish the service
+    Promise<Void> promise = Promise.promise();
     discovery.publish(record, ar -> {
       if (ar.succeeded()) {
         registeredRecords.add(record);
         logger.info("Service <" + ar.result().getName() + "> published");
-        future.complete();
+        promise.complete();
       } else {
-        future.fail(ar.cause());
+        promise.fail(ar.cause());
       }
     });
-
-    return future;
+    return promise.future();
   }
 
   /**
@@ -140,13 +139,13 @@ public abstract class BaseMicroserviceVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void stop(Future<Void> future) throws Exception {
+  public void stop(Promise<Void> future) throws Exception {
     // In current design, the publisher is responsible for removing the service
     List<Future> futures = new ArrayList<>();
     registeredRecords.forEach(record -> {
-      Future<Void> cleanupFuture = Future.future();
-      futures.add(cleanupFuture);
-      discovery.unpublish(record.getRegistration(), cleanupFuture.completer());
+      Promise<Void> cleanupPromise = Promise.promise();
+      futures.add(cleanupPromise.future());
+      discovery.unpublish(record.getRegistration(), cleanupPromise);
     });
 
     if (futures.isEmpty()) {
@@ -154,14 +153,14 @@ public abstract class BaseMicroserviceVerticle extends AbstractVerticle {
       future.complete();
     } else {
       CompositeFuture.all(futures)
-        .setHandler(ar -> {
+      .onComplete(ar -> {
           discovery.close();
           if (ar.failed()) {
             future.fail(ar.cause());
           } else {
             future.complete();
           }
-        });
+      });
     }
   }
 }

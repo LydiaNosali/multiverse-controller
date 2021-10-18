@@ -1,7 +1,6 @@
 package io.nms.central.microservice.telemetry;
 
 import static io.nms.central.microservice.telemetry.TelemetryService.SERVICE_ADDRESS;
-import static io.nms.central.microservice.telemetry.TelemetryService.SERVICE_NAME;
 
 import io.nms.central.microservice.common.BaseMicroserviceVerticle;
 import io.nms.central.microservice.telemetry.api.RestTelemetryAPIVerticle;
@@ -21,7 +20,6 @@ public class TelemetryVerticle extends BaseMicroserviceVerticle {
 	private TelemetryService telemetryService;
 	private CasperTelemetryAPIVerticle casperVerticle;
 
-
 	@Override
 	public void start(Future<Void> future) throws Exception {
 		super.start();
@@ -31,6 +29,10 @@ public class TelemetryVerticle extends BaseMicroserviceVerticle {
 		
 		// create the casper verticle
 		casperVerticle = new CasperTelemetryAPIVerticle(telemetryService);
+
+		/* new ServiceBinder(vertx)
+			.setAddress(SERVICE_ADDRESS)
+			.register(TelemetryService.class, telemetryService); */
 		
 		deployCasperVerticle()
 			.compose(capserDeployed -> deployRestVerticle())

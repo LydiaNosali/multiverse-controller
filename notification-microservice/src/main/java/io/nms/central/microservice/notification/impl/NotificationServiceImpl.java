@@ -172,8 +172,6 @@ public class NotificationServiceImpl implements NotificationService {
 		return promise.future();
 	}
 	
-	
-	
 	/* -------------- Event --------------- */
 	@Override
 	public void saveEvent(Event event, Handler<AsyncResult<Void>> resultHandler) {

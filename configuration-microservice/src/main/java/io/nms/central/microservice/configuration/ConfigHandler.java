@@ -12,8 +12,8 @@ import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.impl.CompositeFutureImpl;
 import io.vertx.core.json.JsonObject;
-import io.vertx.servicediscovery.types.EventBusService;
 import io.vertx.servicediscovery.types.MessageSource;
+import io.vertx.serviceproxy.ServiceProxyBuilder;
 
 public class ConfigHandler extends BaseMicroserviceVerticle {
 
@@ -27,7 +27,7 @@ public class ConfigHandler extends BaseMicroserviceVerticle {
 	public void start(Promise<Void> promise) throws Exception {
 		super.start();
 		MessageSource.<JsonObject>getConsumer(discovery,
-				new JsonObject().put("name", "config-message-source"),
+				new JsonObject().put("name", "topology-message-source"),
 				ar -> {
 					if (ar.succeeded() && ar.result() != null) {
 						MessageConsumer<JsonObject> eventConsumer = ar.result();
@@ -48,40 +48,37 @@ public class ConfigHandler extends BaseMicroserviceVerticle {
 	}
 
 	private void generateConfig(Message<JsonObject> sender) {
-		EventBusService.getProxy(discovery, TopologyService.class, ar -> {
-			if (ar.succeeded()) {
-				TopologyService service = ar.result();
-				Promise<List<Route>> pRoute = Promise.promise();
-				Promise<List<Vctp>> pFace = Promise.promise();
-				Promise<List<Vnode>> pNode = Promise.promise();
-				service.getAllRoutes(pRoute);
-				service.getVctpsByType("NDN", pFace);
-				service.getAllVnodes(pNode);
-				CompositeFutureImpl.all(pRoute.future(), pFace.future(), pNode.future()).onComplete(res -> {
-					if (res.succeeded()) {
-						List<Route> routes = pRoute.future().result();
-						List<Vctp> faces = pFace.future().result();
-						List<Vnode> nodes = pNode.future().result();
-						configService.computeConfigurations(routes, faces, nodes, done -> {
-							if (done.succeeded()) {
-								configService.upsertCandidateConfigs(done.result(), r -> {
-									if (r.succeeded()) {
-										sender.reply(new JsonObject());
-										publishUpdateToUI();
-									} else {
-										sender.fail(5000, ar.cause().getMessage());
-									}
-								});
+		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx)
+  			.setAddress(TopologyService.SERVICE_ADDRESS);
+		TopologyService service = builder.build(TopologyService.class);
+
+		Promise<List<Route>> pRoute = Promise.promise();
+		Promise<List<Vctp>> pFace = Promise.promise();
+		Promise<List<Vnode>> pNode = Promise.promise();
+		service.getAllRoutes(pRoute);
+		service.getVctpsByType("NDN", pFace);
+		service.getAllVnodes(pNode);
+		CompositeFutureImpl.all(pRoute.future(), pFace.future(), pNode.future()).onComplete(res -> {
+			if (res.succeeded()) {
+				List<Route> routes = pRoute.future().result();
+				List<Vctp> faces = pFace.future().result();
+				List<Vnode> nodes = pNode.future().result();
+				configService.computeConfigurations(routes, faces, nodes, done -> {
+					if (done.succeeded()) {
+						configService.upsertCandidateConfigs(done.result(), r -> {
+							if (r.succeeded()) {
+								sender.reply(new JsonObject());
+								publishUpdateToUI();
 							} else {
-								sender.fail(5000, ar.cause().getMessage());
+								sender.fail(5000, r.cause().getMessage());
 							}
 						});
 					} else {
-						sender.fail(5000, ar.cause().getMessage());
+						sender.fail(5000, done.cause().getMessage());
 					}
 				});
 			} else {
-				sender.fail(5000, ar.cause().getMessage());
+				sender.fail(5000, res.cause().getMessage());
 			}
 		});
 	}

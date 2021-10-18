@@ -9,7 +9,7 @@ import io.nms.central.microservice.crossconnect.impl.CrossconnectServiceImpl;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.serviceproxy.ProxyHelper;
+import io.vertx.serviceproxy.ServiceBinder;
 
 
 /**
@@ -20,14 +20,18 @@ public class CrossconnectVerticle extends BaseMicroserviceVerticle {
   @Override
   public void start(Future<Void> future) throws Exception {
     super.start();
+    
     // create the service instance
     CrossconnectService crossconnectService = new CrossconnectServiceImpl(vertx, config());
+    
     // register the service proxy on event bus
-    ProxyHelper.registerService(CrossconnectService.class, vertx, crossconnectService, SERVICE_ADDRESS);
+    new ServiceBinder(vertx)
+        .setAddress(SERVICE_ADDRESS)
+        .register(CrossconnectService.class, crossconnectService);
     
     initCrossconnectDatabase(crossconnectService)
-    	.compose(databaseOkay -> publishEventBusService(SERVICE_NAME, SERVICE_ADDRESS, CrossconnectService.class))
-    	.compose(servicePublished -> deployRestVerticle(crossconnectService))
+//    	.compose(databaseOkay -> publishEventBusService(SERVICE_NAME, SERVICE_ADDRESS, CrossconnectService.class))
+    	.compose(databaseOkay -> deployRestVerticle(crossconnectService))
     	.onComplete(future);
   }
   

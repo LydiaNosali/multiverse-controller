@@ -25,7 +25,7 @@ public class ApiSql {
 			"    `posx` INT,\n" + 
 			"    `posy` INT,\n" + 
 			"    `location` VARCHAR(50),\n" + 
-			"    `type` VARCHAR(10) NOT NULL,\n" +
+			"    `type` VARCHAR(50) NOT NULL,\n" +
 			"    `vsubnetId` INT NOT NULL,\n" +
 			"    `hwaddr` VARCHAR(50) NOT NULL UNIQUE,\n" + 
 			"    `mgmtIp` VARCHAR(20) NOT NULL UNIQUE,\n" + 

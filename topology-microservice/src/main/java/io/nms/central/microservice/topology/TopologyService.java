@@ -40,10 +40,7 @@ public interface TopologyService {
 	 */
 	String SERVICE_ADDRESS = "service.topology";
 	
-	
-	String UI_ADDRESS = "nms.to.ui";
-	
-	String CONFIG_ADDRESS = "topology.to.config";
+	String FROTNEND_ADDRESS = "topology.to.frontend";
 
 	String EVENT_ADDRESS = "topology.event";
 	

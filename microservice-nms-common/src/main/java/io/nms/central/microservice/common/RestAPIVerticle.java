@@ -9,6 +9,7 @@ import java.util.function.Function;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
@@ -26,11 +27,11 @@ import io.vertx.ext.web.sstore.LocalSessionStore;
 public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 
 	protected Future<Void> createHttpServer(Router router, String host, int port) {
-		Future<HttpServer> httpServerFuture = Future.future();
+		Promise<HttpServer> httpServerFuture = Promise.promise();
 		vertx.createHttpServer()
-		.requestHandler(router::accept)
-		.listen(port, host, httpServerFuture.completer());
-		return httpServerFuture.map(r -> null);
+		.requestHandler(router)
+		.listen(port, host, httpServerFuture);
+		return httpServerFuture.future().map(r -> null);
 	}
 	protected void enableCorsSupport(Router router) {
 		Set<String> allowHeaders = new HashSet<>();
@@ -53,12 +54,12 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 				.allowedMethods(allowMethods));
 	}
 	protected void enableLocalSession(Router router) {
-		router.route().handler(CookieHandler.create());
+		// router.route().handler(CookieHandler.create());
 		router.route().handler(SessionHandler.create(
 				LocalSessionStore.create(vertx, "nms.user.session")));
 	}
 	protected void enableClusteredSession(Router router) {
-		router.route().handler(CookieHandler.create());
+		// router.route().handler(CookieHandler.create());
 		router.route().handler(SessionHandler.create(
 				ClusteredSessionStore.create(vertx, "nms.user.session")));
 	}
@@ -178,8 +179,8 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 				context.response()
 						.setStatusCode(201)
 						.putHeader("content-type", "application/json")
-						.putHeader("Location", location + "/" + id)
-						.end();
+// 						.putHeader("Location", location + "/" + id)
+						.end(new JsonObject().put("id", id).encode());
 			} else {
 				badRequest(context, ar.cause());
 				ar.cause().printStackTrace();

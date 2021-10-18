@@ -180,7 +180,8 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		int port = config().getInteger("topology.http.port", 8085);
 
 		// create HTTP server and publish REST service
-		createHttpServer(router, host, port).compose(serverCreated -> publishHttpEndpoint(SERVICE_NAME, host, port))
+		createHttpServer(router, host, port)
+				.compose(serverCreated -> publishHttpEndpoint(SERVICE_NAME, host, port))
 				.onComplete(future);
 	}
 

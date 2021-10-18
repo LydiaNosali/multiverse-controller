@@ -9,7 +9,7 @@ import io.nms.central.microservice.common.BaseMicroserviceVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.serviceproxy.ProxyHelper;
+import io.vertx.serviceproxy.ServiceBinder;
 
 
 /**
@@ -22,13 +22,16 @@ public class AccountVerticle extends BaseMicroserviceVerticle {
 	public void start(Future<Void> future) throws Exception {
 		super.start();
 		// create the service instance
-		AccountService accService = new AccountServiceImpl(vertx, config());
+		AccountService accountService = new AccountServiceImpl(vertx, config());
+		
 		// register the service proxy on event bus
-		ProxyHelper.registerService(AccountService.class, vertx, accService, SERVICE_ADDRESS);
+		new ServiceBinder(vertx)
+  			.setAddress(SERVICE_ADDRESS)
+  			.register(AccountService.class, accountService);
 
-		initAuthDatabase(accService)
-			.compose(databaseOkay -> publishEventBusService(SERVICE_NAME, SERVICE_ADDRESS, AccountService.class))
-			.compose(servicePublished -> deployRestVerticle(accService))
+		initAuthDatabase(accountService)
+	//		.compose(databaseOkay -> publishEventBusService(SERVICE_NAME, SERVICE_ADDRESS, AccountService.class))
+			.compose(databaseOkay -> deployRestVerticle(accountService))
 			.onComplete(future);
 	}
 

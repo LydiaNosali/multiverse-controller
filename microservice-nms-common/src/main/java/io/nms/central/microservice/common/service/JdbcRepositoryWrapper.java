@@ -297,7 +297,7 @@ public class JdbcRepositoryWrapper {
 		globalConn.updateWithParams(sql, params, ar -> {
 			if (ar.succeeded()) {
 				UpdateResult updateResult = ar.result();
-				if (updateResult.getUpdated() == 1) {
+				if (updateResult.getKeys().size() > 0) {
 					promise.complete(updateResult.getKeys().getInteger(0));
 				} else {
 					rollbackAndUnlock();

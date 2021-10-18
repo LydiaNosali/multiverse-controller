@@ -33,19 +33,18 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 	public void start(Promise<Void> promise) throws Exception {
 		super.start();
 		MessageSource.<JsonObject>getConsumer(discovery,
-				new JsonObject().put("name", "status-message-source"),
-				ar -> {
-					if (ar.succeeded()) {
-						MessageConsumer<JsonObject> statusConsumer = ar.result();
-						statusConsumer.handler(message -> {
-							Status status = Json.decodeValue(message.body().encode(), Status.class);
-							initHandleStatus(status, message);
-						});
-						promise.complete();
-					} else {
-						promise.fail(ar.cause());
-					}
-				});
+			new JsonObject().put("name", "status-message-source"), ar -> {
+				if (ar.succeeded()) {
+					MessageConsumer<JsonObject> statusConsumer = ar.result();
+					statusConsumer.handler(message -> {
+						Status status = Json.decodeValue(message.body().encode(), Status.class);
+						initHandleStatus(status, message);
+					});
+					promise.complete();
+				} else {
+					promise.fail(ar.cause());
+				}
+			});
 	}
 
 	private void initHandleStatus(Status status, Message<JsonObject> sender) {
@@ -85,8 +84,8 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case NODE:
 				topologyService.updateNodeStatus(resId, resStatus, ar -> {
 					if (ar.succeeded()) {
-						publishUpdateToUI();
-						notifyConfigService();
+						notifyFrontend();
+						notifyTopologyChange();
 					} else {
 						ar.cause().printStackTrace();
 					}
@@ -95,8 +94,8 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case LTP:
 				topologyService.updateLtpStatus(resId, resStatus, null, ar -> {
 					if (ar.succeeded()) {
-						publishUpdateToUI();
-						notifyConfigService();
+						notifyFrontend();
+						notifyTopologyChange();
 					} else {
 						ar.cause().printStackTrace();
 					}
@@ -105,8 +104,8 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case CTP:
 				topologyService.updateCtpStatus(resId, null, resStatus, null, ar -> {
 					if (ar.succeeded()) {
-						publishUpdateToUI();
-						notifyConfigService();
+						notifyFrontend();
+						notifyTopologyChange();
 					} else {
 						ar.cause().printStackTrace();
 					}
@@ -115,8 +114,8 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case LINK:
 				topologyService.updateLinkStatus(resId, resStatus, null, ar -> {
 					if (ar.succeeded()) {
-						publishUpdateToUI();
-						notifyConfigService();
+						notifyFrontend();
+						notifyTopologyChange();
 					} else {
 						ar.cause().printStackTrace();
 					}
@@ -125,8 +124,8 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case LC:
 				topologyService.updateLcStatus(resId, resStatus, null, ar -> {
 					if (ar.succeeded()) {
-						publishUpdateToUI();
-						notifyConfigService();
+						notifyFrontend();
+						notifyTopologyChange();
 					} else {
 						ar.cause().printStackTrace();
 					}
@@ -135,8 +134,8 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case CONNECTION:
 				topologyService.updateConnectionStatus(resId, resStatus, null, ar -> {
 					if (ar.succeeded()) {
-						publishUpdateToUI();
-						notifyConfigService();
+						notifyFrontend();
+						notifyTopologyChange();
 					} else {
 						ar.cause().printStackTrace();
 					}
@@ -147,15 +146,15 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 		  }
 	}
 	
-	private void publishUpdateToUI() {
-		 vertx.eventBus().publish(TopologyService.UI_ADDRESS, new JsonObject()
+	private void notifyFrontend() {
+		 vertx.eventBus().publish(TopologyService.FROTNEND_ADDRESS, new JsonObject()
 				.put("service", TopologyService.SERVICE_ADDRESS));
 	}
 	 
-	private void notifyConfigService() {
-		vertx.eventBus().request(TopologyService.CONFIG_ADDRESS, new JsonObject(), reply -> {
+	private void notifyTopologyChange() {
+		vertx.eventBus().request(TopologyService.EVENT_ADDRESS, new JsonObject(), reply -> {
 			if (reply.failed()) {
-				logger.warn("configuration service replies: ", reply.cause().getMessage());
+				logger.warn("configuration service replied: ", reply.cause().getMessage());
 			}
 		});
 	}

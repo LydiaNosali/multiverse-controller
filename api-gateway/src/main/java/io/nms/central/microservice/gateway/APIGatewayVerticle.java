@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import com.hazelcast.spi.impl.AllowedDuringPassiveState;
+
 import io.nms.central.microservice.account.AccountService;
 import io.nms.central.microservice.account.model.Account;
 import io.nms.central.microservice.common.RestAPIVerticle;
@@ -35,8 +37,8 @@ import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
-import io.vertx.servicediscovery.types.EventBusService;
 import io.vertx.servicediscovery.types.HttpEndpoint;
+import io.vertx.serviceproxy.ServiceProxyBuilder;
 
 /**
  * A verticle for global API gateway.
@@ -96,13 +98,13 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 		
 		/*-----------------------------------------------------------------*/
 		Set<String> allowHeaders = new HashSet<>();
-	    allowHeaders.add("x-requested-with");
-	    allowHeaders.add("Access-Control-Allow-Method");
-	    allowHeaders.add("Access-Control-Allow-Origin");
-	    allowHeaders.add("Access-Control-Allow-Credentials");
-	    allowHeaders.add("origin");
+	    // allowHeaders.add("x-requested-with");
+	    // allowHeaders.add("Access-Control-Allow-Method");
+	    // allowHeaders.add("Access-Control-Allow-Origin");
+	    // allowHeaders.add("Access-Control-Allow-Credentials");
+	    allowHeaders.add("Authorization");
 	    allowHeaders.add("Content-Type");
-	    allowHeaders.add("accept");
+	    allowHeaders.add("Accept");
 	    Set<HttpMethod> allowMethods = new HashSet<>();
 	    allowMethods.add(HttpMethod.GET);
 	    allowMethods.add(HttpMethod.OPTIONS);
@@ -122,7 +124,8 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 	    /*----------------------------------------------------------------*/
 
 		// enable HTTPS
-		String certsPath = "/opt/data/";
+		// String certsPath = "/opt/data/";
+		String certsPath = "C:\\Users\\ana24\\Documents\\certs\\controller\\";
 		HttpServerOptions httpServerOptions = new HttpServerOptions()
 				.setSsl(true)
 				.setPemKeyCertOptions(
@@ -146,9 +149,9 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 		});
 
 		// dev only
-		/* vertx.createHttpServer()
+		vertx.createHttpServer()
 			.requestHandler(router)
-			.listen(8788, host); */
+			.listen(8788, host);
 	}
 
 	private void dispatchRequests(RoutingContext context) {
@@ -265,26 +268,23 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 		String username = context.getBodyAsJson().getString("username");
 		String password = context.getBodyAsJson().getString("password");
 
-		EventBusService.getProxy(discovery, AccountService.class, ar -> {
-			if (ar.succeeded()) {
-				AccountService service = ar.result();
-				service.authenticateUser(username, password, res -> {
-					ServiceDiscovery.releaseServiceObject(discovery, service);
-					if (res.succeeded() && res.result() != null) {
-						Account acc = res.result();
-						context.response().putHeader("content-type", "application/json");
-						JsonObject principal = new JsonObject()
-								.put("username", acc.getUsername())
-								.put("role", acc.getRole());
-						context.response()
-								.setStatusCode(200)
-								.end(jwt.generateToken(principal, new JWTOptions().setExpiresInMinutes(TOKEN_EXPIRES_MN)));
-					} else {
-						unauthorized(context);
-					}
-				});
+		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx)
+  			.setAddress(AccountService.SERVICE_ADDRESS);
+		AccountService service = builder.build(AccountService.class);
+
+		service.authenticateUser(username, password, res -> {
+			ServiceDiscovery.releaseServiceObject(discovery, service);
+			if (res.succeeded() && res.result() != null) {
+				Account acc = res.result();
+				context.response().putHeader("content-type", "application/json");
+				JsonObject principal = new JsonObject()
+						.put("username", acc.getUsername())
+						.put("role", acc.getRole());
+				context.response()
+						.setStatusCode(200)
+						.end(jwt.generateToken(principal, new JWTOptions().setExpiresInMinutes(TOKEN_EXPIRES_MN)));
 			} else {
-				badRequest(context, ar.cause());
+				unauthorized(context);
 			}
 		});
 	}
@@ -305,25 +305,22 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 			return;
 		}
 		
-		EventBusService.getProxy(discovery, AccountService.class, ar -> {
-			if (ar.succeeded()) {
-				AccountService service = ar.result();
-				service.authenticateAgent(username, password, res -> {
-					ServiceDiscovery.releaseServiceObject(discovery, service);
-					if (res.succeeded() && res.result() != null) {
-						Account acc = res.result();
-						context.response().putHeader("content-type", "application/json");
-						JsonObject principal = new JsonObject()
-								.put("username", acc.getUsername())
-								.put("role", acc.getRole())
-								.put("nodeId", acc.getNodeId());
-						responseToken(context, jwt.generateToken(principal, new JWTOptions().setExpiresInMinutes(TOKEN_EXPIRES_MN)));
-					} else {
-						unauthorized(context);
-					}
-				});
+		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx)
+  			.setAddress(AccountService.SERVICE_ADDRESS);
+		AccountService service = builder.build(AccountService.class);
+
+		service.authenticateAgent(username, password, res -> {
+			ServiceDiscovery.releaseServiceObject(discovery, service);
+			if (res.succeeded() && res.result() != null) {
+				Account acc = res.result();
+				context.response().putHeader("content-type", "application/json");
+				JsonObject principal = new JsonObject()
+						.put("username", acc.getUsername())
+						.put("role", acc.getRole())
+						.put("nodeId", acc.getNodeId());
+				responseToken(context, jwt.generateToken(principal, new JWTOptions().setExpiresInMinutes(TOKEN_EXPIRES_MN)));
 			} else {
-				badRequest(context, ar.cause());
+				unauthorized(context);
 			}
 		});
 	}

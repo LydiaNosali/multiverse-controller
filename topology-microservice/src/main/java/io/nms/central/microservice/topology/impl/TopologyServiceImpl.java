@@ -404,7 +404,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		this.retrieveOne(pQuerryNode, querryNode).onComplete(ar -> {
 			if (ar.succeeded()) {
 				if (!ar.result().isPresent()) {
-					resultHandler.handle(Future.failedFuture("Corresponing Node not found"));
+					resultHandler.handle(Future.failedFuture("Corresponding Node not found"));
 				} else {
 					int nodeId = ar.result().get().getInteger("vnodeId");
 					JsonArray params = new JsonArray()
@@ -539,11 +539,23 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		UUID opp = UUID.randomUUID();
 		beginTxnAndLock(Entity.LINK, opp, InternalSql.LOCK_TABLES_FOR_LINK).onComplete(ar -> {
 			if (ar.succeeded()) {
-				Future<Integer> vlinkId = globalInsert(pVlink, ApiSql.INSERT_VLINK);
-				vlinkId.compose(r -> globalExecute(updSrcLtp, InternalSql.UPDATE_LTP_BUSY))
-						.compose(r -> globalExecute(updDestLtp, InternalSql.UPDATE_LTP_BUSY))
-						.compose(r -> commitTxnAndUnlock(Entity.LINK, opp)).map(vlinkId.result())
-						.onComplete(resultHandler);
+				globalInsert(pVlink, ApiSql.INSERT_VLINK).onComplete(res -> {
+					if (res.succeeded()) {
+						Future<Void> trx = globalExecute(updSrcLtp, InternalSql.UPDATE_LTP_BUSY);
+						trx
+							.compose(r -> globalExecute(updDestLtp, InternalSql.UPDATE_LTP_BUSY))
+							.compose(r -> commitTxnAndUnlock(Entity.LINK, opp))
+							.onComplete(z -> {
+								if (z.succeeded()) {
+									resultHandler.handle(Future.succeededFuture(res.result()));
+								} else {
+									resultHandler.handle(Future.failedFuture(z.cause()));
+								}
+							});
+					} else {
+						resultHandler.handle(Future.failedFuture(res.cause()));
+					}
+				});
 			} else {
 				resultHandler.handle(Future.failedFuture(ar.cause()));
 			}

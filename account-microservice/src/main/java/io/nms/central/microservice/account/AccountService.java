@@ -42,5 +42,6 @@ public interface AccountService {
 	
 	void saveAgent(Agent agent, Handler<AsyncResult<Void>> resultHandler);
 	void retrieveAllAgents(Handler<AsyncResult<List<Agent>>> resultHandler);
+	void retrieveAgent(String username, Handler<AsyncResult<Agent>> resultHandler);
 	void removeAgent(String username, Handler<AsyncResult<Void>> resultHandler);
 }
