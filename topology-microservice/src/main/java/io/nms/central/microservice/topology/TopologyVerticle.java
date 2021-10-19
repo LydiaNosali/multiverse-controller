@@ -29,7 +29,7 @@ public class TopologyVerticle extends BaseMicroserviceVerticle {
         .register(TopologyService.class, topologyService);
     
     initTopologyDatabase(topologyService)
-      .compose(databaseOkay ->  publishMessageSource("topology-message-source", TopologyService.EVENT_ADDRESS))
+     // .compose(databaseOkay ->  publishMessageSource("topology-message-source", TopologyService.EVENT_ADDRESS))
       .compose(r -> deployHandler(topologyService))
     	.compose(handlerDeployed -> deployRestVerticle(topologyService))
     	.onComplete(future);

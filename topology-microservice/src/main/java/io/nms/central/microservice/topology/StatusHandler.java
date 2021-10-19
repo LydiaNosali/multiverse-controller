@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.nms.central.microservice.common.BaseMicroserviceVerticle;
+import io.nms.central.microservice.notification.NotificationService;
 import io.nms.central.microservice.notification.model.Status;
 import io.nms.central.microservice.notification.model.Status.ResTypeEnum;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
@@ -31,8 +32,12 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 
 	@Override
 	public void start(Promise<Void> promise) throws Exception {
-		super.start();
-		MessageSource.<JsonObject>getConsumer(discovery,
+		super.start(promise);
+		vertx.eventBus().consumer(NotificationService.STATUS_ADDRESS, ar -> {
+			Status status = new Status(((JsonObject)ar.body()));
+			initHandleStatus(status, null);
+		});
+		/* MessageSource.<JsonObject>getConsumer(discovery,
 			new JsonObject().put("name", "status-message-source"), ar -> {
 				if (ar.succeeded()) {
 					MessageConsumer<JsonObject> statusConsumer = ar.result();
@@ -44,13 +49,13 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 				} else {
 					promise.fail(ar.cause());
 				}
-			});
+			}); */
 	}
 
 	private void initHandleStatus(Status status, Message<JsonObject> sender) {
 		if (!status.getResType().equals(ResTypeEnum.NODE)) {
 			dispatchStatus(status);
-			sender.reply(new JsonObject());
+			// sender.reply(new JsonObject());
 			return;
 		}
 		int resId = status.getResId();
@@ -74,7 +79,7 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 				statusTimers.put(resId, timerId);
 			}
 		}
-		sender.reply(new JsonObject());
+		// sender.reply(new JsonObject());
 	}
 	private void dispatchStatus(Status status) {
 		int resId = status.getResId();
@@ -147,15 +152,17 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 	}
 	
 	private void notifyFrontend() {
-		 vertx.eventBus().publish(TopologyService.FROTNEND_ADDRESS, new JsonObject()
-				.put("service", TopologyService.SERVICE_ADDRESS));
+		vertx.eventBus().publish(TopologyService.FROTNEND_ADDRESS, new JsonObject());
 	}
 	 
 	private void notifyTopologyChange() {
-		vertx.eventBus().request(TopologyService.EVENT_ADDRESS, new JsonObject(), reply -> {
+		vertx.eventBus().publish(TopologyService.EVENT_ADDRESS, new JsonObject());
+		/* vertx.eventBus().request(TopologyService.EVENT_ADDRESS, new JsonObject(), reply -> {
 			if (reply.failed()) {
-				logger.warn("configuration service replied: ", reply.cause().getMessage());
+				logger.warn("CONFIG ERROR: ", reply.cause().getMessage());
+			} else {
+				logger.warn("CONFIG : ", reply.result().body());
 			}
-		});
+		}); */
 	}
 }

@@ -40,7 +40,7 @@ public interface TopologyService {
 	 */
 	String SERVICE_ADDRESS = "service.topology";
 	
-	String FROTNEND_ADDRESS = "topology.to.frontend";
+	String FROTNEND_ADDRESS = "mvs.to.frontend";
 
 	String EVENT_ADDRESS = "topology.event";
 	

@@ -28,9 +28,10 @@ public class NotificationVerticle extends BaseMicroserviceVerticle {
         .setAddress(SERVICE_ADDRESS)
         .register(NotificationService.class, notificationService);
 
-     publishMessageSource("status-message-source", NotificationService.STATUS_ADDRESS)
+     /*publishMessageSource("status-message-source", NotificationService.STATUS_ADDRESS)
     	    .compose(sourcePublished -> deployRestVerticle(notificationService))
-          .onComplete(future);
+          .onComplete(future); */
+          deployRestVerticle(notificationService).onComplete(future);
   }
 
   private Future<Void> deployRestVerticle(NotificationService service) {

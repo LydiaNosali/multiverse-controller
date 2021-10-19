@@ -33,7 +33,7 @@ public interface ConfigurationService {
 	String SERVICE_ADDRESS = "service.configuration";
 	
 
-	String UI_ADDRESS = "nms.to.ui";
+	String FROTNEND_ADDRESS = "mvs.to.frontend";
 	
 	
 	void initializePersistence(Handler<AsyncResult<List<Integer>>> resultHandler);

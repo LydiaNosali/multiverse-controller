@@ -117,7 +117,7 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 	    // event bus bridge
 	    SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
 	    BridgeOptions bridgeOptions = new BridgeOptions()
-				.addOutboundPermitted(new PermittedOptions().setAddress("nms.to.ui"));
+				.addOutboundPermitted(new PermittedOptions().setAddress("mvs.to.frontend"));
 		sockJSHandler.bridge(bridgeOptions);
 		
 	    router.route("/eventbus/*").handler(sockJSHandler);
