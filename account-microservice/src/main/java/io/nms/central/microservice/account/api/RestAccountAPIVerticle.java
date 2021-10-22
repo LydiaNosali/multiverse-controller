@@ -41,6 +41,7 @@ public class RestAccountAPIVerticle extends RestAPIVerticle {
 		
 		router.put(API_ONE_AGENT).handler(this::checkAdminRole).handler(this::apiPutAgent);
 		router.get(API_ALL_AGENTS).handler(this::checkAdminRole).handler(this::apiGetAllAgents);
+		router.get(API_ONE_AGENT).handler(this::checkAdminRole).handler(this::apiGetAgent);
 		router.delete(API_ONE_AGENT).handler(this::checkAdminRole).handler(this::apiDeleteAgent);
 		
 
@@ -66,6 +67,10 @@ public class RestAccountAPIVerticle extends RestAPIVerticle {
 		Agent agent = Json.decodeValue(context.getBodyAsString(), Agent.class);
 		agent.setUsername(username);
 		service.saveAgent(agent, resultVoidHandler(context, 201));
+	}
+	private void apiGetAgent(RoutingContext context) {
+		String username = context.request().getParam("username");
+		service.retrieveAgent(username, resultHandlerNonEmpty(context));
 	}
 	private void apiGetAllAgents(RoutingContext context) {
 		service.retrieveAllAgents(resultHandler(context, Json::encodePrettily));

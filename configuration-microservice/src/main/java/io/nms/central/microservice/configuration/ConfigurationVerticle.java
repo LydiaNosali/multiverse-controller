@@ -11,7 +11,7 @@ import io.nms.central.microservice.configuration.impl.ConfigurationServiceImpl;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.serviceproxy.ProxyHelper;
+import io.vertx.serviceproxy.ServiceBinder;
 
 
 /**
@@ -23,14 +23,18 @@ public class ConfigurationVerticle extends BaseMicroserviceVerticle {
 	@Override
 	public void start(Future<Void> future) throws Exception {
 		super.start();
+		
 		// create the service instance
 		ConfigurationService configService = new ConfigurationServiceImpl(vertx, config());
+		
 		// register the service proxy on event bus
-		ProxyHelper.registerService(ConfigurationService.class, vertx, configService, SERVICE_ADDRESS);
+		new ServiceBinder(vertx)
+			.setAddress(SERVICE_ADDRESS)
+			.register(ConfigurationService.class, configService);
 
 		initConfigDatabase(configService)
-			.compose(databaseOkay -> publishEventBusService(SERVICE_NAME, SERVICE_ADDRESS, ConfigurationService.class))
-			.compose(servicePublished -> deployHandler(configService))
+	//		.compose(databaseOkay -> publishEventBusService(SERVICE_NAME, SERVICE_ADDRESS, ConfigurationService.class))
+			.compose(databaseOkay -> deployHandler(configService))
 			.compose(handlerPrepared -> deployRestVerticle(configService))
 			.onComplete(future);
 	}

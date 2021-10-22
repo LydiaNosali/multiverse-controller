@@ -13,10 +13,10 @@ import io.vertx.core.json.JsonObject;
 public class Vnode {
 
 	public enum TypeEnum {
-		ipSwitch("ipSwitch"),
-		ipRouter("ipRouter"),
-		ndnForwarder("ndnForwarder"),
-		endSystem("endSystem");
+		SWITCH("SWITCH"),
+		ROUTER("ROUTER"),
+		NDNFWD("NDNFWD"),
+		ENDSYS("ENDSYS");
 
 		private String value;
 		private TypeEnum(String value) { this.value = value; }

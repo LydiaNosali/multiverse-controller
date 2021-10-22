@@ -54,13 +54,15 @@ public class NotificationServiceImpl implements NotificationService {
 	public void processStatus(Status status, Handler<AsyncResult<Void>> resultHandler) { 
 		saveStatus(status, ar -> {
 			if (ar.succeeded()) {
-				sendStatusAwaitResult(status).onComplete(res -> {
+				/* sendStatusAwaitResult(status).onComplete(res -> {
 					if (res.succeeded()) {
 						resultHandler.handle(Future.succeededFuture(res.result()));
 					} else {
 						resultHandler.handle(Future.failedFuture(res.cause()));
 					}
-				});
+				}); */
+				sendStatusAwaitResult(status);
+				resultHandler.handle(Future.succeededFuture(ar.result()));
 			} else {
 				resultHandler.handle(Future.failedFuture(ar.cause()));
 			}
@@ -160,8 +162,9 @@ public class NotificationServiceImpl implements NotificationService {
 			healthTimers.put(resId, timerId);
 		}
 	}
-	private Future<Void> sendStatusAwaitResult(Status status) {
-		Promise<Void> promise = Promise.promise();
+	private void sendStatusAwaitResult(Status status) {
+		vertx.eventBus().publish(NotificationService.STATUS_ADDRESS, status.toJson());
+		/* Promise<Void> promise = Promise.promise();
 		vertx.eventBus().request(NotificationService.STATUS_ADDRESS, status.toJson(), reply -> {
 			if (reply.succeeded()) {
 				promise.complete();
@@ -169,10 +172,8 @@ public class NotificationServiceImpl implements NotificationService {
 				promise.fail(reply.cause());
 			}
 		});
-		return promise.future();
+		return promise.future(); */
 	}
-	
-	
 	
 	/* -------------- Event --------------- */
 	@Override

@@ -25,7 +25,7 @@ public class ApiSql {
 			"    `posx` INT,\n" + 
 			"    `posy` INT,\n" + 
 			"    `location` VARCHAR(50),\n" + 
-			"    `type` VARCHAR(10) NOT NULL,\n" +
+			"    `type` VARCHAR(50) NOT NULL,\n" +
 			"    `vsubnetId` INT NOT NULL,\n" +
 			"    `hwaddr` VARCHAR(50) NOT NULL UNIQUE,\n" + 
 			"    `mgmtIp` VARCHAR(20) NOT NULL UNIQUE,\n" + 
@@ -198,6 +198,32 @@ public class ApiSql {
 			"		 ON UPDATE CASCADE\n" +
 			")";
 	
+	public static final String CREATE_TABLE_CROSS_CONNECTS = "CREATE TABLE IF NOT EXISTS `CrossConnect` (\n" +
+			"    `id` INT NOT NULL AUTO_INCREMENT,\n" +
+			"    `name` VARCHAR(127) NOT NULL,\n" + 
+			"    `label` VARCHAR(255) NOT NULL,\n" + 
+			"    `description` VARCHAR(255) NOT NULL,\n" +
+			"    `switchId` INT NOT NULL,\n" +
+			"    `ingressPortId` INT NOT NULL UNIQUE,\n" +
+			"    `egressPortId` INT NOT NULL UNIQUE,\n" +
+			"    `created` DATETIME DEFAULT CURRENT_TIMESTAMP,\n" + 
+			"    `updated` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n" +
+			"    UNIQUE KEY (`ingressPortId`, `egressPortId`),\n" +
+			"    PRIMARY KEY (`id`),\n" + 
+			"    FOREIGN KEY (`ingressPortId`) \n" + 
+			"       REFERENCES Vltp(`id`)\n" + 
+			"       ON DELETE CASCADE\n" + 
+			"		ON UPDATE CASCADE,\n" +
+			"    FOREIGN KEY (`egressPortId`) \n" + 
+			"       REFERENCES Vltp(`id`)\n" + 
+			"       ON DELETE CASCADE\n" + 
+			"		ON UPDATE CASCADE,\n" +
+			"    FOREIGN KEY (`switchId`) \n" + 
+			"       REFERENCES Vnode(`id`)\n" + 
+			"       ON DELETE CASCADE\n" + 
+			"		ON UPDATE CASCADE\n" +
+			")";
+	
 	/*-------------------- INSERT ITEMS --------------------*/	
 	public static final String INSERT_VSUBNET = "INSERT INTO Vsubnet (name, label, description, info) VALUES (?, ?, ?, ?) "
 			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
@@ -229,6 +255,11 @@ public class ApiSql {
 	public static final String INSERT_VCONNECTION = "INSERT INTO Vconnection (name, label, description, info, status, srcVctpId, destVctpId) VALUES (?, ?, ?, ?, ?, ?, ?) "
 			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
 			+ "status = VALUES(status), srcVctpId = VALUES(srcVctpId), destVctpId = VALUES(destVctpId), "
+			+ "id=LAST_INSERT_ID(id)";
+
+	public static final String INSERT_CROSS_CONNECT = "INSERT INTO CrossConnect (name, label, description, switchId, ingressPortId, egressPortId) VALUES (?, ?, ?, ?, ?, ?) "
+			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), "
+			+ "switchId = VALUES(switchId), ingressPortId = VALUES(ingressPortId), egressPortId = VALUES(egressPortId), "
 			+ "id=LAST_INSERT_ID(id)";
 
 	// insert ignore for PUT
@@ -347,6 +378,11 @@ public class ApiSql {
 			+ "PrefixAnn.id, PrefixAnn.name, PrefixAnn.originId, PrefixAnn.available, PrefixAnn.created, PrefixAnn.updated "
 			+ "FROM PrefixAnn "
 			+ "WHERE PrefixAnn.originId = ?";
+	public static final String FETCH_CROSS_CONNECTS_BY_SWITCH = "SELECT "
+			+ "CrossConnect.id, CrossConnect.name, CrossConnect.label, CrossConnect.description, "
+			+ "CrossConnect.switchId, Vnode.mgmtIp as switchIpAddr, CrossConnect.ingressPortId, CrossConnect.egressPortId, "
+			+ "CrossConnect.created, CrossConnect.updated "
+			+ "FROM CrossConnect INNER JOIN Vnode ON CrossConnect.switchId = Vnode.id WHERE Vnode.id = ?";
 
 	/*-------------------- FETCH ITEMS BY ID --------------------*/
 	public static final String FETCH_VSUBNET_BY_ID = "SELECT "
@@ -391,6 +427,11 @@ public class ApiSql {
 			+ "Route.id, Route.paId, PrefixAnn.name AS prefix, Route.nodeId, Route.nextHopId, Route.faceId, Route.cost, Route.origin, "
 			+ "Route.created, Route.updated "
 			+ "FROM Route INNER JOIN PrefixAnn on Route.paId=PrefixAnn.id WHERE Route.id=?";
+	public static final String FETCH_CROSS_CONNECT_BY_ID = "SELECT "
+			+ "CrossConnect.id, CrossConnect.name, CrossConnect.label, CrossConnect.description, "
+			+ "CrossConnect.switchId, Vnode.mgmtIp as switchIpAddr, CrossConnect.ingressPortId, CrossConnect.egressPortId, "
+			+ "CrossConnect.created, CrossConnect.updated "
+			+ "FROM CrossConnect INNER JOIN Vnode ON CrossConnect.switchId = Vnode.id WHERE CrossConnect.id = ?";
 
 	/*-------------------- DELETE ITEMS BY ID --------------------*/
 	public static final String DELETE_VSUBNET = "DELETE FROM Vsubnet WHERE id=?";
@@ -404,6 +445,8 @@ public class ApiSql {
 	public static final String DELETE_PA = "DELETE FROM PrefixAnn WHERE id=?";
 	public static final String DELETE_PA_BY_NAME = "DELETE FROM PrefixAnn WHERE originId = ? AND name = ?";
 	public static final String DELETE_ROUTE = "DELETE FROM Route WHERE id=?";
+
+	public static final String DELETE_CROSS_CONNECT = "DELETE FROM CrossConnect WHERE id=?";
 	
 	// public static final String DELETE_FACE = "DELETE FROM Face WHERE id=?";
 
@@ -431,4 +474,19 @@ public class ApiSql {
 	public static final String UPDATE_VCONNECTION = "UPDATE Vconnection "
 			+ "SET label=IFNULL(?, label), description=IFNULL(?, description), info=IFNULL(?, info), status=IFNULL(?, status) "
 			+ "WHERE id = ?";
+
+	/*-------------------- CROSSCONNECT GET AND CHECK INFO --------------------*/
+	public static final String XC_CHECK_AND_GET_INFO = "SELECT "
+			+ "Vnode.mgmtIp AS switchIpAddr, ingress.port AS ingressPort, egress.port AS egressPort "
+			+ "FROM ((Vnode "
+			+ "INNER JOIN Vltp AS ingress ON Vnode.id = ingress.vnodeId) "
+			+ "INNER JOIN Vltp AS egress ON Vnode.id = egress.vnodeId) "
+			+ "WHERE Vnode.id = ? AND (ingress.id = ? AND egress.id = ?)";
+	public static final String XC_GET_INFO = "SELECT "
+			+ "Vnode.mgmtIp AS switchIpAddr, Vltp.port AS ingressPort "
+			+ "FROM ((CrossConnect "
+			+ "INNER JOIN Vltp ON Vltp.id = CrossConnect.ingressPortId) "
+			+ "INNER JOIN Vnode ON Vnode.id = CrossConnect.switchId) "
+			+ "WHERE CrossConnect.id = ?";
+
 }

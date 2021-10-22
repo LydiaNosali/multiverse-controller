@@ -10,16 +10,22 @@
     <version>1.0.0</version>
   </parent>
 
-  <artifactId>topology-microservice</artifactId>
+  <artifactId>crossconnect-microservice</artifactId>
 
   <properties>
-    <main.verticle>io.nms.central.microservice.topology.TopologyVerticle</main.verticle>
+    <main.verticle>io.nms.central.microservice.crossconnect.CrossconnectVerticle</main.verticle>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.nms.central</groupId>
       <artifactId>microservice-nms-common</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.nms.central</groupId>
+      <artifactId>topology-microservice</artifactId>
       <version>1.0.0</version>
     </dependency>
     
@@ -41,11 +47,6 @@
       <version>${mysql.conn.version}</version>
       <optional>true</optional>
     </dependency>
-    
-    <dependency>
- 	  <groupId>io.vertx</groupId>
- 	  <artifactId>vertx-web-client</artifactId>
- 	  </dependency>
   </dependencies>
 
   <build>

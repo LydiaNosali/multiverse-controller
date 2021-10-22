@@ -126,6 +126,21 @@ public class AccountServiceImpl implements AccountService {
 		});
 	}
 	@Override
+	public void retrieveAgent(String username, Handler<AsyncResult<Agent>> resultHandler) {
+		client.find(COLL_AGENT, new JsonObject().put("username", username), ar -> {
+			if (ar.succeeded()) {
+				if (ar.result().size() > 0) {
+					Agent agent = new Agent(ar.result().get(0));
+					resultHandler.handle(Future.succeededFuture(agent));
+				} else {
+					resultHandler.handle(Future.succeededFuture());
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
+			}
+		});
+	}
+	@Override
 	public void removeAgent(String username, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject query = new JsonObject().put("username", username);
 		client.removeDocument(COLL_AGENT, query, ar -> {
