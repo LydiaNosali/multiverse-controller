@@ -68,7 +68,7 @@ Open another terminal and issue the following commands:
 git clone https://github.com/multiverse-nms/multiverse-console.git
 cd multiverse-console
 docker build -t multiverse-console .
-docker run -it --rm --name multiverse-console -p 4443:443 --network=docker_nms -v <certs_location>/certs/console:/opt/data multiverse-console
+docker run -i --rm --name multiverse-console -p 4443:443 --network=docker_nms -v <certs_location>/certs/console:/opt/data multiverse-console
 ```
 
 ### Configuration
