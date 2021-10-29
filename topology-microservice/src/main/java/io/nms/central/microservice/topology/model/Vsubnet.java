@@ -26,7 +26,9 @@ public class Vsubnet {
 	public Vsubnet(int id) {
 		this.id = id;
 	}
-	public Vsubnet(JsonObject json) {}
+	public Vsubnet(JsonObject json) {
+		JSONUtils.fromJson(json, this, Vsubnet.class);
+	}
 
 	/*-----------------------------------------------*/
 

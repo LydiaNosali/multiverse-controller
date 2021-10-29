@@ -1,10 +1,12 @@
 package io.nms.central.microservice.configuration.api;
 
+import java.util.Base64;
+
 import io.nms.central.microservice.common.RestAPIVerticle;
 import io.nms.central.microservice.configuration.ConfigurationService;
 import io.nms.central.microservice.configuration.model.ConfigObj;
-import io.nms.central.microservice.notification.model.Fault;
-import io.nms.central.microservice.notification.model.Status;
+import io.nms.central.microservice.topology.TopologyService;
+import io.nms.central.microservice.topology.model.Prefix;
 import io.vertx.core.Future;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -13,7 +15,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.serviceproxy.ServiceProxyBuilder;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 
 /**
@@ -23,18 +28,20 @@ import io.vertx.core.http.HttpHeaders;
  */
 public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 
-	// private static final Logger logger = LoggerFactory.getLogger(RestConfigurationAPIVerticle.class);
+	private static final Logger logger = LoggerFactory.getLogger(RestConfigurationAPIVerticle.class);
 
 	public static final String SERVICE_NAME = "configuration-rest-api";
 	
 	private static final String API_VERSION = "/v";
+
+	private static final String API_PA = "/pa";
+	private static final String API_ONE_PA = "/pa/:name";
 
 	private static final String API_CANDIDATE_CONFIG = "/candidate-config";
 	private static final String API_ONE_CANDIDATE_CONFIG = "/candidate-config/:nodeId";
 
 	private static final String API_RUNNING_CONFIG = "/running-config";
 	private static final String API_ONE_RUNNING_CONFIG = "/running-config/:nodeId";
-
 
 	private final ConfigurationService service;
 
@@ -46,12 +53,14 @@ public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 	public void start(Future<Void> future) throws Exception {
 		super.start();
 		final Router router = Router.router(vertx);
-		// body handler
 		router.route().handler(BodyHandler.create());
-
-		// API route handler
 		router.get(API_VERSION).handler(this::apiVersion);
 		
+		// Prefix Annoucement API
+		router.post(API_PA).handler(this::checkAgentRole).handler(this::apiAddPrefixAnnouncement);
+		router.delete(API_ONE_PA).handler(this::checkAgentRole).handler(this::apiDeletePrefixAnnouncement);
+		
+		// Confguration API
 		router.get(API_ONE_CANDIDATE_CONFIG).handler(this::checkAdminRole).handler(this::apiGetUserCandidateConfig);
 		router.get(API_CANDIDATE_CONFIG).handler(this::checkAgentRole).handler(this::apiGetAgentCandidateConfig);		
 		router.delete(API_ONE_CANDIDATE_CONFIG).handler(this::checkAdminRole).handler(this::apiDeleteCandidateConfig);
@@ -80,6 +89,52 @@ public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 				.put("version", "v1").encodePrettily());
 	}
 
+	// Prefix Announcement API
+	private void apiAddPrefixAnnouncement(RoutingContext context) {
+		Prefix prefix;
+		try {
+			prefix = Json.decodeValue(context.getBodyAsString(), Prefix.class);
+		} catch (DecodeException e) {
+			badRequest(context, e);
+			return;
+		}
+		if (prefix.getName() == null) {
+			badRequest(context, new Throwable("name is missing"));
+			return;
+		}
+		if (!isBase64(prefix.getName())) {
+			badRequest(context, new Throwable("name must be a base64 string"));
+			return;
+		}
+
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		prefix.setOriginId(principal.getInteger("nodeId"));
+
+		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx)
+				.setAddress(TopologyService.SERVICE_ADDRESS);
+  		TopologyService service = builder.build(TopologyService.class);
+  
+  		service.addPrefix(prefix, res -> {
+			if (res.succeeded()) {
+				resultVoidHandler(context, 201).handle(Future.succeededFuture());
+			} else {
+				internalError(context, res.cause());
+			}
+		});
+	}
+	private void apiDeletePrefixAnnouncement(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		int originId = principal.getInteger("nodeId");
+		String name = context.request().getParam("name");
+
+		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx)
+				.setAddress(TopologyService.SERVICE_ADDRESS);
+  		TopologyService service = builder.build(TopologyService.class);
+  
+  		service.deletePrefixByName(originId, name, deleteResultHandler(context));
+	}
+
+	// Configuration API
 	private void apiGetUserCandidateConfig(RoutingContext context) {
 		int nodeId = Integer.valueOf(context.request().getParam("nodeId"));
 		getCandidateConfig(nodeId, context);
@@ -118,7 +173,7 @@ public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 		service.removeCandidateConfig(nodeId, deleteResultHandler(context));
 	}
 	
-	
+
 	private void apiGetUserRunningConfig(RoutingContext context) {
 		int nodeId = Integer.valueOf(context.request().getParam("nodeId"));
 		service.getRunningConfig(nodeId, resultHandlerNonEmpty(context));
@@ -160,6 +215,19 @@ public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 			}
 		} catch (DecodeException e) {
 			badRequest(context, new Throwable("wrong or missing request body"));
+		}
+	}
+
+	private boolean isBase64(String str) {
+		if (str.isEmpty()) {
+			return false;
+		}
+		Base64.Decoder decoder = Base64.getDecoder();
+		try {
+			decoder.decode(str);
+			return true;
+		} catch(IllegalArgumentException iae) {
+			return false;
 		}
 	}
 }

@@ -12,14 +12,14 @@ import io.vertx.core.json.JsonObject;
 @DataObject(generateConverter = true)
 public class Vnode {
 
-	public enum TypeEnum {
+	public enum NodeTypeEnum {
 		SWITCH("SWITCH"),
 		ROUTER("ROUTER"),
 		NDNFWD("NDNFWD"),
 		ENDSYS("ENDSYS");
 
 		private String value;
-		private TypeEnum(String value) { this.value = value; }
+		private NodeTypeEnum(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 	};
 
@@ -38,7 +38,7 @@ public class Vnode {
 	private int posx;
 	private int posy;
 	private int vsubnetId;
-	private TypeEnum type;
+	private NodeTypeEnum type;
 	private String hwaddr;
 	private String mgmtIp;
 
@@ -93,10 +93,10 @@ public class Vnode {
 		this.description = description;
 	}
 
-	public TypeEnum getType() {
+	public NodeTypeEnum getType() {
 		return type;
 	}
-	public void setType(TypeEnum type) {
+	public void setType(NodeTypeEnum type) {
 		this.type = type;
 	}
 

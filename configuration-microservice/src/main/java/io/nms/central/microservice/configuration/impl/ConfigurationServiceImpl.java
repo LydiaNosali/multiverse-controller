@@ -10,9 +10,11 @@ import io.nms.central.microservice.configuration.ConfigurationService;
 import io.nms.central.microservice.configuration.model.ConfigFace;
 import io.nms.central.microservice.configuration.model.ConfigObj;
 import io.nms.central.microservice.configuration.model.ConfigRoute;
+import io.nms.central.microservice.configuration.model.Route;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.nms.central.microservice.topology.model.NdnConnInfo;
-import io.nms.central.microservice.topology.model.Route;
+import io.nms.central.microservice.topology.model.Prefix;
+import io.nms.central.microservice.topology.model.Vconnection;
 import io.nms.central.microservice.topology.model.Vctp;
 import io.nms.central.microservice.topology.model.Vnode;
 import io.vertx.core.AsyncResult;
@@ -41,11 +43,11 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 	
 	private final MongoClient client;
 	private final Vertx vertx;
-	// private final ServiceDiscovery discovery;
+	private Routing routing;
 
 	public ConfigurationServiceImpl(Vertx vertx, JsonObject config) {
 		this.vertx = vertx;
-		// this.discovery = discovery;
+		routing = new Routing();
 		this.client = MongoClient.create(vertx, config);
 	}
 	
@@ -156,49 +158,85 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 			}
 		});
 	}
-	
-	
-	/* processing */
+
 	@Override
-	public void computeConfigurations(List<Route> routes, List<Vctp> faces, List<Vnode> nodes, 
-			Handler<AsyncResult<List<ConfigObj>>> resultHandler) {
+	public void computeConfigurations(List<Vnode> nodes, List<Vconnection> edges, List<Vctp> faces, 
+			List<Prefix> pas, Handler<AsyncResult<List<ConfigObj>>> resultHandler) {
 		
-		Map<Integer,ConfigObj> configsMap = new HashMap<Integer,ConfigObj>();
-		for (Vnode node : nodes) {
-			ConfigObj c = new ConfigObj();
-			c.setNodeId(node.getId());
-			configsMap.put(node.getId(), c);
-		}
-		
-		for (Vctp face : faces) {
-			int nodeId = face.getVnodeId();
-			if (!face.getStatus().equals(StatusEnum.DOWN)) {
-				ConfigFace cFace = new ConfigFace();
-				cFace.setId(face.getId());
-				cFace.setLocal(((NdnConnInfo) face.getConnInfo()).getLocal());
-				cFace.setRemote(((NdnConnInfo) face.getConnInfo()).getRemote());
-				cFace.setScheme(((NdnConnInfo) face.getConnInfo()).getScheme());
-				configsMap.get(nodeId).getConfig().addFace(cFace);
-			}
-		}
-		for (Route route : routes) {
-			int nodeId = route.getNodeId();
-			int faceId = route.getFaceId();
-			if (configsMap.get(nodeId).getConfig().hasFaceId(faceId)){
-				ConfigRoute cRoute = new ConfigRoute();
-				cRoute.setPrefix(route.getPrefix());
-				cRoute.setFaceId(faceId);
-				cRoute.setCost(route.getCost());
-				cRoute.setOrigin(route.getOrigin());
-				configsMap.get(nodeId).getConfig().addRoute(cRoute);
-			} else {
-				logger.warn("Route references nonexistent FaceId: " + faceId);
+		// keep active nodes only
+		List<Vnode> nodesUP = new ArrayList<Vnode>();
+		for (Vnode e: nodes) {
+			if (!e.getStatus().equals(StatusEnum.DOWN)) {
+				nodesUP.add(e);
 			}
 		}
 
-		List<ConfigObj> config = new ArrayList<ConfigObj>(configsMap.values());
-		resultHandler.handle(Future.succeededFuture(config));
+		// keep active edges only
+		List<Vconnection> edgesUP = new ArrayList<Vconnection>();
+		for (Vconnection e: edges) {
+			if (!e.getStatus().equals(StatusEnum.DOWN)) {
+				edgesUP.add(e);
+			}
+		}
+
+		// keep active PAs only
+		List<Prefix> pasUP = new ArrayList<Prefix>();
+		for (Prefix e: pas) {
+			if (e.getAvailable()) {
+				pasUP.add(e);
+			}
+		}
+
+		computeRoutes(nodesUP, edgesUP, pasUP, res -> {
+			if (res.succeeded()) {
+				List<Route> routes = res.result();
+
+				Map<Integer,ConfigObj> configsMap = new HashMap<Integer,ConfigObj>();
+				for (Vnode node : nodes) {
+					ConfigObj c = new ConfigObj();
+					c.setNodeId(node.getId());
+					configsMap.put(node.getId(), c);
+				}
+		
+				for (Vctp face : faces) {
+					int nodeId = face.getVnodeId();
+					if (!face.getStatus().equals(StatusEnum.DOWN)) {
+						ConfigFace cFace = new ConfigFace();
+						cFace.setId(face.getId());
+						cFace.setLocal(((NdnConnInfo) face.getConnInfo()).getLocal());
+						cFace.setRemote(((NdnConnInfo) face.getConnInfo()).getRemote());
+						cFace.setScheme(((NdnConnInfo) face.getConnInfo()).getScheme());
+						configsMap.get(nodeId).getConfig().addFace(cFace);
+					}
+				}
+				for (Route route : routes) {
+					int nodeId = route.getNodeId();
+					int faceId = route.getFaceId();
+					if (configsMap.get(nodeId).getConfig().hasFaceId(faceId)){
+						ConfigRoute cRoute = new ConfigRoute();
+						cRoute.setPrefix(route.getPrefix());
+						cRoute.setFaceId(faceId);
+						cRoute.setCost(route.getCost());
+						cRoute.setOrigin(route.getOrigin());
+						configsMap.get(nodeId).getConfig().addRoute(cRoute);
+					} else {
+						logger.warn("Route references nonexistent FaceId: " + faceId);
+					}
+				}
+				List<ConfigObj> config = new ArrayList<ConfigObj>(configsMap.values());
+				resultHandler.handle(Future.succeededFuture(config));
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 	}
+
+	@Override
+	public void computeRoutes(List<Vnode> nodes, List<Vconnection> edges, List<Prefix> pas, 
+			Handler<AsyncResult<List<Route>>> resultHandler) {
+		routing.computeRoutes(nodes, edges, pas).onComplete(resultHandler);
+	}
+
 	@Override
 	public void upsertCandidateConfigs(List<ConfigObj> configs, Handler<AsyncResult<Void>> resultHandler) {
 		List<Future> fts = new ArrayList<Future>();
@@ -227,8 +265,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 		CompositeFuture.all(fts).map((Void) null).onComplete(resultHandler);
 	}
 
-	
-	
+
 	private JsonObject computePatched(JsonObject origin, JsonArray patch) throws IllegalArgumentException {
 		String sPatched = rawPatch(origin.encode(), patch.encode());
 		return new JsonObject(sPatched);

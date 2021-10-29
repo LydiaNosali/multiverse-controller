@@ -1,4 +1,4 @@
-package io.nms.central.microservice.topology.impl;
+package io.nms.central.microservice.configuration.impl;
 
 import java.util.ArrayList;
 import java.util.HashMap;

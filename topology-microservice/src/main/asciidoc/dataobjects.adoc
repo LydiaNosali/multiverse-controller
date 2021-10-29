@@ -1,18 +1,23 @@
 = Cheatsheets
 
-[[Edge]]
-== Edge
+[[CrossConnect]]
+== CrossConnect
 
 
 [cols=">25%,25%,50%"]
 [frame="topbot"]
 |===
 ^|Name | Type ^| Description
-|[[destFaceId]]`@destFaceId`|`Number (int)`|-
-|[[destNodeId]]`@destNodeId`|`Number (int)`|-
+|[[created]]`@created`|`String`|-
+|[[description]]`@description`|`String`|-
+|[[egressPortId]]`@egressPortId`|`Number (int)`|-
 |[[id]]`@id`|`Number (int)`|-
-|[[srcFaceId]]`@srcFaceId`|`Number (int)`|-
-|[[srcNodeId]]`@srcNodeId`|`Number (int)`|-
+|[[ingressPortId]]`@ingressPortId`|`Number (int)`|-
+|[[label]]`@label`|`String`|-
+|[[name]]`@name`|`String`|-
+|[[switchId]]`@switchId`|`Number (int)`|-
+|[[switchIpAddr]]`@switchIpAddr`|`String`|-
+|[[updated]]`@updated`|`String`|-
 |===
 
 [[EtherConnInfo]]
@@ -66,19 +71,8 @@
 |[[vlan]]`@vlan`|`Number (int)`|-
 |===
 
-[[Node]]
-== Node
-
-
-[cols=">25%,25%,50%"]
-[frame="topbot"]
-|===
-^|Name | Type ^| Description
-|[[id]]`@id`|`Number (int)`|-
-|===
-
-[[PrefixAnn]]
-== PrefixAnn
+[[Prefix]]
+== Prefix
 
 
 [cols=">25%,25%,50%"]
@@ -90,26 +84,6 @@
 |[[id]]`@id`|`Number (int)`|-
 |[[name]]`@name`|`String`|-
 |[[originId]]`@originId`|`Number (Integer)`|-
-|[[updated]]`@updated`|`String`|-
-|===
-
-[[Route]]
-== Route
-
-
-[cols=">25%,25%,50%"]
-[frame="topbot"]
-|===
-^|Name | Type ^| Description
-|[[cost]]`@cost`|`Number (Integer)`|-
-|[[created]]`@created`|`String`|-
-|[[faceId]]`@faceId`|`Number (Integer)`|-
-|[[id]]`@id`|`Number (int)`|-
-|[[nextHopId]]`@nextHopId`|`Number (Integer)`|-
-|[[nodeId]]`@nodeId`|`Number (Integer)`|-
-|[[origin]]`@origin`|`Number (Integer)`|-
-|[[paId]]`@paId`|`Number (Integer)`|-
-|[[prefix]]`@prefix`|`String`|-
 |[[updated]]`@updated`|`String`|-
 |===
 
@@ -259,11 +233,12 @@
 |[[id]]`@id`|`Number (int)`|-
 |[[label]]`@label`|`String`|-
 |[[location]]`@location`|`String`|-
+|[[mgmtIp]]`@mgmtIp`|`String`|-
 |[[name]]`@name`|`String`|-
 |[[posx]]`@posx`|`Number (int)`|-
 |[[posy]]`@posy`|`Number (int)`|-
 |[[status]]`@status`|`link:enums.html#StatusEnum[StatusEnum]`|-
-|[[type]]`@type`|`link:enums.html#TypeEnum[TypeEnum]`|-
+|[[type]]`@type`|`link:enums.html#NodeTypeEnum[NodeTypeEnum]`|-
 |[[updated]]`@updated`|`String`|-
 |[[vsubnetId]]`@vsubnetId`|`Number (int)`|-
 |===

@@ -37,7 +37,9 @@ public class Vlink {
 	public Vlink(int id) {
 		this.id = id;
 	}
-	public Vlink(JsonObject json) {}
+	public Vlink(JsonObject json) {
+		JSONUtils.fromJson(json, this, Vlink.class);
+	}
 	
 	/*-----------------------------------------------*/
 

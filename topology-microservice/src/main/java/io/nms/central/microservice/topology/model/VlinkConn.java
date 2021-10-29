@@ -39,7 +39,9 @@ public class VlinkConn {
 	public VlinkConn(int id) {
 		this.id = id;
 	}
-	public VlinkConn(JsonObject json) {}
+	public VlinkConn(JsonObject json) {
+		JSONUtils.fromJson(json, this, VlinkConn.class);
+	}
 	
 	/*-----------------------------------------------*/
 

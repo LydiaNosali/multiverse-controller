@@ -1,7 +1,6 @@
 package io.nms.central.microservice.topology.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -13,15 +12,13 @@ import io.nms.central.microservice.common.service.JdbcRepositoryWrapper;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.nms.central.microservice.topology.TopologyService;
 import io.nms.central.microservice.topology.model.CrossConnect;
-import io.nms.central.microservice.topology.model.Edge;
 import io.nms.central.microservice.topology.model.EtherConnInfo;
 import io.nms.central.microservice.topology.model.NdnConnInfo;
-import io.nms.central.microservice.topology.model.Node;
-import io.nms.central.microservice.topology.model.PrefixAnn;
-import io.nms.central.microservice.topology.model.Route;
+import io.nms.central.microservice.topology.model.Prefix;
 import io.nms.central.microservice.topology.model.Vconnection;
 import io.nms.central.microservice.topology.model.Vctp;
 import io.nms.central.microservice.topology.model.Vctp.ConnTypeEnum;
+import io.nms.central.microservice.topology.model.Vnode.NodeTypeEnum;
 import io.nms.central.microservice.topology.model.Vlink;
 import io.nms.central.microservice.topology.model.VlinkConn;
 import io.nms.central.microservice.topology.model.Vltp;
@@ -45,13 +42,11 @@ import io.vertx.ext.web.client.WebClient;
 public class TopologyServiceImpl extends JdbcRepositoryWrapper implements TopologyService {
 
 	private static final Logger logger = LoggerFactory.getLogger(TopologyServiceImpl.class);
-	private Routing routing;
-	private WebClient webClient;
+	// private WebClient webClient;
 
 	public TopologyServiceImpl(Vertx vertx, JsonObject config) {
 		super(vertx, config);
-		routing = new Routing();
-		webClient = WebClient.create(vertx);
+		// webClient = WebClient.create(vertx);
 	}
 
 	@Override
@@ -64,8 +59,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		statements.add(ApiSql.CREATE_TABLE_VLINK);
 		statements.add(ApiSql.CREATE_TABLE_VLINKCONN);
 		statements.add(ApiSql.CREATE_TABLE_VCONNECTION);
-		statements.add(ApiSql.CREATE_TABLE_PA);
-		statements.add(ApiSql.CREATE_TABLE_ROUTE);
+		statements.add(ApiSql.CREATE_TABLE_PREFIX);
 		statements.add(ApiSql.CREATE_TABLE_CROSS_CONNECTS);
 		client.getConnection(conn -> {
 			if (conn.succeeded()) {
@@ -85,18 +79,26 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	}
 
 	private void initializeStatus(Handler<AsyncResult<Void>> resultHandler) {
-		this.retrieveAll(InternalSql.FETCH_ALL_NODE_IDS).onComplete(res -> {
-			if (res.succeeded()) {
-				List<JsonObject> nodeIds = res.result();
-				List<Future> futures = new ArrayList<>();
-				for (JsonObject nId : nodeIds) {
-					Promise<Void> p = Promise.promise();
-					futures.add(p.future());
-					updateNodeStatus(nId.getInteger("id"), StatusEnum.DOWN, p);
-				}
-				CompositeFuture.all(futures).map((Void) null).onComplete(resultHandler);
+		List<String> statements = new ArrayList<String>();
+		statements.add(InternalSql.INIT_NODE_STATUS);
+		statements.add(InternalSql.INIT_LTP_STATUS);
+		statements.add(InternalSql.INIT_CTP_STATUS);
+		statements.add(InternalSql.INIT_LINK_STATUS);
+		statements.add(InternalSql.INIT_LC_STATUS);
+		statements.add(InternalSql.INIT_CONNECTION_STATUS);
+		statements.add(InternalSql.INIT_PREFIX_STATUS);
+		client.getConnection(conn -> {
+			if (conn.succeeded()) {
+				conn.result().batch(statements, r -> {
+					conn.result().close();
+					if (r.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
+					} else {
+						resultHandler.handle(Future.failedFuture(r.cause()));
+					}
+				});
 			} else {
-				resultHandler.handle(Future.failedFuture(res.cause()));
+				resultHandler.handle(Future.failedFuture(conn.cause()));
 			}
 		});
 	}
@@ -198,6 +200,15 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getVnodesByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vnode>>> resultHandler) {
 		JsonArray params = new JsonArray().add(vsubnetId);
 		this.retrieveMany(params, ApiSql.FETCH_VNODES_BY_VSUBNET).map(rawList -> rawList.stream().map(row -> {
+			return JSONUtils.json2Pojo(row.encode(), Vnode.class);
+		}).collect(Collectors.toList())).onComplete(resultHandler);
+		return this;
+	}
+
+	@Override
+	public TopologyService getVnodesByType(NodeTypeEnum type, Handler<AsyncResult<List<Vnode>>> resultHandler) {
+		JsonArray params = new JsonArray().add(type.getValue());
+		this.retrieveMany(params, ApiSql.FETCH_VNODES_BY_TYPE).map(rawList -> rawList.stream().map(row -> {
 			return JSONUtils.json2Pojo(row.encode(), Vnode.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
@@ -455,8 +466,8 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	}
 
 	@Override
-	public TopologyService getVctpsByType(String type, Handler<AsyncResult<List<Vctp>>> resultHandler) {
-		JsonArray params = new JsonArray().add(type);
+	public TopologyService getVctpsByType(ConnTypeEnum type, Handler<AsyncResult<List<Vctp>>> resultHandler) {
+		JsonArray params = new JsonArray().add(type.getValue());
 		this.retrieveMany(params, ApiSql.FETCH_VCTPS_BY_TYPE).map(rawList -> rawList.stream().map(row -> {
 			if (row.getInteger("vltpId") == null) {
 				row.remove("vltpId");
@@ -740,8 +751,8 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	}
 
 	@Override
-	public TopologyService getVconnectionsByType(String type, Handler<AsyncResult<List<Vconnection>>> resultHandler) {
-		JsonArray params = new JsonArray().add(type);
+	public TopologyService getVconnectionsByType(ConnTypeEnum type, Handler<AsyncResult<List<Vconnection>>> resultHandler) {
+		JsonArray params = new JsonArray().add(type.getValue());
 		this.retrieveMany(params, ApiSql.FETCH_VCONNECTIONS_BY_TYPE).map(rawList -> rawList.stream().map(row -> {
 			return JSONUtils.json2Pojo(row.encode(), Vconnection.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
@@ -777,9 +788,17 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 
 	/********** PrefixAnn **********/
 	@Override
-	public TopologyService addPrefixAnn(PrefixAnn pa, Handler<AsyncResult<Void>> resultHandler) {
-		UUID op = UUID.randomUUID();
-		beginTxnAndLock(Entity.PA, op, InternalSql.LOCK_TABLES_FOR_ROUTE).onComplete(tx -> {
+	public TopologyService addPrefix(Prefix prefix, Handler<AsyncResult<Integer>> resultHandler) {
+		JsonArray params = new JsonArray()
+				.add(prefix.getName())
+				.add(prefix.getOriginId())
+				.add(prefix.getAvailable());
+
+		insertAndGetId(params, ApiSql.INSERT_PREFIX, resultHandler);
+		return this;
+
+		/* UUID op = UUID.randomUUID();
+		beginTxnAndLock(Entity.PA, op, InternalSql.LOCK_TABLES_FOR_PREFIX).onComplete(tx -> {
 			if (tx.succeeded()) {
 				JsonArray pNode = new JsonArray().add(pa.getOriginId());
 				globalRetrieveOne(pNode, InternalSql.GET_NODE_STATUS).map(option -> option.orElse(null))
@@ -791,21 +810,14 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 											.add(status.equals(StatusEnum.UP.getValue()));
 									globalInsert(params, ApiSql.INSERT_PA).onComplete(paId -> {
 										if (paId.succeeded()) {
-											// TODO: EVB to routing service
-											generateRoutesToPrefix(op, pa.getName(), ar -> {
-												if (ar.succeeded()) {
-													commitTxnAndUnlock(Entity.PA, op).onComplete(resultHandler);
-												} else {
-													rollbackAndUnlock();
-													resultHandler.handle(Future.failedFuture(ar.cause()));
-												}
-											});
+											commitTxnAndUnlock(Entity.PA, op).onComplete(resultHandler);
 										} else {
+											rollbackAndUnlock();
 											resultHandler.handle(Future.failedFuture(paId.cause()));
 										}
 									});
 								} else {
-									resultHandler.handle(Future.failedFuture("Origin not found"));
+									resultHandler.handle(Future.failedFuture("Origin node not found"));
 								}
 							} else {
 								resultHandler.handle(Future.failedFuture(res.cause()));
@@ -814,200 +826,55 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			} else {
 				resultHandler.handle(Future.failedFuture(tx.cause()));
 			}
-		});
-		return this;
+		}); */
 	}
 
 	@Override
-	public TopologyService getPrefixAnn(String paId, Handler<AsyncResult<PrefixAnn>> resultHandler) {
-		this.retrieveOne(paId, ApiSql.FETCH_PA_BY_ID).map(option -> option.map(PrefixAnn::new).orElse(null))
+	public TopologyService getPrefix(String prefixId, Handler<AsyncResult<Prefix>> resultHandler) {
+		this.retrieveOne(prefixId, ApiSql.FETCH_PREFIX_BY_ID).map(option -> option.map(Prefix::new).orElse(null))
 				.onComplete(resultHandler);
 		return this;
 	}
 
 	@Override
-	public TopologyService getAllPrefixAnns(Handler<AsyncResult<List<PrefixAnn>>> resultHandler) {
-		this.retrieveAll(ApiSql.FETCH_ALL_PAS)
-				.map(rawList -> rawList.stream().map(PrefixAnn::new).collect(Collectors.toList()))
+	public TopologyService getAllPrefixes(Handler<AsyncResult<List<Prefix>>> resultHandler) {
+		this.retrieveAll(ApiSql.FETCH_ALL_PREFIXES)
+				.map(rawList -> rawList.stream().map(Prefix::new).collect(Collectors.toList()))
 				.onComplete(resultHandler);
 		return this;
 	}
 
 	@Override
-	public TopologyService getPrefixAnnsByVsubnet(String vsubnetId,
-			Handler<AsyncResult<List<PrefixAnn>>> resultHandler) {
+	public TopologyService getPrefixesByVsubnet(String vsubnetId,
+			Handler<AsyncResult<List<Prefix>>> resultHandler) {
 		JsonArray params = new JsonArray().add(vsubnetId);
-		this.retrieveMany(params, ApiSql.FETCH_PAS_BY_VSUBNET)
-				.map(rawList -> rawList.stream().map(PrefixAnn::new).collect(Collectors.toList()))
+		this.retrieveMany(params, ApiSql.FETCH_PREFIXES_BY_VSUBNET)
+				.map(rawList -> rawList.stream().map(Prefix::new).collect(Collectors.toList()))
 				.onComplete(resultHandler);
 		return this;
 	}
 
 	@Override
-	public TopologyService getPrefixAnnsByVnode(String nodeId, Handler<AsyncResult<List<PrefixAnn>>> resultHandler) {
+	public TopologyService getPrefixesByVnode(String nodeId, Handler<AsyncResult<List<Prefix>>> resultHandler) {
 		JsonArray params = new JsonArray().add(nodeId);
-		this.retrieveMany(params, ApiSql.FETCH_PAS_BY_NODE)
-				.map(rawList -> rawList.stream().map(PrefixAnn::new).collect(Collectors.toList()))
+		this.retrieveMany(params, ApiSql.FETCH_PREFIXES_BY_NODE)
+				.map(rawList -> rawList.stream().map(Prefix::new).collect(Collectors.toList()))
 				.onComplete(resultHandler);
 		return this;
 	}
 
 	@Override
-	public TopologyService deletePrefixAnn(String prefixAnnId, Handler<AsyncResult<Void>> resultHandler) {
-		this.removeOne(prefixAnnId, ApiSql.DELETE_PA, resultHandler);
+	public TopologyService deletePrefix(String prefixId, Handler<AsyncResult<Void>> resultHandler) {
+		this.removeOne(prefixId, ApiSql.DELETE_PREFIX, resultHandler);
 		return this;
 	}
 
 	@Override
-	public TopologyService deletePrefixAnnByName(int originId, String name, Handler<AsyncResult<Void>> resultHandler) {
+	public TopologyService deletePrefixByName(int originId, String name, Handler<AsyncResult<Void>> resultHandler) {
 		JsonArray params = new JsonArray().add(originId).add(name);
-		this.executeNoResult(params, ApiSql.DELETE_PA_BY_NAME, resultHandler);
+		this.executeNoResult(params, ApiSql.DELETE_PREFIX_BY_NAME, resultHandler);
 		return this;
 	}
-
-	/********** Route **********/
-	@Override
-	public TopologyService addRoute(Route route, Handler<AsyncResult<Integer>> resultHandler) {
-		JsonArray params = new JsonArray().add(route.getPaId()).add(route.getNodeId()).add(route.getNextHopId())
-				.add(route.getFaceId()).add(route.getCost()).add(route.getOrigin());
-		insertAndGetId(params, ApiSql.INSERT_ROUTE, resultHandler);
-		return this;
-	}
-
-	@Override
-	public TopologyService getRoute(String routeId, Handler<AsyncResult<Route>> resultHandler) {
-		this.retrieveOne(routeId, ApiSql.FETCH_ROUTE_BY_ID).map(option -> option.map(Route::new).orElse(null))
-				.onComplete(resultHandler);
-		return this;
-	}
-
-	@Override
-	public TopologyService getAllRoutes(Handler<AsyncResult<List<Route>>> resultHandler) {
-		this.retrieveAll(ApiSql.FETCH_ALL_ROUTES)
-				.map(rawList -> rawList.stream().map(Route::new).collect(Collectors.toList()))
-				.onComplete(resultHandler);
-		return this;
-	}
-
-	@Override
-	public TopologyService getRoutesByVsubnet(String vsubnetId, Handler<AsyncResult<List<Route>>> resultHandler) {
-		JsonArray params = new JsonArray().add(vsubnetId);
-		this.retrieveMany(params, ApiSql.FETCH_ROUTES_BY_VSUBNET)
-				.map(rawList -> rawList.stream().map(Route::new).collect(Collectors.toList()))
-				.onComplete(resultHandler);
-		return this;
-	}
-
-	@Override
-	public TopologyService getRoutesByNode(String nodeId, Handler<AsyncResult<List<Route>>> resultHandler) {
-		JsonArray params = new JsonArray().add(nodeId);
-		this.retrieveMany(params, ApiSql.FETCH_ROUTES_BY_NODE)
-				.map(rawList -> rawList.stream().map(Route::new).collect(Collectors.toList()))
-				.onComplete(resultHandler);
-		return this;
-	}
-
-	@Override
-	public TopologyService deleteRoute(String routeId, Handler<AsyncResult<Void>> resultHandler) {
-		this.removeOne(routeId, ApiSql.DELETE_ROUTE, resultHandler);
-		return this;
-	}
-
-	public void generateRoutesToPrefix(UUID op, String name, Handler<AsyncResult<List<Route>>> resultHandler) {
-		UUID opp[] = { op };
-		if (op == null) {
-			opp[0] = UUID.randomUUID();
-		}
-		beginTxnAndLock(Entity.ROUTE, opp[0], InternalSql.LOCK_TABLES_FOR_ROUTE).onComplete(ar -> {
-			if (ar.succeeded()) {
-				Future<List<Node>> nodes = this.globalRetrieveAll(InternalSql.FETCH_ROUTEGEN_NODES)
-						.map(rawList -> rawList.stream().map(Node::new).collect(Collectors.toList()));
-				Future<List<Edge>> edges = this.globalRetrieveAll(InternalSql.FETCH_ROUTEGEN_CONNECTIONS)
-						.map(rawList -> rawList.stream().map(Edge::new).collect(Collectors.toList()));
-				JsonArray params = new JsonArray().add(name);
-				Future<List<PrefixAnn>> pas = this.globalRetrieveMany(params, InternalSql.FETCH_ROUTEGEN_PAS_BY_NAME)
-						.map(rawList -> rawList.stream().map(PrefixAnn::new).collect(Collectors.toList()));
-
-				Future<List<Route>> routes = CompositeFuture.all(Arrays.asList(nodes, edges, pas))
-						.compose(r -> routing.computeRoutes(nodes.result(), edges.result(), pas.result()));
-				routes.compose(r -> upsertRoutes(r, false)).compose(r -> commitTxnAndUnlock(Entity.ROUTE, opp[0]))
-						.onComplete(done -> {
-							if (done.succeeded()) {
-								resultHandler.handle(Future.succeededFuture(routes.result()));
-							} else {
-								rollbackAndUnlock();
-								resultHandler.handle(Future.failedFuture(done.cause()));
-							}
-						});
-			} else {
-				resultHandler.handle(Future.failedFuture(ar.cause()));
-			}
-		});
-	}
-
-	public void generateAllRoutes(UUID op, Handler<AsyncResult<List<Route>>> resultHandler) {
-		UUID opp[] = { op };
-		if (op == null) {
-			opp[0] = UUID.randomUUID();
-		}
-		beginTxnAndLock(Entity.ROUTE, opp[0], InternalSql.LOCK_TABLES_FOR_ROUTE).onComplete(ar -> {
-			if (ar.succeeded()) {
-				Future<List<Node>> nodes = this.globalRetrieveAll(InternalSql.FETCH_ROUTEGEN_NODES)
-						.map(rawList -> rawList.stream().map(Node::new).collect(Collectors.toList()));
-				Future<List<Edge>> edges = this.globalRetrieveAll(InternalSql.FETCH_ROUTEGEN_CONNECTIONS)
-						.map(rawList -> rawList.stream().map(Edge::new).collect(Collectors.toList()));
-				Future<List<PrefixAnn>> pas = this.globalRetrieveAll(InternalSql.FETCH_ROUTEGEN_ALL_PAS)
-						.map(rawList -> rawList.stream().map(PrefixAnn::new).collect(Collectors.toList()));
-
-				Future<List<Route>> routes = CompositeFuture.all(Arrays.asList(nodes, edges, pas))
-						.compose(r -> routing.computeRoutes(nodes.result(), edges.result(), pas.result()));
-				routes.compose(r -> upsertRoutes(r, true)).compose(r -> commitTxnAndUnlock(Entity.ROUTE, opp[0]))
-						.onComplete(done -> {
-							if (done.succeeded()) {
-								resultHandler.handle(Future.succeededFuture(routes.result()));
-							} else {
-								rollbackAndUnlock();
-								resultHandler.handle(Future.failedFuture(done.cause()));
-							}
-						});
-			} else {
-				resultHandler.handle(Future.failedFuture(ar.cause()));
-			}
-		});
-	}
-
-	private Future<Void> upsertRoutes(List<Route> routes, boolean clean) {
-		// always called after global TXN was init
-		Promise<Void> promise = Promise.promise();
-		Promise<Void> pClean = Promise.promise();
-		if (clean) {
-			globalExecute(InternalSql.DELETE_ALL_ROUTES).onComplete(pClean);
-		} else {
-			pClean.complete();
-		}
-		pClean.future().onComplete(ar -> {
-			if (ar.succeeded()) {
-				List<Future> fts = new ArrayList<>();
-				for (Route r : routes) {
-					Promise<Void> p = Promise.promise();
-					fts.add(p.future());
-					JsonArray params = new JsonArray()
-							.add(r.getPaId())
-							.add(r.getNodeId())
-							.add(r.getNextHopId())
-							.add(r.getFaceId())
-							.add(r.getCost())
-							.add(r.getOrigin());
-					globalExecute(params, InternalSql.UPDATE_ROUTE).onComplete(p.future());
-				}
-				CompositeFuture.all(fts).map((Void) null).onComplete(promise);
-			} else {
-				promise.fail(ar.cause());
-			}
-		});
-		return promise.future();
-	}
-
 
 	/********** CrossConnect **********/
 	@Override
@@ -1124,7 +991,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 								Promise<Void> p = Promise.promise();
 								futures.add(p.future());
 								JsonArray updPAs = new JsonArray().add(status.equals(StatusEnum.UP)).add(id);
-								globalExecute(updPAs, InternalSql.UPDATE_PA_STATUS_BY_NODE).onComplete(p);
+								globalExecute(updPAs, InternalSql.UPDATE_PREFIX_STATUS_BY_NODE).onComplete(p);
 
 								CompositeFuture.all(futures).map((Void) null).onComplete(done -> {
 									if (done.succeeded()) {
@@ -1439,16 +1306,9 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 						JsonArray uParams = new JsonArray().add(res.result()).add(id);
 						globalExecute(uParams, InternalSql.UPDATE_CONNECTION_STATUS).onComplete(arr -> {
 							if (arr.succeeded()) {
-								// Generate routes (NDN)
-								generateAllRoutes(opp[0], done -> {
-									if (done.succeeded()) {
-										commitTxnAndUnlock(Entity.CONNECTION, opp[0]).onComplete(resultHandler);
-									} else {
-										rollbackAndUnlock();
-										resultHandler.handle(Future.failedFuture(done.cause()));
-									}
-								});
+								commitTxnAndUnlock(Entity.CONNECTION, opp[0]).onComplete(resultHandler);
 							} else {
+								rollbackAndUnlock();
 								resultHandler.handle(Future.failedFuture(arr.cause()));
 							}
 						});
@@ -1463,6 +1323,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		return this;
 	}
 
+	/* Helper methods */
 	private UUID getUUID(String op) {
 		if (op == null) {
 			return UUID.randomUUID();

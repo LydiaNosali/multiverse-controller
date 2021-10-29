@@ -1,5 +1,6 @@
 package io.nms.central.microservice.topology.model;
 
+import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;

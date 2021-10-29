@@ -1,9 +1,5 @@
 package io.nms.central.microservice.topology.model;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import io.vertx.codegen.annotations.DataObject;
@@ -11,7 +7,7 @@ import io.vertx.core.json.JsonObject;
 
 
 @DataObject(generateConverter = true)
-public class PrefixAnn {
+public class Prefix {
 	
 	// in SQL table		
 	private int id;
@@ -23,19 +19,19 @@ public class PrefixAnn {
 	private Integer originId;
 	
 	/*-----------------------------------------------*/
-	public PrefixAnn() {}
+	public Prefix() {}
 	
-	public PrefixAnn(int id) {
+	public Prefix(int id) {
 		this.id = id;		
 	}
 	
-	public PrefixAnn(JsonObject json) {
-		PrefixAnnConverter.fromJson(json, this);
+	public Prefix(JsonObject json) {
+		PrefixConverter.fromJson(json, this);
 	}
 	
 	public JsonObject toJson() {
 		JsonObject json = new JsonObject();
-		PrefixAnnConverter.toJson(this, json);
+		PrefixConverter.toJson(this, json);
 		return json;
 	}
 	
@@ -46,7 +42,7 @@ public class PrefixAnn {
 
 	@Override
 	public boolean equals(Object obj) {
-		return Objects.equals(id, ((PrefixAnn) obj).id);
+		return Objects.equals(id, ((Prefix) obj).id);
 	}
 
 	

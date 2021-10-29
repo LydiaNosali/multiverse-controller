@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import com.hazelcast.spi.impl.AllowedDuringPassiveState;
-
 import io.nms.central.microservice.account.AccountService;
 import io.nms.central.microservice.account.model.Account;
 import io.nms.central.microservice.common.RestAPIVerticle;
@@ -26,7 +24,7 @@ import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.ext.auth.PubSecKeyOptions;
 import io.vertx.ext.auth.jwt.JWTAuth;
 import io.vertx.ext.auth.jwt.JWTAuthOptions;
-import io.vertx.ext.auth.jwt.JWTOptions;
+import io.vertx.ext.jwt.JWTOptions;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -180,7 +178,7 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 							.findAny(); // simple load balance
 
 					if (client.isPresent()) {
-						doDispatch(context, newPath, discovery.getReference(client.get()).get(), future.future());
+						doDispatch(context, newPath, discovery.getReference(client.get()).get(), future);
 					} else {
 						notFound(context);
 						future.complete();
@@ -203,7 +201,7 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 	 * @param path    relative path
 	 * @param client  relevant HTTP client
 	 */
-	private void doDispatch(RoutingContext context, String path, HttpClient client, Future<Object> cbFuture) {
+	private void doDispatch(RoutingContext context, String path, HttpClient client, Promise<Object> cbFuture) {
 		HttpClientRequest toReq = client
 				.request(context.request().method(), path, response -> {
 					response.bodyHandler(body -> {        	
@@ -261,7 +259,6 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 	}
 
 	// auth
-
 	private void userLoginHandler(RoutingContext context) {
 		String username = context.getBodyAsJson().getString("username");
 		String password = context.getBodyAsJson().getString("password");
@@ -278,9 +275,7 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 				JsonObject principal = new JsonObject()
 						.put("username", acc.getUsername())
 						.put("role", acc.getRole());
-				context.response()
-						.setStatusCode(200)
-						.end(jwt.generateToken(principal, new JWTOptions().setExpiresInMinutes(TOKEN_EXPIRES_MN)));
+				responseToken(context, jwt.generateToken(principal, new JWTOptions().setExpiresInMinutes(TOKEN_EXPIRES_MN)));
 			} else {
 				unauthorized(context);
 			}

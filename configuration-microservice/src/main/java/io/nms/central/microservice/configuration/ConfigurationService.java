@@ -4,8 +4,10 @@ import java.util.List;
 
 import io.nms.central.microservice.configuration.model.ConfigObj;
 import io.nms.central.microservice.topology.model.Vctp;
-import io.nms.central.microservice.topology.model.Route;
+import io.nms.central.microservice.topology.model.Prefix;
+import io.nms.central.microservice.topology.model.Vconnection;
 import io.nms.central.microservice.topology.model.Vnode;
+import io.nms.central.microservice.configuration.model.Route;
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.AsyncResult;
@@ -50,7 +52,8 @@ public interface ConfigurationService {
 	
 		
 	/* Processing */
-	void computeConfigurations(List<Route> routes, List<Vctp> faces, List<Vnode> nodes, Handler<AsyncResult<List<ConfigObj>>> resultHandler);
+	void computeRoutes(List<Vnode> nodes, List<Vconnection> links, List<Prefix> pas, Handler<AsyncResult<List<Route>>> resultHandler);
+	void computeConfigurations(List<Vnode> nodes, List<Vconnection> edges, List<Vctp> faces, List<Prefix> pas, Handler<AsyncResult<List<ConfigObj>>> resultHandler);
 	void upsertCandidateConfigs(List<ConfigObj> configs, Handler<AsyncResult<Void>> resultHandler);
 	
 }

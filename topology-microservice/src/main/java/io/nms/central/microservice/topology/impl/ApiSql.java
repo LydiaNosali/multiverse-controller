@@ -154,7 +154,7 @@ public class ApiSql {
 			"        ON DELETE CASCADE\n" + 
 			"        ON UPDATE CASCADE\n" + 
 			")";
-	public static final String CREATE_TABLE_PA = "CREATE TABLE IF NOT EXISTS PrefixAnn (\n" +
+	public static final String CREATE_TABLE_PREFIX = "CREATE TABLE IF NOT EXISTS Prefix (\n" +
 			"    `id` INT NOT NULL AUTO_INCREMENT,\n" +
 			"    `name` VARCHAR(255) NOT NULL,\n" + 
 			"    `originId` INT NOT NULL,\n" +
@@ -168,36 +168,6 @@ public class ApiSql {
 			"        ON DELETE CASCADE\n" + 
 			"		 ON UPDATE CASCADE\n" +
 			")";
-	public static final String CREATE_TABLE_ROUTE = "CREATE TABLE IF NOT EXISTS Route (\n" +
-			"    `id` INT NOT NULL AUTO_INCREMENT,\n" +
-			"    `paId` INT NOT NULL,\n" +
-			"    `nodeId` INT NOT NULL,\n" +
-			"    `nextHopId` INT NOT NULL,\n" +
-			"    `faceId` INT NOT NULL,\n" +
-			"    `cost` INT NOT NULL,\n" +
-			"    `origin` INT NOT NULL,\n" +
-			"    `created` DATETIME DEFAULT CURRENT_TIMESTAMP,\n" + 
-			"    `updated` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n" +
-			"    UNIQUE KEY (`paId`, `nodeId`),\n" +
-			"    PRIMARY KEY (`id`),\n" +
-			"    FOREIGN KEY (`paId`) \n" +
-			"        REFERENCES PrefixAnn(`id`)\n" + 
-			"        ON DELETE CASCADE\n" + 
-			"		 ON UPDATE CASCADE,\n" +
-			"    FOREIGN KEY (`nodeId`) \n" + 
-			"        REFERENCES Vnode(`id`)\n" + 
-			"        ON DELETE CASCADE\n" + 
-			"		 ON UPDATE CASCADE,\n" +
-			"    FOREIGN KEY (`nextHopId`) \n" + 
-			"        REFERENCES Vnode(`id`)\n" + 
-			"        ON DELETE CASCADE\n" + 
-			"		 ON UPDATE CASCADE,\n" +
-			"    FOREIGN KEY (`faceId`) \n" + 
-			"        REFERENCES Vctp(`id`)\n" + 
-			"        ON DELETE CASCADE\n" + 
-			"		 ON UPDATE CASCADE\n" +
-			")";
-	
 	public static final String CREATE_TABLE_CROSS_CONNECTS = "CREATE TABLE IF NOT EXISTS `CrossConnect` (\n" +
 			"    `id` INT NOT NULL AUTO_INCREMENT,\n" +
 			"    `name` VARCHAR(127) NOT NULL,\n" + 
@@ -263,9 +233,8 @@ public class ApiSql {
 			+ "id=LAST_INSERT_ID(id)";
 
 	// insert ignore for PUT
-	public static final String INSERT_PA = "INSERT IGNORE INTO PrefixAnn (name, originId, available) VALUES (?, ?, ?)";
-	public static final String INSERT_ROUTE = "INSERT INTO Route (paId, nodeId, nextHopId, faceId, cost, origin) VALUES (?, ?, ?, ?, ?, ?)";
-
+	public static final String INSERT_PREFIX = "INSERT IGNORE INTO Prefix (name, originId, available) VALUES (?, ?, ?)";
+	
 	/*-------------------- FETCH ALL ITEMS --------------------*/
 	public static final String FETCH_ALL_VSUBNETS = "SELECT "
 			+ "id, name, label, description, info, created, updated FROM Vsubnet";
@@ -294,17 +263,16 @@ public class ApiSql {
 			+ "FROM ((Vconnection "
 			+ "INNER JOIN Vctp AS sCtp ON Vconnection.srcVctpId=sCtp.id) "
 			+ "INNER JOIN Vctp AS dCtp ON Vconnection.destVctpId=dCtp.id)";
-	public static final String FETCH_ALL_PAS = "SELECT "
-			+ "id, name, originId, available, created, updated FROM PrefixAnn";
-	public static final String FETCH_ALL_ROUTES = "SELECT "
-			+ "Route.id, Route.paId, PrefixAnn.name AS prefix, Route.nodeId, Route.nextHopId, Route.faceId, Route.cost, Route.origin, "
-			+ "Route.created, Route.updated "
-			+ "FROM Route INNER JOIN PrefixAnn on Route.paId=PrefixAnn.id";
+	public static final String FETCH_ALL_PREFIXES = "SELECT "
+			+ "id, name, originId, available, created, updated FROM Prefix";
 
 	/*-------------------- FETCH ITEMS BY ANOTHER --------------------*/
 	public static final String FETCH_VNODES_BY_VSUBNET = "SELECT "
 			+ "id, name, label, description, info, status, created, updated, posx, posy, location, type, vsubnetId, hwaddr, mgmtIp "
 			+ "FROM Vnode WHERE vsubnetId = ?";
+	public static final String FETCH_VNODES_BY_TYPE = "SELECT "
+			+ "id, name, label, description, info, status, created, updated, posx, posy, location, type, vsubnetId, hwaddr, mgmtIp "
+			+ "FROM Vnode WHERE type = ?";
 	public static final String FETCH_VLINKS_BY_VSUBNET = "SELECT "
 			+ "Vlink.id, Vlink.name, Vlink.label, Vlink.description, Vlink.info, Vlink.status, Vlink.created, Vlink.updated, "
 			+ "Vlink.srcVltpId, Vlink.destVltpId, " 
@@ -339,17 +307,11 @@ public class ApiSql {
 			+ "INNER JOIN Vctp as sCtp ON Vnode.id=sCtp.vnodeId "
 			+ "INNER JOIN Vconnection ON sCtp.id=Vconnection.srcVctpId "
 			+ "INNER JOIN Vctp as dCtp ON Vconnection.destVctpId=dCtp.id "
-			+ "WHERE Vnode.vsubnetId = ?";	
-	public static final String FETCH_PAS_BY_VSUBNET = "SELECT "
-			+ "PrefixAnn.id, PrefixAnn.name, PrefixAnn.originId, PrefixAnn.available, PrefixAnn.created, PrefixAnn.updated "
-			+ "FROM Vnode "
-			+ "INNER JOIN PrefixAnn ON Vnode.id=PrefixAnn.originId "
 			+ "WHERE Vnode.vsubnetId = ?";
-	public static final String FETCH_ROUTES_BY_VSUBNET = "SELECT "
-			+ "Route.id, Route.paId, PrefixAnn.name AS prefix, Route.nodeId, Route.nextHopId, Route.faceId, Route.cost, Route.origin, "
-			+ "Route.created, Route.updated "
+	public static final String FETCH_PREFIXES_BY_VSUBNET = "SELECT "
+			+ "Prefix.id, Prefix.name, Prefix.originId, Prefix.available, Prefix.created, Prefix.updated "
 			+ "FROM Vnode "
-			+ "INNER JOIN Route ON Vnode.id=Route.nodeId INNER JOIN PrefixAnn on Route.paId=PrefixAnn.id "
+			+ "INNER JOIN Prefix ON Vnode.id=Prefix.originId "
 			+ "WHERE Vnode.vsubnetId = ?";
 	public static final String FETCH_VLTPS_BY_VNODE = "SELECT "
 			+ "id, name, label, description, info, status, created, updated, vnodeId, port, bandwidth, mtu, busy "
@@ -370,14 +332,10 @@ public class ApiSql {
 			+ "INNER JOIN Vctp AS sCtp ON VlinkConn.srcVctpId=sCtp.id INNER JOIN Vltp AS sLtp ON sCtp.vltpId=sLtp.id) "
 			+ "INNER JOIN Vctp AS dCtp ON VlinkConn.destVctpId=dCtp.id INNER JOIN Vltp AS dLtp ON dCtp.vltpId=dLtp.id) "
 			+ "WHERE VlinkConn.vlinkId = ?";
-	public static final String FETCH_ROUTES_BY_NODE = "SELECT "
-			+ "Route.id, Route.paId, PrefixAnn.name AS prefix, Route.nodeId, Route.nextHopId, Route.faceId, Route.cost, Route.origin, "
-			+ "Route.created, Route.updated "
-			+ "FROM Route INNER JOIN PrefixAnn on Route.paId=PrefixAnn.id WHERE Route.nodeId = ?";
-	public static final String FETCH_PAS_BY_NODE = "SELECT "
-			+ "PrefixAnn.id, PrefixAnn.name, PrefixAnn.originId, PrefixAnn.available, PrefixAnn.created, PrefixAnn.updated "
-			+ "FROM PrefixAnn "
-			+ "WHERE PrefixAnn.originId = ?";
+	public static final String FETCH_PREFIXES_BY_NODE = "SELECT "
+			+ "Prefix.id, Prefix.name, Prefix.originId, Prefix.available, Prefix.created, Prefix.updated "
+			+ "FROM Prefix "
+			+ "WHERE Prefix.originId = ?";
 	public static final String FETCH_CROSS_CONNECTS_BY_SWITCH = "SELECT "
 			+ "CrossConnect.id, CrossConnect.name, CrossConnect.label, CrossConnect.description, "
 			+ "CrossConnect.switchId, Vnode.mgmtIp as switchIpAddr, CrossConnect.ingressPortId, CrossConnect.egressPortId, "
@@ -420,13 +378,9 @@ public class ApiSql {
 			+ "INNER JOIN Vctp AS sCtp ON Vconnection.srcVctpId=sCtp.id) "
 			+ "INNER JOIN Vctp AS dCtp ON Vconnection.destVctpId=dCtp.id) "
 			+ "WHERE Vconnection.id = ?";
-	public static final String FETCH_PA_BY_ID = "SELECT "
+	public static final String FETCH_PREFIX_BY_ID = "SELECT "
 			+ "id, name, originId, available, created, updated "
-			+ "FROM PrefixAnn WHERE id=?";
-	public static final String FETCH_ROUTE_BY_ID = "SELECT "
-			+ "Route.id, Route.paId, PrefixAnn.name AS prefix, Route.nodeId, Route.nextHopId, Route.faceId, Route.cost, Route.origin, "
-			+ "Route.created, Route.updated "
-			+ "FROM Route INNER JOIN PrefixAnn on Route.paId=PrefixAnn.id WHERE Route.id=?";
+			+ "FROM Prefix WHERE id=?";
 	public static final String FETCH_CROSS_CONNECT_BY_ID = "SELECT "
 			+ "CrossConnect.id, CrossConnect.name, CrossConnect.label, CrossConnect.description, "
 			+ "CrossConnect.switchId, Vnode.mgmtIp as switchIpAddr, CrossConnect.ingressPortId, CrossConnect.egressPortId, "
@@ -441,14 +395,10 @@ public class ApiSql {
 	public static final String DELETE_VLINK = "DELETE FROM Vlink WHERE id=?";
 	public static final String DELETE_VLINKCONN = "DELETE FROM VlinkConn WHERE id=?";
 	public static final String DELETE_VCONNECTION = "DELETE FROM Vconnection WHERE id=?";
-	
-	public static final String DELETE_PA = "DELETE FROM PrefixAnn WHERE id=?";
-	public static final String DELETE_PA_BY_NAME = "DELETE FROM PrefixAnn WHERE originId = ? AND name = ?";
+	public static final String DELETE_PREFIX = "DELETE FROM Prefix WHERE id=?";
+	public static final String DELETE_PREFIX_BY_NAME = "DELETE FROM Prefix WHERE originId = ? AND name = ?";
 	public static final String DELETE_ROUTE = "DELETE FROM Route WHERE id=?";
-
 	public static final String DELETE_CROSS_CONNECT = "DELETE FROM CrossConnect WHERE id=?";
-	
-	// public static final String DELETE_FACE = "DELETE FROM Face WHERE id=?";
 
 	/*-------------------- UPDATE ITEMS BY ID --------------------*/
 	public static final String UPDATE_VSUBNET = "UPDATE Vsubnet "
@@ -488,5 +438,4 @@ public class ApiSql {
 			+ "INNER JOIN Vltp ON Vltp.id = CrossConnect.ingressPortId) "
 			+ "INNER JOIN Vnode ON Vnode.id = CrossConnect.switchId) "
 			+ "WHERE CrossConnect.id = ?";
-
 }

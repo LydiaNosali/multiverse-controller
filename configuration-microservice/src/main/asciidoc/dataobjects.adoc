@@ -52,3 +52,23 @@
 |[[prefix]]`@prefix`|`String`|-
 |===
 
+[[Route]]
+== Route
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[cost]]`@cost`|`Number (Integer)`|-
+|[[created]]`@created`|`String`|-
+|[[faceId]]`@faceId`|`Number (Integer)`|-
+|[[id]]`@id`|`Number (int)`|-
+|[[nextHopId]]`@nextHopId`|`Number (Integer)`|-
+|[[nodeId]]`@nodeId`|`Number (Integer)`|-
+|[[origin]]`@origin`|`Number (Integer)`|-
+|[[paId]]`@paId`|`Number (Integer)`|-
+|[[prefix]]`@prefix`|`String`|-
+|[[updated]]`@updated`|`String`|-
+|===
+

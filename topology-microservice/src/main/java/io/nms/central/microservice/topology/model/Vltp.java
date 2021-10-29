@@ -35,7 +35,9 @@ public class Vltp {
 	public Vltp(int id) {
 		this.id = id;		
 	}
-	public Vltp(JsonObject json) {}
+	public Vltp(JsonObject json) {
+		JSONUtils.fromJson(json, this, Vltp.class);
+	}
 
 	/*-----------------------------------------------*/
 	

@@ -179,7 +179,7 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 				context.response()
 						.setStatusCode(201)
 						.putHeader("content-type", "application/json")
-// 						.putHeader("Location", location + "/" + id)
+ 						.putHeader("Location", location + "/" + id)
 						.end(new JsonObject().put("id", id).encode());
 			} else {
 				badRequest(context, ar.cause());

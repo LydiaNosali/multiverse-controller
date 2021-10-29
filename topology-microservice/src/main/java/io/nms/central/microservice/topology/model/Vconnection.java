@@ -13,7 +13,7 @@ import io.vertx.core.json.JsonObject;
 public class Vconnection {
 
 		// common fields
-	private int id;
+	private int id = 0;
 	private String name;
 	private String label;
 	private String description;
@@ -36,7 +36,9 @@ public class Vconnection {
 	public Vconnection(int id) {
 		this.id = id;
 	}
-	public Vconnection(JsonObject json) {}
+	public Vconnection(JsonObject json) {
+		JSONUtils.fromJson(json, this, Vconnection.class);
+	}
 	
 	/*-----------------------------------------------*/
 
