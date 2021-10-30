@@ -927,9 +927,9 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	}
 
 	@Override
-	public TopologyService getCrossConnectsBySwtich(String switchId, Handler<AsyncResult<List<CrossConnect>>> resultHandler) {
-		JsonArray params = new JsonArray().add(switchId);
-		this.retrieveMany(params, ApiSql.FETCH_CROSS_CONNECTS_BY_SWITCH).map(rawList -> rawList.stream().map(row -> {
+	public TopologyService getCrossConnectsByNode(String nodeId, Handler<AsyncResult<List<CrossConnect>>> resultHandler) {
+		JsonArray params = new JsonArray().add(nodeId);
+		this.retrieveMany(params, ApiSql.FETCH_CROSS_CONNECTS_BY_NODE).map(rawList -> rawList.stream().map(row -> {
 			return JSONUtils.json2Pojo(row.encode(), CrossConnect.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;

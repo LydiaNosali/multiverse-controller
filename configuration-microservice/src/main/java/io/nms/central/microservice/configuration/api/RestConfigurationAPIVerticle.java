@@ -37,8 +37,8 @@ public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 	private static final String API_PA = "/pa";
 	private static final String API_ONE_PA = "/pa/:name";
 
-	private static final String API_CANDIDATE_CONFIG = "/candidate-config";
-	private static final String API_ONE_CANDIDATE_CONFIG = "/candidate-config/:nodeId";
+	private static final String API_CANDIDATE_CONFIG = "/intended-config";
+	private static final String API_ONE_CANDIDATE_CONFIG = "/intended-config/:nodeId";
 
 	private static final String API_RUNNING_CONFIG = "/running-config";
 	private static final String API_ONE_RUNNING_CONFIG = "/running-config/:nodeId";
@@ -63,11 +63,11 @@ public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 		// Confguration API
 		router.get(API_ONE_CANDIDATE_CONFIG).handler(this::checkAdminRole).handler(this::apiGetUserCandidateConfig);
 		router.get(API_CANDIDATE_CONFIG).handler(this::checkAgentRole).handler(this::apiGetAgentCandidateConfig);		
-		router.delete(API_ONE_CANDIDATE_CONFIG).handler(this::checkAdminRole).handler(this::apiDeleteCandidateConfig);
+		// router.delete(API_ONE_CANDIDATE_CONFIG).handler(this::checkAdminRole).handler(this::apiDeleteCandidateConfig);
 		
 		router.get(API_ONE_RUNNING_CONFIG).handler(this::checkAdminRole).handler(this::apiGetUserRunningConfig);
 		router.get(API_RUNNING_CONFIG).handler(this::checkAgentRole).handler(this::apiGetAgentRunningConfig);
-		router.delete(API_ONE_RUNNING_CONFIG).handler(this::checkAdminRole).handler(this::apiDeleteRunningConfig);
+		// router.delete(API_ONE_RUNNING_CONFIG).handler(this::checkAdminRole).handler(this::apiDeleteRunningConfig);
 		
 		router.put(API_RUNNING_CONFIG).handler(this::checkAgentRole).handler(this::apiPutAgentRunningConfig);
 		router.patch(API_RUNNING_CONFIG).handler(this::checkAgentRole).handler(this::apiPatchAgentRunningConfig);
@@ -78,8 +78,8 @@ public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 
 		// create HTTP server and publish REST service
 		createHttpServer(router, host, port)
-		.compose(serverCreated -> publishHttpEndpoint(SERVICE_NAME, host, port))
-		.onComplete(future);
+				.compose(serverCreated -> publishHttpEndpoint(SERVICE_NAME, host, port))
+				.onComplete(future);
 	}
 
 	private void apiVersion(RoutingContext context) { 
@@ -168,12 +168,11 @@ public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 			}
 		});
 	}
-	private void apiDeleteCandidateConfig(RoutingContext context) {
+	/* private void apiDeleteCandidateConfig(RoutingContext context) {
 		int nodeId = Integer.valueOf(context.request().getParam("nodeId"));
 		service.removeCandidateConfig(nodeId, deleteResultHandler(context));
-	}
+	} */
 	
-
 	private void apiGetUserRunningConfig(RoutingContext context) {
 		int nodeId = Integer.valueOf(context.request().getParam("nodeId"));
 		service.getRunningConfig(nodeId, resultHandlerNonEmpty(context));
@@ -183,13 +182,11 @@ public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 		int nodeId = principal.getInteger("nodeId");
 		service.getRunningConfig(nodeId, resultHandlerNonEmpty(context));
 	}
-	private void apiDeleteRunningConfig(RoutingContext context) {
+	/* private void apiDeleteRunningConfig(RoutingContext context) {
 		int nodeId = Integer.valueOf(context.request().getParam("nodeId"));
 		service.removeRunningConfig(nodeId, deleteResultHandler(context));
-	}
+	} */
 
- 
-	// support PUT and PATCH: json patch an be larger than the whole put object
 	private void apiPutAgentRunningConfig(RoutingContext context) {
 		ConfigObj config;
 		try {
@@ -202,7 +199,6 @@ public class RestConfigurationAPIVerticle extends RestAPIVerticle {
 		int nodeId = principal.getInteger("nodeId");
 		service.upsertRunningConfig(nodeId, config, resultVoidHandler(context, 201));
 	}
-	
 	private void apiPatchAgentRunningConfig(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		int nodeId = principal.getInteger("nodeId");

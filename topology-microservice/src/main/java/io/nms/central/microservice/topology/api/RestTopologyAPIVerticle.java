@@ -76,9 +76,9 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private static final String API_PREFIXES_BY_SUBNET = "/subnet/:subnetId/prefixes";
 	private static final String API_PREFIXES_BY_NODE = "/node/:nodeId/prefixes";
 
-	private static final String API_ONE_CROSS_CONNECT = "/cross-connect/:xcId";
+	private static final String API_ONE_CROSS_CONNECT = "/cross-connect/:id";
 	private static final String API_ALL_CROSS_CONNECTS = "/cross-connect";
-	private static final String API_CROSS_CONNECTS_BY_SWITCH = "/switch/:switchId/cross-connects";
+	private static final String API_CROSS_CONNECTS_BY_NODE = "/node/:id/cross-connects";
 
 	private final TopologyService service;
 
@@ -158,7 +158,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		router.delete(API_ONE_PREFIX).handler(this::checkAdminRole).handler(this::apiDeletePrefix);
 		
 		router.post(API_ALL_CROSS_CONNECTS).handler(this::checkAdminRole).handler(this::apiAddCrossConnect);
-		router.get(API_CROSS_CONNECTS_BY_SWITCH).handler(this::checkAdminRole).handler(this::apiGetCrossConnectsBySwitch);
+		router.get(API_CROSS_CONNECTS_BY_NODE).handler(this::checkAdminRole).handler(this::apiGetCrossConnectsByNode);
 		router.get(API_ONE_CROSS_CONNECT).handler(this::checkAdminRole).handler(this::apiGetCrossConnectById);
 		router.delete(API_ONE_CROSS_CONNECT).handler(this::checkAdminRole).handler(this::apiDeleteCrossConnect);
 
@@ -299,7 +299,6 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private void apiAddCtp(RoutingContext context) {
 		try {
 			final Vctp vctp = JSONUtils.json2PojoE(context.getBodyAsString(), Vctp.class);
-			// service.addVctp(vctp, createResultHandler(context, "/ctp"));
 			service.addVctp(vctp, res -> {
 				if (res.succeeded()) {
 					notifyTopologyChange();
@@ -520,15 +519,15 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		}
 	}
 	private void apiGetCrossConnectById(RoutingContext context) {
-		String xcId = context.request().getParam("xcId");
+		String xcId = context.request().getParam("id");
 		service.getCrossConnectById(xcId, resultHandlerNonEmpty(context));
 	}
-	private void apiGetCrossConnectsBySwitch(RoutingContext context) {
-		String switchId = context.request().getParam("switchId");
-		service.getCrossConnectsBySwtich(switchId, resultHandler(context, Json::encodePrettily));
+	private void apiGetCrossConnectsByNode(RoutingContext context) {
+		String nodeId = context.request().getParam("id");
+		service.getCrossConnectsByNode(nodeId, resultHandler(context, Json::encodePrettily));
 	}
 	private void apiDeleteCrossConnect(RoutingContext context) {
-		String xcId = context.request().getParam("xcId");
+		String xcId = context.request().getParam("id");
 		service.deleteCrossConnect(xcId, deleteResultHandler(context));
 	}
 

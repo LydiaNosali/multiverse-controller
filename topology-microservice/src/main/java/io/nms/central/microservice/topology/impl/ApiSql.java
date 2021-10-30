@@ -336,7 +336,7 @@ public class ApiSql {
 			+ "Prefix.id, Prefix.name, Prefix.originId, Prefix.available, Prefix.created, Prefix.updated "
 			+ "FROM Prefix "
 			+ "WHERE Prefix.originId = ?";
-	public static final String FETCH_CROSS_CONNECTS_BY_SWITCH = "SELECT "
+	public static final String FETCH_CROSS_CONNECTS_BY_NODE = "SELECT "
 			+ "CrossConnect.id, CrossConnect.name, CrossConnect.label, CrossConnect.description, "
 			+ "CrossConnect.switchId, Vnode.mgmtIp as switchIpAddr, CrossConnect.ingressPortId, CrossConnect.egressPortId, "
 			+ "CrossConnect.created, CrossConnect.updated "

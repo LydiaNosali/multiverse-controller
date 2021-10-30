@@ -235,7 +235,7 @@ public interface TopologyService {
 	TopologyService getCrossConnectById(String crossConnectId, Handler<AsyncResult<CrossConnect>> resultHandler);
 	
 	@Fluent	
-	TopologyService getCrossConnectsBySwtich(String switchId, Handler<AsyncResult<List<CrossConnect>>> resultHandler);
+	TopologyService getCrossConnectsByNode(String nodeId, Handler<AsyncResult<List<CrossConnect>>> resultHandler);
 	
 	@Fluent	
 	TopologyService deleteCrossConnect(String crossConnectId, Handler<AsyncResult<Void>> resultHandler);
