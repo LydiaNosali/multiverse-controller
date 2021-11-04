@@ -8,11 +8,14 @@ do
     sleep 1
 done
 
+# export volume location
+export CONTROLLER_VOL=$1
+
 # Stop
 docker-compose -f docker-compose.yml stop
 
 # Start persistence containers only
-docker-compose -f docker-compose.yml up -d mysql mongo activemq
+docker-compose -f docker-compose.yml up -d mysql mongo activemq neo4j
 echo "Waiting for persistence init..."
 sleep 20
 
@@ -30,11 +33,14 @@ sleep 1
 # topology
 java -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../topology-microservice/target/topology-microservice-fat.jar -cluster -ha -conf ../topology-microservice/src/config/local.json &
 sleep 1
-# crossconnect
-java -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../crossconnect-microservice/target/crossconnect-microservice-fat.jar -cluster -ha -conf ../crossconnect-microservice/src/config/local.json &
+# digital twin
+java -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../digitaltwin-microservice/target/digitaltwin-microservice-fat.jar -cluster -ha -conf ../digitaltwin-microservice/src/config/local.json > multiverse.log 2>&1 &
 sleep 1
-# configuration
-java -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../configuration-microservice/target/configuration-microservice-fat.jar -cluster -ha -conf ../configuration-microservice/src/config/local.json &
+# qnet
+java -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../qnet-microservice/target/qnet-microservice-fat.jar -cluster -ha -conf ../qnet-microservice/src/config/local.json &
+sleep 1
+# ndnet
+java -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../ndnet-microservice/target/ndnet-microservice-fat.jar -cluster -ha -conf ../ndnet-microservice/src/config/local.json &
 sleep 1
 # api-gw
 java -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../api-gateway/target/api-gateway-fat.jar -cluster -ha -conf ../api-gateway/src/config/local.json > multiverse.log 2>&1 &

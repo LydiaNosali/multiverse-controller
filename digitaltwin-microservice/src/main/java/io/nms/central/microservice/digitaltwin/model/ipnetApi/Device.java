@@ -1,0 +1,102 @@
+package io.nms.central.microservice.digitaltwin.model.ipnetApi;
+
+import java.util.Objects;
+
+import io.nms.central.microservice.common.functional.JSONUtils;
+import io.vertx.codegen.annotations.DataObject;
+import io.vertx.core.json.JsonObject;
+
+@DataObject(generateConverter = true)
+public class Device extends Configurable {
+	
+	public enum HostType {
+		SpineRouter("SpineRouter"),
+		SpineLeaf("SpineLeaf"),
+		Server("Server");
+		private String value;
+		private HostType(String value) { this.value = value; }
+		public String getValue() { return this.value; }
+	};
+
+	private String name;
+	private String hostname;
+	private String mac;
+	private String platform;
+	private HostType type;
+	private String bgpAsn;
+	private String bgpStatus;
+	private String hwsku;
+	
+	/*-----------------------------------------------*/
+
+	public Device() {}
+	public Device(JsonObject json) {
+		JSONUtils.fromJson(json, this, Device.class);
+	}
+	public String getHostname() {
+		return hostname;
+	}
+	public void setHostname(String hostname) {
+		this.hostname = hostname;
+	}
+	public String getMac() {
+		return mac;
+	}
+	public void setMac(String mac) {
+		this.mac = mac;
+	}
+	public String getPlatform() {
+		return platform;
+	}
+	public void setPlatform(String platform) {
+		this.platform = platform;
+	}
+	public HostType getType() {
+		return type;
+	}
+	public void setType(HostType type) {
+		this.type = type;
+	}
+	public String getBgpAsn() {
+		return bgpAsn;
+	}
+	public void setBgpAsn(String bgpAsn) {
+		this.bgpAsn = bgpAsn;
+	}
+	public String getBgpStatus() {
+		return bgpStatus;
+	}
+	public void setBgpStatus(String bgpStatus) {
+		this.bgpStatus = bgpStatus;
+	}
+	public String getHwsku() {
+		return hwsku;
+	}
+	public void setHwsku(String hwsku) {
+		this.hwsku = hwsku;
+	}
+
+	/*-----------------------------------------------*/
+
+	public JsonObject toJson() {
+		return new JsonObject(JSONUtils.pojo2Json(this, false));
+	}
+	@Override
+	public String toString() {
+		return JSONUtils.pojo2Json(this, false);
+	}
+	@Override
+	public boolean equals(Object obj) {
+		return Objects.equals(toString(), ((Device) obj).toString());
+	}
+	@Override
+	public int hashCode() {
+		return Objects.hash(hostname);
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+}

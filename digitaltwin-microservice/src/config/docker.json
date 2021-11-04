@@ -1,0 +1,8 @@
+{
+  "api.name": "digital-twin",
+  "digitaltwin.http.address": "digitaltwin-microservice",
+  "digitaltwin.http.port": 8084,
+  "url": "bolt://neo4j:7687",
+  "user": "neo4j",
+  "password": "12345"
+}

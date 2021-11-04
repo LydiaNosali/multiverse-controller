@@ -31,7 +31,7 @@ public class RestTelemetryAPIVerticle extends RestAPIVerticle {
 
 	private static final String API_RECEIPT = "/receipt";
 
-	private static final String API_ALL_OPERATIONS = "/operation/:type";
+	private static final String API_ALL_OPERATIONS = "/result/:type";
 	private static final String API_ONE_OPERATION = "/operation/:opId";
 	private static final String API_RESULTS_BY_OPS = "/operation/:opId/results";
 	

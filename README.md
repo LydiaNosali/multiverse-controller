@@ -57,7 +57,7 @@ git clone https://github.com/multiverse-nms/multiverse-controller.git
 cd multiverse-controller/docker
 chmod +x build.sh run.sh
 ./build.sh
-./run.sh "<certs_location>/certs/controller"
+./run.sh "<certs_location>/certs/controller" "<db_volumes_location>"
 ```
 
 #### Web-console (GUI)

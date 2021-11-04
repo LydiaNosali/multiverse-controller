@@ -34,7 +34,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.web.client.WebClient;
 
 /**
  *
@@ -42,11 +41,9 @@ import io.vertx.ext.web.client.WebClient;
 public class TopologyServiceImpl extends JdbcRepositoryWrapper implements TopologyService {
 
 	private static final Logger logger = LoggerFactory.getLogger(TopologyServiceImpl.class);
-	// private WebClient webClient;
 
 	public TopologyServiceImpl(Vertx vertx, JsonObject config) {
 		super(vertx, config);
-		// webClient = WebClient.create(vertx);
 	}
 
 	@Override
@@ -793,40 +790,8 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(prefix.getName())
 				.add(prefix.getOriginId())
 				.add(prefix.getAvailable());
-
 		insertAndGetId(params, ApiSql.INSERT_PREFIX, resultHandler);
 		return this;
-
-		/* UUID op = UUID.randomUUID();
-		beginTxnAndLock(Entity.PA, op, InternalSql.LOCK_TABLES_FOR_PREFIX).onComplete(tx -> {
-			if (tx.succeeded()) {
-				JsonArray pNode = new JsonArray().add(pa.getOriginId());
-				globalRetrieveOne(pNode, InternalSql.GET_NODE_STATUS).map(option -> option.orElse(null))
-						.onComplete(res -> {
-							if (res.succeeded()) {
-								if (res.result() != null) {
-									String status = res.result().getString("status");
-									JsonArray params = new JsonArray().add(pa.getName()).add(pa.getOriginId())
-											.add(status.equals(StatusEnum.UP.getValue()));
-									globalInsert(params, ApiSql.INSERT_PA).onComplete(paId -> {
-										if (paId.succeeded()) {
-											commitTxnAndUnlock(Entity.PA, op).onComplete(resultHandler);
-										} else {
-											rollbackAndUnlock();
-											resultHandler.handle(Future.failedFuture(paId.cause()));
-										}
-									});
-								} else {
-									resultHandler.handle(Future.failedFuture("Origin node not found"));
-								}
-							} else {
-								resultHandler.handle(Future.failedFuture(res.cause()));
-							}
-						});
-			} else {
-				resultHandler.handle(Future.failedFuture(tx.cause()));
-			}
-		}); */
 	}
 
 	@Override
@@ -888,18 +853,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			.onComplete(res -> {
 				if (res.succeeded()) {
 					if (res.result() != null) {
-						/* webClient
-							.post(8008, res.result().getString("switchIpAddr").split("/")[0], "/api/data/cross-connects")
-							.sendJsonObject(new JsonObject()
-								.put("ingress", res.result().getString("ingressPort"))
-								.put("egress", res.result().getString("egressPort")), ar -> {
-									if (ar.succeeded()) {
-										// TODO: check DB insert result
-										insertAndGetId(params, ApiSql.INSERT_CROSS_CONNECT, resultHandler);
-									} else {
-										resultHandler.handle(Future.failedFuture("Failed to create Cross-connect"));
-									}
-							}); */
 						JsonArray params = new JsonArray()
 								.add(crossConnect.getName())
 								.add(crossConnect.getLabel())
@@ -941,18 +894,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			.onComplete(res -> {
 				if (res.succeeded()) {
 					if (res.result() != null) {
-						/* String requestPath = "/api/data/cross-connects/" 
-								+ String.valueOf(res.result().getString("ingressPort"));
-						webClient
-							.delete(8008, res.result().getString("switchIpAddr").split("/")[0], requestPath) 
-							.send(ar -> {
-								if (ar.succeeded()) {
-									// TODO: check DB delete result
-									removeOne(crossConnectId, ApiSql.DELETE_CROSS_CONNECT, resultHandler);
-								} else {
-									resultHandler.handle(Future.failedFuture("Failed to delete Cross-connect on the switch"));
-								}
-							}); */
 							removeOne(crossConnectId, ApiSql.DELETE_CROSS_CONNECT, resultHandler);
 						} else {
 							resultHandler.handle(Future.failedFuture("Cross-connect does not exist"));

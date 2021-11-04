@@ -513,8 +513,15 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private void apiAddCrossConnect(RoutingContext context) {
 		try {
 			final CrossConnect crossConnect = JSONUtils.json2PojoE(context.getBodyAsString(), CrossConnect.class);
-			service.addCrossConnect(crossConnect, createResultHandler(context, "/cross-connect"));
+	
+			service.addCrossConnect(crossConnect, res -> {
+				if (res.succeeded()) {
+					notifyTopologyChange();
+				}
+				createResultHandler(context, "/cross-connect").handle(res);
+			});
 		} catch (Exception e) {
+			logger.info("Exception: " + e.getMessage());
 			badRequest(context, e);
 		}
 	}
@@ -528,7 +535,13 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	}
 	private void apiDeleteCrossConnect(RoutingContext context) {
 		String xcId = context.request().getParam("id");
-		service.deleteCrossConnect(xcId, deleteResultHandler(context));
+		service.deletePrefix(xcId, res -> {
+			if (res.succeeded()) {
+				notifyTopologyChange();
+				notifyFrontend();
+			}
+			deleteResultHandler(context).handle(res);
+		});
 	}
 
 	private boolean isBase64(String str) {

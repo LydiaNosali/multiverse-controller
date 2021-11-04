@@ -45,14 +45,11 @@ public class Prefix {
 		return Objects.equals(id, ((Prefix) obj).id);
 	}
 
-	
 	@Override
 	public String toString() {
 		return this.toJson().encodePrettily();
 	}
 
-	
-	
 	/*-----------------------------------------------*/
 	public int getId() {
 		return id;

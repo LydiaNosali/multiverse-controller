@@ -18,9 +18,10 @@
     <module>telemetry-microservice</module>    
     <module>topology-microservice</module>
     <module>notification-microservice</module>
-    <module>configuration-microservice</module>
+    <module>ndnet-microservice</module>
     <module>account-microservice</module>
-    <module>crossconnect-microservice</module>
+    <module>qnet-microservice</module>
+    <module>digitaltwin-microservice</module>
   </modules>
 
   <properties>

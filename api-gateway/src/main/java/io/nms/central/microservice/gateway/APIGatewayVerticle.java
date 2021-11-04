@@ -129,8 +129,6 @@ public class APIGatewayVerticle extends RestAPIVerticle {
     		            new PemKeyCertOptions()
     		  		       .setKeyPath(certsPath+"multiverse.controller.key.pem")
     		  		       .setCertPath(certsPath+"multiverse.controller.crt.pem"));
-
-		// create http server
 		vertx.createHttpServer(httpServerOptions)
 		.requestHandler(router)
 		.listen(port, host, ar -> {
@@ -145,9 +143,9 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 		});
 
 		// dev only
-		// vertx.createHttpServer()
-		//	.requestHandler(router)
-		//	.listen(8788, host);
+		/* vertx.createHttpServer()
+			.requestHandler(router)
+			.listen(8788, host); */
 	}
 
 	private void dispatchRequests(RoutingContext context) {
