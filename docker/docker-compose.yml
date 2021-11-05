@@ -126,6 +126,18 @@ services:
       - "8088"
     networks: 
       - nms
+  ipnet-microservice:
+    image: ipnet-microservice
+    links:
+      - mongo
+      - digitaltwin-microservice
+    depends_on:
+      - mongo
+      - digitaltwin-microservice
+    expose:
+      - "8087"
+    networks:
+      - nms
   api-gateway:
     image: api-gateway
     hostname: mnms.controller

@@ -31,10 +31,6 @@ sleep 5
 docker-compose -f $DIR/docker-compose.yml up -d telemetry-microservice
 sleep 5
 
-# digital twin
-docker-compose -f $DIR/docker-compose.yml up -d digitaltwin-microservice
-sleep 5
-
 # notification
 docker-compose -f $DIR/docker-compose.yml up -d notification-microservice
 sleep 5
@@ -43,12 +39,20 @@ sleep 5
 docker-compose -f $DIR/docker-compose.yml up -d topology-microservice
 sleep 5
 
-# qnet
-docker-compose -f $DIR/docker-compose.yml up -d qnet-microservice
+# digital twin
+docker-compose -f $DIR/docker-compose.yml up -d digitaltwin-microservice
 sleep 5
 
 # ndnet
 docker-compose -f $DIR/docker-compose.yml up -d ndnet-microservice
+sleep 5
+
+# qnet
+docker-compose -f $DIR/docker-compose.yml up -d qnet-microservice
+sleep 5
+
+# ipnet
+docker-compose -f $DIR/docker-compose.yml up -d ipnet-microservice
 sleep 5
 
 # api-gw

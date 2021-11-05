@@ -234,7 +234,10 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 	}
 
 	private void apiVersion(RoutingContext context) {
-		context.response().end(new JsonObject().put("version", "v1").encodePrettily());
+		context.response().end(new JsonObject()
+				.put("name", "multiverse-controller")
+				.put("version", "v1")
+				.encodePrettily());
 	}
 
 	/**

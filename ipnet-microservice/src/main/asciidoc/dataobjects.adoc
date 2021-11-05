@@ -1,0 +1,74 @@
+= Cheatsheets
+
+[[Config]]
+== Config
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[faces]]`@faces`|`Array of link:dataobjects.html#ConfigFace[ConfigFace]`|-
+|[[routes]]`@routes`|`Array of link:dataobjects.html#ConfigRoute[ConfigRoute]`|-
+|===
+
+[[ConfigFace]]
+== ConfigFace
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[id]]`@id`|`Number (Integer)`|-
+|[[local]]`@local`|`String`|-
+|[[remote]]`@remote`|`String`|-
+|[[scheme]]`@scheme`|`link:enums.html#SchemeEnum[SchemeEnum]`|-
+|===
+
+[[ConfigObj]]
+== ConfigObj
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[config]]`@config`|`link:dataobjects.html#Config[Config]`|-
+|[[nodeId]]`@nodeId`|`Number (int)`|-
+|===
+
+[[ConfigRoute]]
+== ConfigRoute
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[cost]]`@cost`|`Number (Integer)`|-
+|[[faceId]]`@faceId`|`Number (Integer)`|-
+|[[origin]]`@origin`|`Number (Integer)`|-
+|[[prefix]]`@prefix`|`String`|-
+|===
+
+[[Route]]
+== Route
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[cost]]`@cost`|`Number (Integer)`|-
+|[[created]]`@created`|`String`|-
+|[[faceId]]`@faceId`|`Number (Integer)`|-
+|[[id]]`@id`|`Number (int)`|-
+|[[nextHopId]]`@nextHopId`|`Number (Integer)`|-
+|[[nodeId]]`@nodeId`|`Number (Integer)`|-
+|[[origin]]`@origin`|`Number (Integer)`|-
+|[[paId]]`@paId`|`Number (Integer)`|-
+|[[prefix]]`@prefix`|`String`|-
+|[[updated]]`@updated`|`String`|-
+|===
+

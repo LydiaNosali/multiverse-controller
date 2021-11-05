@@ -73,8 +73,8 @@ public class RestNdnetAPIVerticle extends RestAPIVerticle {
 		router.patch(API_RUNNING_CONFIG).handler(this::checkAgentRole).handler(this::apiPatchAgentRunningConfig);
 
 		// get HTTP host and port from configuration, or use default value
-		String host = config().getString("configuration.http.address", "0.0.0.0");
-		int port = config().getInteger("configuration.http.port", 8088);
+		String host = config().getString("ndnet.http.address", "0.0.0.0");
+		int port = config().getInteger("ndnet.http.port", 8088);
 
 		// create HTTP server and publish REST service
 		createHttpServer(router, host, port)

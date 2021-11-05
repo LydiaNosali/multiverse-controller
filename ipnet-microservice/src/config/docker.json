@@ -1,0 +1,6 @@
+{
+  "api.name": "ipnet",
+  "ipnet.http.address": "ipnet-microservice",
+  "ipnet.http.port": 8087,
+  "host": "mongo"
+}
