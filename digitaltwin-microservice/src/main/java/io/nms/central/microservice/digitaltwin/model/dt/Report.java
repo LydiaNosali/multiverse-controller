@@ -1,4 +1,4 @@
-package io.nms.central.microservice.digitaltwin.model.graph;
+package io.nms.central.microservice.digitaltwin.model.dt;
 
 import java.util.List;
 import java.util.Objects;

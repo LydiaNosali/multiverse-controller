@@ -143,6 +143,27 @@
 |[[vlan]]`@vlan`|`Array of link:dataobjects.html#Vlan[Vlan]`|-
 |===
 
+[[DtQuery]]
+== DtQuery
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[text]]`@text`|`String`|-
+|===
+
+[[DtQueryResult]]
+== DtQueryResult
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|===
+
 [[Interface]]
 == Interface
 
@@ -274,27 +295,6 @@
 |[[devices]]`@devices`|`Array of link:dataobjects.html#Device[Device]`|-
 |[[links]]`@links`|`Array of link:dataobjects.html#Link[Link]`|-
 |[[subnets]]`@subnets`|`Array of link:dataobjects.html#IpSubnet[IpSubnet]`|-
-|===
-
-[[Query]]
-== Query
-
-
-[cols=">25%,25%,50%"]
-[frame="topbot"]
-|===
-^|Name | Type ^| Description
-|[[text]]`@text`|`String`|-
-|===
-
-[[QueryResult]]
-== QueryResult
-
-
-[cols=">25%,25%,50%"]
-[frame="topbot"]
-|===
-^|Name | Type ^| Description
 |===
 
 [[Report]]

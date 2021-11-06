@@ -1,4 +1,4 @@
-package io.nms.central.microservice.digitaltwin.model.graph;
+package io.nms.central.microservice.digitaltwin.model.dt;
 
 import java.util.Objects;
 
@@ -7,15 +7,15 @@ import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
-public class Query {
+public class DtQueryResult {
 
-	private String text;
+	private String result;
 	
 	/*-----------------------------------------------*/
 
-	public Query() {}
-	public Query(JsonObject json) {
-		JSONUtils.fromJson(json, this, Query.class);
+	public DtQueryResult() {}
+	public DtQueryResult(JsonObject json) {
+		JSONUtils.fromJson(json, this, DtQueryResult.class);
 	}
 
 	/*-----------------------------------------------*/
@@ -29,16 +29,11 @@ public class Query {
 	}
 	@Override
 	public boolean equals(Object obj) {
-		return Objects.equals(toString(), ((Query) obj).toString());
+		return Objects.equals(toString(), ((DtQueryResult) obj).toString());
 	}
 	@Override
 	public int hashCode() {
-		return Objects.hash(text);
+		return Objects.hash(result);
 	}
-	public String getText() {
-		return text;
-	}
-	public void setText(String text) {
-		this.text = text;
-	}
+
 }
