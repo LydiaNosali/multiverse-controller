@@ -44,13 +44,6 @@ public class JdbcRepositoryWrapper {
 		this.client = JDBCClient.create(vertx, config);
 	}
 
-	/**
-	 * Suitable for `add`, `exists` operation.
-	 *
-	 * @param params        query params
-	 * @param sql           sql
-	 * @param resultHandler async result handler
-	 */
 	protected void executeNoResult(JsonArray params, String sql, Handler<AsyncResult<Void>> resultHandler) {
 		client.getConnection(connHandler(resultHandler, connection -> {
 			connection.updateWithParams(sql, params, r -> {

@@ -8,6 +8,7 @@ import java.util.List;
 import io.nms.central.microservice.common.BaseMicroserviceVerticle;
 import io.nms.central.microservice.ndnet.api.RestNdnetAPIVerticle;
 import io.nms.central.microservice.ndnet.impl.NdnetServiceImpl;
+import io.nms.central.microservice.topology.TopologyService;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -39,8 +40,8 @@ public class NdnetVerticle extends BaseMicroserviceVerticle {
 			.onComplete(future);
 	}
 
-	private Future<List<Integer>> initConfigDatabase(NdnetService service) {
-		Promise<List<Integer>> initPromise = Promise.promise();
+	private Future<Void> initConfigDatabase(NdnetService service) {
+		Promise<Void> initPromise = Promise.promise();
 		service.initializePersistence(initPromise);
 		return initPromise.future();
 	}

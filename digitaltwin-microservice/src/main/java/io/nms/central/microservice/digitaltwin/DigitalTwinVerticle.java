@@ -16,33 +16,33 @@ import io.vertx.serviceproxy.ServiceBinder;
  */
 public class DigitalTwinVerticle extends BaseMicroserviceVerticle {
 
-  @Override
-  public void start(Future<Void> future) throws Exception {
-    super.start();
-    
-    // create the service instance
-    DigitalTwinService digitalTwinService = new DigitalTwinServiceImpl(vertx, config());
-    
-    // register the service proxy on event bus
-    new ServiceBinder(vertx)
-        .setAddress(SERVICE_ADDRESS)
-        .register(DigitalTwinService.class, digitalTwinService);
-    
-    initDigitaltwinDatabase(digitalTwinService)
-    	.compose(r -> deployRestVerticle(digitalTwinService))
-    	.onComplete(future);
-  }
-  
-  private Future<Void> initDigitaltwinDatabase(DigitalTwinService service) {
-	  Promise<Void> initPromise = Promise.promise();
-	    service.initializePersistence(initPromise);
-	    return initPromise.future();
-  }
+	@Override
+	public void start(Future<Void> future) throws Exception {
+		super.start();
 
-  private Future<Void> deployRestVerticle(DigitalTwinService service) {
-    Promise<String> promise = Promise.promise();
-    vertx.deployVerticle(new RestDigitalTwinAPIVerticle(service),
-      new DeploymentOptions().setConfig(config()), promise);
-    return promise.future().map(r -> null);
-  }
+		// create the service instance
+		DigitalTwinService digitalTwinService = new DigitalTwinServiceImpl(vertx, config());
+
+		// register the service proxy on event bus
+		new ServiceBinder(vertx)
+				.setAddress(SERVICE_ADDRESS)
+				.register(DigitalTwinService.class, digitalTwinService);
+
+		initDigitaltwinDatabase(digitalTwinService)
+				.compose(r -> deployRestVerticle(digitalTwinService))
+				.onComplete(future);
+	}
+
+	private Future<Void> initDigitaltwinDatabase(DigitalTwinService service) {
+		Promise<Void> initPromise = Promise.promise();
+		service.initializePersistence(initPromise);
+		return initPromise.future();
+	}
+
+	private Future<Void> deployRestVerticle(DigitalTwinService service) {
+		Promise<String> promise = Promise.promise();
+		vertx.deployVerticle(new RestDigitalTwinAPIVerticle(service),
+				new DeploymentOptions().setConfig(config()), promise);
+		return promise.future().map(r -> null);
+	}
 }

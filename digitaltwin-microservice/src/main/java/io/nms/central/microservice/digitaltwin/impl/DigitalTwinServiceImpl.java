@@ -1,7 +1,6 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
 import java.util.List;
-
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQueryResult;
@@ -13,9 +12,9 @@ import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -35,7 +34,14 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 
 	@Override
 	public DigitalTwinService initializePersistence(Handler<AsyncResult<Void>> resultHandler) {
-		executeNoResult(MAIN_DB, new JsonArray(), ApiCypher.CLEAR_DB, resultHandler);
+		execute(MAIN_DB, "CREATE (a:Greeting) SET a.message = 'zee' RETURN a", res -> {	
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				logger.error(res.cause());
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 		return this;
 	}
 

@@ -8,7 +8,7 @@
 
         <!-- Gelf name="gelf" host="udp:logstash" port="12201">
             <Field name="level" pattern="%level"/>
-            <Field name="facility" literal="topology-microservice"/>
+            <Field name="facility" literal="digitaltwin-microservice"/>
         </Gelf -->
 
         <!-- Async name="gelf_async">

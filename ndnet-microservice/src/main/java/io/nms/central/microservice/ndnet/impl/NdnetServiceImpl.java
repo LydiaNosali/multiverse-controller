@@ -52,7 +52,7 @@ public class NdnetServiceImpl implements NdnetService {
 	}
 	
 	@Override
-	public void initializePersistence(Handler<AsyncResult<List<Integer>>> resultHandler) {
+	public void initializePersistence(Handler<AsyncResult<Void>> resultHandler) {
 		resultHandler.handle(Future.succeededFuture());
 	}
 	

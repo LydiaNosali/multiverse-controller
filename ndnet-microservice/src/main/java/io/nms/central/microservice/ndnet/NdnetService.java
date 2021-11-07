@@ -38,7 +38,7 @@ public interface NdnetService {
 	String FROTNEND_ADDRESS = "mvs.to.frontend";
 	
 	
-	void initializePersistence(Handler<AsyncResult<List<Integer>>> resultHandler);
+	void initializePersistence(Handler<AsyncResult<Void>> resultHandler);
 
 	
 	/* API */
