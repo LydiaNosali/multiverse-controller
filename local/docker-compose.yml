@@ -25,8 +25,7 @@ services:
     ports:
       - "5672:5672"
   neo4j:
-    image: neo4j:4.2.1
-    restart: always
+    image: neo4j:4.2.1-enterprise
     ports:
       - "7474:7474"
       - "7687:7687"
@@ -35,6 +34,8 @@ services:
       - "${CONTROLLER_VOL}/neo4j/data:/data"
     environment:
       - NEO4J_AUTH=neo4j/12345
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+      - NEO4J_dbms_allow__upgrade=true
       - NEO4J_dbms_logs_debug_level=DEBUG
       - NEO4J_apoc_export_file_enabled=true
       - NEO4J_apoc_import_file_enabled=true

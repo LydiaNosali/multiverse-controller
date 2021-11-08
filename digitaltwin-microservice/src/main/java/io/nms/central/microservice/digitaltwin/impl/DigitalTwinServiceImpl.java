@@ -34,8 +34,9 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 
 	@Override
 	public DigitalTwinService initializePersistence(Handler<AsyncResult<Void>> resultHandler) {
-		execute(MAIN_DB, "CREATE (a:Greeting) SET a.message = 'zee' RETURN a", res -> {	
+		execute(MAIN_DB, ApiCypher.CLEAR_DB, res -> {
 			if (res.succeeded()) {
+				logger.info("DB initialized: " + res.result().encodePrettily());
 				resultHandler.handle(Future.succeededFuture());
 			} else {
 				logger.error(res.cause());

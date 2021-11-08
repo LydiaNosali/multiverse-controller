@@ -13,6 +13,12 @@ public class DtQueryResult {
 	
 	/*-----------------------------------------------*/
 
+	public String getResult() {
+		return result;
+	}
+	public void setResult(String result) {
+		this.result = result;
+	}
 	public DtQueryResult() {}
 	public DtQueryResult(JsonObject json) {
 		JSONUtils.fromJson(json, this, DtQueryResult.class);

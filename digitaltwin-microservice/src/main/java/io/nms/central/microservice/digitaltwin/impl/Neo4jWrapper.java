@@ -1,10 +1,8 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.neo4j.driver.AccessMode;
 import org.neo4j.driver.AuthTokens;
@@ -16,7 +14,10 @@ import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
 import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.async.ResultCursor;
+import org.neo4j.driver.exceptions.Neo4jException;
+import org.neo4j.driver.exceptions.NoSuchRecordException;
 import org.neo4j.driver.summary.ResultSummary;
+import org.neo4j.driver.summary.SummaryCounters;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
@@ -33,8 +34,6 @@ import io.vertx.core.logging.LoggerFactory;
 public class Neo4jWrapper {
 
 	private static final Logger logger = LoggerFactory.getLogger(Neo4jWrapper.class);
-	
-	private static final Value EMPTY_PARAMS = Values.parameters();
 
 	private Driver driver;
 	private final Vertx vertx;
@@ -52,71 +51,120 @@ public class Neo4jWrapper {
 		}
 	}
 
-	/* protected void execute(String db, String sQuery, JsonObject params, Handler<AsyncResult<Void>> resultHandler) {
-		try ( Session session = driver.session( sessionConfig );
-				Transaction transaction = session.beginTransaction() )
-		{
-			Query query = new Query(sQuery, Values.parameters(params.getMap()));		
-			Result result = transaction.run( query );
-			// String greeting = result.single().get( 0 ).asString();
-			transaction.commit(); // commit immediately here
-			session.close();
+	protected void execute(String db, String query, Handler<AsyncResult<JsonObject>> resultHandler) {
+		execute(db, query, new JsonObject(), resultHandler);
+	}
+	protected void execute(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
+		Value v;
+		if (params.isEmpty()) {
+			v = Values.parameters();
+		} else {
+			v = Values.parameters(params.getMap());
 		}
-		// "CREATE (a:Greeting) SET a.message = $message RETURN a.message + ', from node ' + id(a)"
-		// Values.parameters( "message", message )
-	} */
-	
-	protected void execute(String db, String query, JsonObject params, 
-			Handler<AsyncResult<ResultSummary>> resultHandler) {
-		executeWriteTransaction(db, query, Values.parameters(params.getMap()), ResultCursor::consumeAsync, resultHandler);
-	}
-	protected void execute(String db, String query,  
-			Handler<AsyncResult<ResultSummary>> resultHandler) {
-		executeWriteTransaction(db, query, EMPTY_PARAMS, ResultCursor::consumeAsync, resultHandler);
-	}
-	
-	protected void delete(String db, String query, Value parameters, 
-			Handler<AsyncResult<List<Record>>> resultHandler) {
-		executeWriteTransaction(db, query, parameters, ResultCursor::listAsync, resultHandler);
-	}
-	protected void delete(String db, String query, 
-			Handler<AsyncResult<List<Record>>> resultHandler) {
-		executeWriteTransaction(db, query, EMPTY_PARAMS, ResultCursor::listAsync, resultHandler);
-	}
-	
-	protected void findOne(String db, String query, Value parameters, 
-			Handler<AsyncResult<Record>> resultHandler) {
-        executeReadTransaction(db, query, parameters, ResultCursor::singleAsync, resultHandler);
-    }
-	protected void findOne(String db, String query, Handler<AsyncResult<Record>> resultHandler) {
-        executeReadTransaction(db, query, EMPTY_PARAMS, ResultCursor::singleAsync, resultHandler);
-    }
-    
-	protected void find(String db, String query, Value parameters, 
-    		Handler<AsyncResult<List<Record>>> resultHandler) {
-        executeReadTransaction(db, query, parameters, ResultCursor::listAsync, resultHandler);
-    }
-	protected void find(String db, String query,
-    		Handler<AsyncResult<List<Record>>> resultHandler) {
-        executeReadTransaction(db, query, EMPTY_PARAMS, ResultCursor::listAsync, resultHandler);
-    }
-
-	private <T> void executeWriteTransaction(String db, String query, Value parameters, Function<ResultCursor, CompletionStage<T>> resultFunction, Handler<AsyncResult<T>> resultHandler) {
 		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
 		Context context = vertx.getOrCreateContext();
-		session.writeTransactionAsync(tx -> tx.runAsync(query, parameters).thenCompose(resultFunction))
-				.whenComplete(wrapCallback(context, resultHandler))
+		session.writeTransactionAsync(tx -> tx.runAsync(query, v).thenCompose(ResultCursor::consumeAsync))
+			    .whenComplete(wrapCallbackSummary(context, resultHandler))
+				.thenCompose(ignore -> session.closeAsync());
+	}
+	
+	protected void findOne(String db, String query, Handler<AsyncResult<JsonObject>> resultHandler) {
+		findOne(db, query, new JsonObject(), resultHandler);
+    }
+	protected void findOne(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
+		Value v;
+		if (params.isEmpty()) {
+			v = Values.parameters();
+		} else {
+			v = Values.parameters(params.getMap());
+		}
+		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
+		Context context = vertx.getOrCreateContext();
+		session.writeTransactionAsync(tx -> tx.runAsync(query, v).thenCompose(ResultCursor::singleAsync))
+			    .whenComplete(wrapCallbackSingle(context, resultHandler))
+				.thenCompose(ignore -> session.closeAsync());
+    }
+	
+	protected void find(String db, String query, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+		find(db, query, new JsonObject(), resultHandler);
+    }
+	protected void find(String db, String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+		Value v;
+		if (params.isEmpty()) {
+			v = Values.parameters();
+		} else {
+			v = Values.parameters(params.getMap());
+		}
+		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.READ));
+		Context context = vertx.getOrCreateContext();
+		session.writeTransactionAsync(tx -> tx.runAsync(query, v).thenCompose(ResultCursor::listAsync))
+			    .whenComplete(wrapCallbackList(context, resultHandler))
+				.thenCompose(ignore -> session.closeAsync());
+    }
+	
+	protected void delete(String db, String query, Handler<AsyncResult<JsonObject>> resultHandler) {
+		delete(db, query, new JsonObject(), resultHandler);
+	}
+	protected void delete(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
+		Value v;
+		if (params.isEmpty()) {
+			v = Values.parameters();
+		} else {
+			v = Values.parameters(params.getMap());
+		}
+		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
+		Context context = vertx.getOrCreateContext();
+		session.writeTransactionAsync(tx -> tx.runAsync(query, v).thenCompose(ResultCursor::consumeAsync))
+			    .whenComplete(wrapCallbackSummary(context, resultHandler))
 				.thenCompose(ignore -> session.closeAsync());
 	}
 
-	private <T> void executeReadTransaction(String db, String query, Value parameters, Function<ResultCursor, CompletionStage<T>> resultFunction, Handler<AsyncResult<T>> resultHandler) {
-		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.READ));
-		Context context = vertx.getOrCreateContext();
-		session.readTransactionAsync(tx -> tx.runAsync(query, parameters)
-				.thenCompose(resultFunction))
-				.whenComplete(wrapCallback(context, resultHandler))
-				.thenCompose(ignore -> session.closeAsync());
-	}
+	private BiConsumer<ResultSummary, Throwable> wrapCallbackSummary(Context context, Handler<AsyncResult<JsonObject>> resultHandler) {
+        return (result, error) -> {
+            context.runOnContext(v -> {
+                if (error != null) {
+                	handleError(error, resultHandler);
+                } else {
+                	SummaryCounters summary = result.counters();
+                	JsonObject json = new JsonObject();
+                	json.put("labelsAdded", summary.labelsAdded());
+                	json.put("labelsRemoved", summary.labelsRemoved());
+                	json.put("nodesCreated", summary.nodesCreated());
+                	json.put("nodesDeleted", summary.nodesDeleted());
+                	json.put("propertiesSet", summary.propertiesSet());
+                	json.put("relationshipsCreated", summary.relationshipsCreated());
+                	json.put("relationshipsDeleted", summary.relationshipsDeleted());
+                    resultHandler.handle(Future.succeededFuture(json));
+                }
+            });
+        };
+    }
+	
+	private BiConsumer<Record, Throwable> wrapCallbackSingle(Context context, Handler<AsyncResult<JsonObject>> resultHandler) {
+        return (result, error) -> {
+            context.runOnContext(v -> {
+                if (error != null) {
+                    handleError(error, resultHandler);
+                } else {
+                	JsonObject json = new JsonObject(result.asMap());
+                    resultHandler.handle(Future.succeededFuture(json));
+                }
+            });
+        };
+    }
+	
+	private BiConsumer<List<Record>, Throwable> wrapCallbackList(Context context, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+        return (result, error) -> {
+            context.runOnContext(v -> {
+                if (error != null) {
+                	handleError(error, resultHandler);
+                } else {
+                	List<JsonObject> json = result.stream().map(x->new JsonObject(x.asMap())).collect(Collectors.toList());
+                    resultHandler.handle(Future.succeededFuture(json));
+                }
+            });
+        };
+    }
 	
 	private SessionConfig configBuilder(String db, AccessMode am) {
 		return SessionConfig.builder()
@@ -125,18 +173,38 @@ public class Neo4jWrapper {
 				.build();
 	}
 	
-	private static <T> BiConsumer<T, Throwable> wrapCallback(Context context, Handler<AsyncResult<T>> resultHandler) {
-        return (result, error) -> {
-            context.runOnContext(v -> {
-                if (error != null) {
-                    resultHandler.handle(Future.failedFuture(Optional.ofNullable(error.getCause()).orElse(error)));
-                    logger.error(error.getCause());
-                } else {
-                	// TODO: transform to JsonObject
-                    resultHandler.handle(Future.succeededFuture(result));
-                }
-            });
-        };
-    }
-
+	private <T> void handleError(Throwable error, Handler<AsyncResult<T>> resultHandler) {
+	// Errors: https://neo4j.com/docs/status-codes/current/
+        // Neo.ClientError.Database.DatabaseNotFound
+        // Neo.ClientError.Database.ExistingDatabaseFound
+        // Neo.ClientError.General.InvalidArguments
+        // Neo.ClientError.Request.Invalid
+		// Neo.ClientError.Schema.ConstraintValidationFailed
+        // NoSuchRecordException
+		if (error instanceof Neo4jException) {
+			Neo4jException ne = (Neo4jException) error;
+			String code = ne.code();
+			logger.error("Neo4jException: " + code);
+			String errorMessage = "INTERNAL";
+			if (code.contains("NotFound")) {
+				errorMessage = "NOT_FOUND";
+			} else if (code.contains("DatabaseFound")) {
+				errorMessage = "CONFLICT";
+			} else if (code.contains("Invalid")) {
+				errorMessage = "INVALID_ARGUMENTS";
+			} else if (code.contains("Constraint")) {
+				errorMessage = "CONFLICT";
+			}
+			resultHandler.handle(Future.failedFuture(errorMessage));
+		} else if (error instanceof NoSuchRecordException) {
+			logger.error("Neo4j NoSuchRecord: " + error.getMessage());
+	        resultHandler.handle(Future.failedFuture("NOT_FOUND"));
+		} else {
+			logger.error("Exception: " + error.getMessage());
+	        resultHandler.handle(Future.failedFuture("INTERNAL"));
+		}
+	}
+	
+	// "CREATE (a:Greeting) SET a.message = $message RETURN a.message + ', from node ' + id(a)"
+	// Values.parameters( "message", message )
 }

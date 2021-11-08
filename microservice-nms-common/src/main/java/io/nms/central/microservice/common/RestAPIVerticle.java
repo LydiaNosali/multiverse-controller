@@ -213,13 +213,13 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 
 	protected void handleFailedOperation(RoutingContext context, Throwable cause) {
 		// TODO: use accurate messages
-		if (cause.getMessage().contains("conflict")) {
+		if (cause.getMessage().toUpperCase().contains("CONFLICT")) {
 			conflict(context);
-		} else if (cause.getMessage().contains("not found")) {
+		} else if (cause.getMessage().toUpperCase().contains("NOT_FOUND")) {
 			notFound(context);
-		} else if (cause.getMessage().contains("bad")) {
+		} else if (cause.getMessage().toUpperCase().contains("INVALID")) {
 			badRequest(context, cause);
-			cause.printStackTrace();
+			// cause.printStackTrace();
 		} else {
 			internalError(context, cause);
 		}

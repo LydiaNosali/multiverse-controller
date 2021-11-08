@@ -162,6 +162,7 @@
 [frame="topbot"]
 |===
 ^|Name | Type ^| Description
+|[[result]]`@result`|`String`|-
 |===
 
 [[Interface]]
