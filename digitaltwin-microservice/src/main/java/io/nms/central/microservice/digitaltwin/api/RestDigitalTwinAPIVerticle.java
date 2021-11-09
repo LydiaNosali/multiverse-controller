@@ -90,7 +90,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		
 		router.get(API_VIEW_BGPS).handler(this::checkAdminRole).handler(this::apiViewGetDeviceBgps);
 		router.get(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewGetBgp);
-		router.post(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewCreateBgp);
+		// router.post(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewCreateBgp);
 		router.put(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewUpdateBgp);
 		router.delete(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewDeleteBgp);
 
@@ -238,7 +238,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		service.viewGetBgp(viewId, deviceName, itfAddr, resultHandlerNonEmpty(context));
 	}
-	private void apiViewCreateBgp(RoutingContext context) {
+	/* private void apiViewCreateBgp(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
 		String itfAddr = context.request().getParam("itfAddr");
@@ -250,7 +250,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 			logger.info("API input argument exception: " + e.getMessage());
 			badRequest(context, e);
 		}
-	}
+	} */
 	private void apiViewUpdateBgp(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");

@@ -1,5 +1,6 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
@@ -34,7 +35,13 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 
 	@Override
 	public DigitalTwinService initializePersistence(Handler<AsyncResult<Void>> resultHandler) {
-		execute(MAIN_DB, CypherQuery.CLEAR_DB, res -> {
+		List<String> constraints = new ArrayList<String>();
+		// constraints.add(CypherQuery.CLEAR_DB);
+		constraints.add(CypherQuery.Constraints.UNIQUE_HOST);
+		constraints.add(CypherQuery.Constraints.UNIQUE_HOSTNAME);
+		constraints.add(CypherQuery.Constraints.UNIQUE_IP4CTP);
+		constraints.add(CypherQuery.Constraints.UNIQUE_BGP);
+		bulkExecute(MAIN_DB, constraints, res -> {
 			if (res.succeeded()) {
 				logger.info("DB initialized: " + res.result().encodePrettily());
 				resultHandler.handle(Future.succeededFuture());

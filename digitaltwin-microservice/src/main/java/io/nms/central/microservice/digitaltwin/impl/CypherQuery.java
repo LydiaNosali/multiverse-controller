@@ -19,37 +19,59 @@ public class CypherQuery {
 	}
 	
 	public static class Constraints {
-		public static final String UNIQUE_HOST = "";
+		public static final String UNIQUE_HOST = "CREATE CONSTRAINT unique_host IF NOT EXISTS ON (h:Host) ASSERT h.name IS UNIQUE";
+		public static final String UNIQUE_HOSTNAME = "CREATE CONSTRAINT unique_hostname IF NOT EXISTS ON (h:Host) ASSERT h.hostname IS UNIQUE";
 		public static final String UNIQUE_LTP = "";
 		public static final String UNIQUE_ETHERCTP = "";
-		public static final String UNIQUE_IP4CTP = "";
+		public static final String UNIQUE_IP4CTP = "CREATE CONSTRAINT unique_ip_address IF NOT EXISTS ON (c:Ip4Ctp) ASSERT c.ipAddr IS UNIQUE";
 		public static final String UNIQUE_LINK = "";
 		public static final String UNIQUE_LINKCONN = "";
 		public static final String UNIQUE_IPCONN = "";
-		public static final String UNIQUE_BGP = "";
+		public static final String UNIQUE_BGP = "CREATE CONSTRAINT unique_bgp_peer IF NOT EXISTS ON (b:Bgp) ASSERT (b.rAddr, b.lAsn) IS NODE KEY";
 		public static final String UNIQUE_ROUTE = "";
 		public static final String UNIQUE_ACLTABLE = "";
 		public static final String UNIQUE_ACLRULE = "";
 	}
 	
 	public static class Api {
-		public static final String CREATE_VIEW = "";
-		public static final String CREATE_BGP = "";
+		public static final String CREATE_VIEW = "CREATE DATABASE $viewId";
 		
-		public static final String GET_HOST_INTERFACES = "";
-		public static final String GET_HOST_BGPS = "";
+		public static final String CREATE_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})\r\n"
+				+ "MERGE (c)-[:HAS_CONFIG]->(b:Bgp)\r\n"
+				+ "SET b.lAsn=$localAsn, b.lId=$localId, b.rAddr=$remoteAddr, b.rAsn=$remoteAsn, b.rId=$remoteId, "
+				+ "b.holdTime=$holdTime, b.keepAlive=$keepAlive, b.state=$state";
 		
-		public static final String GET_NETWORK_HOSTS = "";
-		public static final String GET_NETWORK_LINKS = "";
+		public static final String GET_NETWORK_HOSTS = "MATCH (h:Host) RETURN h.name as name, "
+				+ "h.hostname as hostname, h.bgpStatus as bgpStatus, h.bgpAsn as bgpAsn, "
+				+ "h.type as type, h.platform as platform, h.mac as mac, h.hwsku as hwsku";
+		public static final String GET_NETWORK_LINKS = "MATCH (sH:Host)-[:CONTAINS]->(sL:Ltp)-[l:LINKED]->(dL:Ltp)<-[:CONTAINS]-(dH:Host) "
+				+ "RETURN sH.name as srcDevice, sL.name as srcInterface, dH.name as destDevice, dL.name as destInterface";
 		public static final String GET_NETWORK_SUBNETS = "MATCH (c:Ip4Ctp) WHERE c.netMask <> '/32' "
 				+ "RETURN DISTINCT c.netAddr+c.netMask as netAddress, collect(c.ipAddr) as hostAddresses";
+		public static final String GET_HOST_INTERFACES = "MATCH (h:Host{name: $deviceName})-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(e:EtherCtp) \r\n"
+				+ "OPTIONAL MATCH (e)-[:CONTAINS]->(c:Ip4Ctp)\r\n"
+				+ "RETURN l.adminStatus as adminStatus, l.name as name, l.index as index, l.type as type, l.speed as speed, l.mtu as mtu, "
+				+ "e.mode as mode, e.vlan as vlan, e.macAddr as macAddr, c.ipAddr+c.netMask as ipAddr, c.svi as svi";
+		public static final String GET_HOST_BGPS = "MATCH (h:Host{name: $deviceName})-[:CONTAINS*3]->(c:Ip4Ctp)-[:HAS_CONFIG]->(b:Bgp)\r\n"
+				+ "RETURN c.ipAddr as localAddr, b.lAsn as localAsn, b.lId as localId, b.rAddr as remoteAddr, b.rAsn as remoteAsn, b.rId as remoteId, "
+				+ "b.holdTime as holdTime, b.keepAlive as keepAlive, b.state as state";
 		
-		public static final String UPDATE_HOST = "";
-		public static final String UPDATE_INTERFACE = "";
-		public static final String UPDATE_BGP = "";
+		public static final String UPDATE_HOST = "MATCH (h:Host{name:$deviceName}) SET h.hostname=$hostname, h.bgpStatus=$bgpStatus, "
+				+ "h.bgpAsn=$bgpAsn, h.type=$type, h.platform=$platform, h.mac=$mac, h.hwsku=$hwsku";
+		public static final String UPDATE_INTERFACE_IP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(l:Ltp{name:$itfName})-[:CONTAINS]->(e:EtherCtp)\r\n"
+				+ "MERGE (e)-[k:CONTAINS]->(c:Ip4Ctp)\r\n"
+				+ "SET l.adminStatus=$adminStatus, l.index=$index, l.type=$type, l.speed=$speed, l.mtu=$mtu, "
+				+ "e.mode=$mode, e.vlan=$vlan, e.macAddr=$macAddr, "
+				+ "c.ipAddr=$ipAddr, c.netMask=$netMask, c.svi=$svi";
+		public static final String UPDATE_INTERFACE_NOIP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(l:Ltp{name:$itfName})-[:CONTAINS]->(e:EtherCtp)\r\n"
+				+ "OPTIONAL MATCH (e)-[k:CONTAINS]->(c:Ip4Ctp)\r\n"
+				+ "SET l.adminStatus=$adminStatus, l.index=$index, l.type=$type, l.speed=$speed, l.mtu=$mtu, "
+				+ "e.mode=$mode, e.vlan=$vlan, e.macAddr=$macAddr "
+				+ "DETACH DELETE c";
 
-		public static final String DELETE_VIEW = "";
-		public static final String DELETE_BGP = "";
+		public static final String DELETE_VIEW = "DROP DATABASE $viewId";
+		public static final String DELETE_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})-[:HAS_CONFIG]->(b:Bgp)\r\n"
+				+ "DETACH DELETE b";
 	}
 	
 	public static class Verify {

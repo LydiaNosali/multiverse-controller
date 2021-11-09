@@ -205,8 +205,8 @@
 [frame="topbot"]
 |===
 ^|Name | Type ^| Description
+|[[hostAddresses]]`@hostAddresses`|`Array of String`|-
 |[[netAddress]]`@netAddress`|`String`|-
-|[[usedAddresses]]`@usedAddresses`|`Number (int)`|-
 |===
 
 [[Link]]
@@ -277,10 +277,11 @@
 |[[index]]`@index`|`String`|-
 |[[ipAddr]]`@ipAddr`|`String`|-
 |[[macAddr]]`@macAddr`|`String`|-
+|[[mode]]`@mode`|`String`|-
 |[[mtu]]`@mtu`|`String`|-
 |[[name]]`@name`|`String`|-
 |[[speed]]`@speed`|`String`|-
-|[[svi]]`@svi`|`Boolean`|-
+|[[svi]]`@svi`|`String`|-
 |[[type]]`@type`|`link:enums.html#InterfaceType[InterfaceType]`|-
 |[[vlan]]`@vlan`|`String`|-
 |===

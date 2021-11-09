@@ -19,8 +19,8 @@ public class NetInterface extends Configurable {
 	};
 	
 	public enum InterfaceStatus {
-		UP("UP"),
-		DOWN("DOWN");
+		UP("up"),
+		DOWN("down");
 		private String value;
 		private InterfaceStatus(String value) { this.value = value; }
 		public String getValue() { return this.value; }
@@ -40,9 +40,8 @@ public class NetInterface extends Configurable {
 	private String mode;
 	
 	// In Ip4Ctp
-	private String ipAddr; 		// CIDR
-	private String netAddr;
-	private String svi;
+	private String ipAddr = ""; 		// CIDR
+	private String svi = "";
 
 	public NetInterface() {}
 	public String getMode() {
@@ -50,12 +49,6 @@ public class NetInterface extends Configurable {
 	}
 	public void setMode(String mode) {
 		this.mode = mode;
-	}
-	public String getNetAddr() {
-		return netAddr;
-	}
-	public void setNetAddr(String netAddr) {
-		this.netAddr = netAddr;
 	}
 	public String getSvi() {
 		return svi;

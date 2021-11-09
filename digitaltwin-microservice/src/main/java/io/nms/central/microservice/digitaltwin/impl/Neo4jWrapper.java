@@ -1,7 +1,10 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
 import org.neo4j.driver.AccessMode;
@@ -17,8 +20,10 @@ import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.ResultCursor;
 import org.neo4j.driver.exceptions.Neo4jException;
 import org.neo4j.driver.exceptions.NoSuchRecordException;
+import org.neo4j.driver.internal.summary.InternalSummaryCounters;
 import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.driver.summary.SummaryCounters;
+import static org.neo4j.driver.internal.summary.InternalSummaryCounters.EMPTY_STATS;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
@@ -126,7 +131,7 @@ public class Neo4jWrapper {
 	
 	/* Transactions */
 	// Create a new transaction, no automatic rollback/commit on subsequent operations
-	public void beginTransaction(String db, Handler<AsyncResult<Void>> resultHandler) {
+	protected void beginTransaction(String db, Handler<AsyncResult<Void>> resultHandler) {
 		Context context = vertx.getOrCreateContext();
         this.txSession = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
         this.txSession.beginTransactionAsync().thenAccept(tx -> {
@@ -138,10 +143,10 @@ public class Neo4jWrapper {
             return null;
         });
     }
-	public void transactionExecute(String query, Handler<AsyncResult<JsonObject>> resultHandler) {
+	protected void transactionExecute(String query, Handler<AsyncResult<JsonObject>> resultHandler) {
         transactionExecute(query, new JsonObject(), resultHandler);
     }
-	public void transactionExecute(String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
+	protected void transactionExecute(String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
         Value v;
 		if (params.isEmpty()) {
 			v = Values.parameters();
@@ -154,10 +159,10 @@ public class Neo4jWrapper {
         		.whenComplete(wrapCallbackSummary(context, resultHandler));
     }
 	
-	public void transactionFind(String query, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+	protected void transactionFind(String query, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
         transactionFind(query, new JsonObject(), resultHandler);
     }
-	public void transactionFind(String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+	protected void transactionFind(String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
         Value v;
 		if (params.isEmpty()) {
 			v = Values.parameters();
@@ -169,7 +174,7 @@ public class Neo4jWrapper {
         		.thenCompose(ResultCursor::listAsync)
         		.whenComplete(wrapCallbackList(context, resultHandler));
     }
-	public void commit(Handler<AsyncResult<Void>> resultHandler) {
+	protected void commit(Handler<AsyncResult<Void>> resultHandler) {
 		tx.commitAsync()
 				.whenComplete((res, err) -> {
 					if (err != null) {
@@ -180,7 +185,7 @@ public class Neo4jWrapper {
 				})
 				.thenCompose(ignore -> txSession.closeAsync());
 	}
-	public void rollback(Handler<AsyncResult<Void>> resultHandler) {
+	protected void rollback(Handler<AsyncResult<Void>> resultHandler) {
 		tx.rollbackAsync()
 				.whenComplete((res, err) -> {
 					if (err != null) {
@@ -191,16 +196,55 @@ public class Neo4jWrapper {
 				})
 				.thenCompose(ignore -> txSession.closeAsync());
 	}
+	
+	/* Bulk queries */
+	 public void bulkExecute(String db, List<String> queries, Handler<AsyncResult<JsonObject>> resultHandler) {
+	        AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
+	        Context context = vertx.getOrCreateContext();
+	        session.writeTransactionAsync(tx -> {
+	            CompletionStage<SummaryCounters> stage = CompletableFuture.completedFuture(EMPTY_STATS);
+	            for (String query : queries) {
+	                stage = stage.thenCompose(previousCounter -> tx.runAsync(query)
+	                        .thenCompose(ResultCursor::consumeAsync)
+	                        .thenApply(ResultSummary::counters)
+	                        .thenApply(nextCounter -> AGGREGATE_COUNTERS.apply(previousCounter, nextCounter)));
+	            }
+	            return stage;
+	        })
+	        .whenComplete(wrapCallbackSummary(context, resultHandler))
+	        .thenCompose(ignore -> session.closeAsync());
+	    }
+	 
+	 static final BinaryOperator<SummaryCounters> AGGREGATE_COUNTERS = (summaryCounters, summaryCounters2) -> new InternalSummaryCounters(
+			 summaryCounters.nodesCreated() + summaryCounters2.nodesCreated(),
+	         summaryCounters.nodesDeleted() + summaryCounters2.nodesDeleted(),
+	         summaryCounters.relationshipsCreated() + summaryCounters2.relationshipsCreated(),
+	         summaryCounters.relationshipsDeleted() + summaryCounters2.relationshipsDeleted(),
+	         summaryCounters.propertiesSet() + summaryCounters2.propertiesSet(),
+	         summaryCounters.labelsAdded() + summaryCounters2.labelsAdded(),
+	         summaryCounters.labelsRemoved() + summaryCounters2.labelsRemoved(),
+             summaryCounters.indexesAdded() + summaryCounters2.indexesAdded(),
+	         summaryCounters.indexesRemoved() + summaryCounters2.indexesRemoved(),
+	         summaryCounters.constraintsAdded() + summaryCounters2.constraintsAdded(),
+	         summaryCounters.constraintsRemoved() + summaryCounters2.constraintsRemoved(),
+	         summaryCounters.systemUpdates() + summaryCounters2.systemUpdates()
+	 );
+
 
 	
 	/* Result wrappers */
-	private BiConsumer<ResultSummary, Throwable> wrapCallbackSummary(Context context, Handler<AsyncResult<JsonObject>> resultHandler) {
+	private <T> BiConsumer<T, Throwable> wrapCallbackSummary(Context context, Handler<AsyncResult<JsonObject>> resultHandler) {
         return (result, error) -> {
             context.runOnContext(v -> {
                 if (error != null) {
                 	handleError(error, resultHandler);
                 } else {
-                	SummaryCounters summary = result.counters();
+                	SummaryCounters summary;
+                	if (result instanceof ResultSummary) {
+                		summary = ((ResultSummary)result).counters();
+                	} else {
+                		summary = (SummaryCounters) result;
+                	}
                 	JsonObject json = new JsonObject();
                 	json.put("labelsAdded", summary.labelsAdded());
                 	json.put("labelsRemoved", summary.labelsRemoved());
@@ -209,6 +253,8 @@ public class Neo4jWrapper {
                 	json.put("propertiesSet", summary.propertiesSet());
                 	json.put("relationshipsCreated", summary.relationshipsCreated());
                 	json.put("relationshipsDeleted", summary.relationshipsDeleted());
+                	json.put("constraintsAdded", summary.constraintsAdded());
+                	json.put("constraintsRemoved", summary.constraintsRemoved());
                     resultHandler.handle(Future.succeededFuture(json));
                 }
             });
