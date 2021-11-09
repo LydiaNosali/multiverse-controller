@@ -13,6 +13,7 @@ import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
 import org.neo4j.driver.async.AsyncSession;
+import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.ResultCursor;
 import org.neo4j.driver.exceptions.Neo4jException;
 import org.neo4j.driver.exceptions.NoSuchRecordException;
@@ -37,6 +38,9 @@ public class Neo4jWrapper {
 
 	private Driver driver;
 	private final Vertx vertx;
+	
+	private AsyncTransaction tx;
+    private AsyncSession txSession;
 
 	public Neo4jWrapper(Vertx vertx, JsonObject config) {
 		this.vertx = vertx;
@@ -118,7 +122,78 @@ public class Neo4jWrapper {
 			    .whenComplete(wrapCallbackSummary(context, resultHandler))
 				.thenCompose(ignore -> session.closeAsync());
 	}
+	
+	
+	/* Transactions */
+	// Create a new transaction, no automatic rollback/commit on subsequent operations
+	public void beginTransaction(String db, Handler<AsyncResult<Void>> resultHandler) {
+		Context context = vertx.getOrCreateContext();
+        this.txSession = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
+        this.txSession.beginTransactionAsync().thenAccept(tx -> {
+        	this.tx = tx;
+            context.runOnContext(v -> resultHandler.handle(Future.succeededFuture()));
+        }).exceptionally(error -> {
+            context.runOnContext(v -> resultHandler.handle(Future.failedFuture(error)));
+            this.txSession.closeAsync();
+            return null;
+        });
+    }
+	public void transactionExecute(String query, Handler<AsyncResult<JsonObject>> resultHandler) {
+        transactionExecute(query, new JsonObject(), resultHandler);
+    }
+	public void transactionExecute(String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
+        Value v;
+		if (params.isEmpty()) {
+			v = Values.parameters();
+		} else {
+			v = Values.parameters(params.getMap());
+		}
+		Context context = vertx.getOrCreateContext();
+        this.tx.runAsync(query, v)
+        		.thenCompose(ResultCursor::consumeAsync)
+        		.whenComplete(wrapCallbackSummary(context, resultHandler));
+    }
+	
+	public void transactionFind(String query, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+        transactionFind(query, new JsonObject(), resultHandler);
+    }
+	public void transactionFind(String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+        Value v;
+		if (params.isEmpty()) {
+			v = Values.parameters();
+		} else {
+			v = Values.parameters(params.getMap());
+		}
+		Context context = vertx.getOrCreateContext();
+		this.tx.runAsync(query, v)
+        		.thenCompose(ResultCursor::listAsync)
+        		.whenComplete(wrapCallbackList(context, resultHandler));
+    }
+	public void commit(Handler<AsyncResult<Void>> resultHandler) {
+		tx.commitAsync()
+				.whenComplete((res, err) -> {
+					if (err != null) {
+						resultHandler.handle(Future.failedFuture(err.getCause()));
+					} else {
+						resultHandler.handle(Future.succeededFuture());
+					}
+				})
+				.thenCompose(ignore -> txSession.closeAsync());
+	}
+	public void rollback(Handler<AsyncResult<Void>> resultHandler) {
+		tx.rollbackAsync()
+				.whenComplete((res, err) -> {
+					if (err != null) {
+						resultHandler.handle(Future.failedFuture(err.getCause()));
+					} else {
+						resultHandler.handle(Future.succeededFuture());
+					}
+				})
+				.thenCompose(ignore -> txSession.closeAsync());
+	}
 
+	
+	/* Result wrappers */
 	private BiConsumer<ResultSummary, Throwable> wrapCallbackSummary(Context context, Handler<AsyncResult<JsonObject>> resultHandler) {
         return (result, error) -> {
             context.runOnContext(v -> {

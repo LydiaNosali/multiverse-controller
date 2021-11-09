@@ -1,7 +1,6 @@
 package io.nms.central.microservice.common.service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import io.vertx.core.AsyncResult;
@@ -33,7 +32,6 @@ public class JdbcRepositoryWrapper {
 	    LINK,
 		LC,
 		CONNECTION,
-	    ROUTE,
 	    PA
 	}
 	private Entity currEntity = Entity.NONE;
@@ -43,107 +41,61 @@ public class JdbcRepositoryWrapper {
 	public JdbcRepositoryWrapper(Vertx vertx, JsonObject config) {
 		this.client = JDBCClient.create(vertx, config);
 	}
+	
+	// remove optional in findOne -> add NOT_FOUND error
+	// update SQLs
+	// uniform promise return
 
-	protected void executeNoResult(JsonArray params, String sql, Handler<AsyncResult<Void>> resultHandler) {
+	protected void execute(String sql, JsonArray params, Handler<AsyncResult<Void>> resultHandler) {
 		client.getConnection(connHandler(resultHandler, connection -> {
 			connection.updateWithParams(sql, params, r -> {
 				if (r.succeeded()) {
 					resultHandler.handle(Future.succeededFuture());
 				} else {
-					resultHandler.handle(Future.failedFuture(r.cause()));
+					resultHandler.handle(Future.failedFuture(convertError(r.cause())));
+					// resultHandler.handle(Future.failedFuture(r.cause()));
+					// logger.error("sql error: " + r.cause().getMessage());
 				}
 				connection.close();
 			});
 		}));
 	}
 	
-	protected void insertAndGetId(JsonArray params, String sql, Handler<AsyncResult<Integer>> resultHandler) {
+	protected void insert(String sql, JsonArray params, Handler<AsyncResult<Integer>> resultHandler) {
 		client.getConnection(connHandler(resultHandler, connection -> {
 			connection.updateWithParams(sql, params, r -> {
 				if (r.succeeded()) {
 					UpdateResult updateResult = r.result();
-					if (updateResult.getKeys().size() > 0) {
+					// if (updateResult.getKeys().size() > 0) {
 						resultHandler.handle(Future.succeededFuture(updateResult.getKeys().getInteger(0)));
-					} else {
-						resultHandler.handle(Future.failedFuture("Not inserted"));
-					}
+					//} else {
+					//	resultHandler.handle(Future.failedFuture("Not inserted"));
+					//}
 				} else {
-					resultHandler.handle(Future.failedFuture(r.cause()));
+					resultHandler.handle(Future.failedFuture(convertError(r.cause())));
+					// resultHandler.handle(Future.failedFuture(r.cause()));
 				}
 				connection.close();
 			});
 		}));
 	}
 	
-	// update or insert ONE row and return Id
-	protected void upsert(JsonArray params, String sql, Handler<AsyncResult<Integer>> resultHandler) {
-		client.getConnection(connHandler(resultHandler, connection -> {
-			connection.updateWithParams(sql, params, r -> {
-				if (r.succeeded()) {
-					UpdateResult updateResult = r.result();
-					Integer id = 0;
-					if (updateResult.getUpdated() == 1) {
-						id = updateResult.getKeys().getInteger(0);
-					}
-					resultHandler.handle(Future.succeededFuture(id));
-				} else {
-					resultHandler.handle(Future.failedFuture(r.cause()));
-				}
-				connection.close();
-			});
-		}));
-	}
-	
-	/* execute and return the number of updated elements */
-	protected void update(JsonArray params, String sql, Handler<AsyncResult<Integer>> resultHandler) {
-		client.getConnection(connHandler(resultHandler, connection -> {
-			connection.updateWithParams(sql, params, r -> {
-				if (r.succeeded()) {
-					UpdateResult updateResult = r.result();
-					resultHandler.handle(Future.succeededFuture(updateResult.getUpdated()));
-				} else {
-					resultHandler.handle(Future.failedFuture(r.cause()));
-				}
-				connection.close();
-			});
-		}));
-	}
-
-	protected <K> Future<Optional<JsonObject>> retrieveOne(K param, String sql) {
+	// find exactly one
+	protected Future<JsonObject> findOne(String sql, JsonArray params) {
 		return getConnection()
 				.compose(connection -> {
-					Promise<Optional<JsonObject>> promise = Promise.promise();
-					connection.queryWithParams(sql, new JsonArray().add(param), r -> {
-						if (r.succeeded()) {
-							List<JsonObject> resList = r.result().getRows();
-							if (resList == null || resList.isEmpty()) {
-								promise.complete(Optional.empty());
-							} else {
-								promise.complete(Optional.of(resList.get(0)));
-							}
-						} else {
-							promise.fail(r.cause());
-						}
-						connection.close();
-					});
-					return promise.future();
-				});
-	}
-	
-	protected Future<Optional<JsonObject>> retrieveOne(JsonArray params, String sql) {
-		return getConnection()
-				.compose(connection -> {
-					Promise<Optional<JsonObject>> promise = Promise.promise();
+					Promise<JsonObject> promise = Promise.promise();
 					connection.queryWithParams(sql, params, r -> {
 						if (r.succeeded()) {
 							List<JsonObject> resList = r.result().getRows();
-							if (resList == null || resList.isEmpty()) {
-								promise.complete(Optional.empty());
+							if (resList == null || (resList.size() != 1)) {
+								promise.fail("NOT_FOUND");
 							} else {
-								promise.complete(Optional.of(resList.get(0)));
+								promise.complete(resList.get(0));
 							}
 						} else {
-							promise.fail(r.cause());
+							// promise.fail(r.cause());
+							promise.fail(convertError(r.cause()));
 						}
 						connection.close();
 					});
@@ -151,35 +103,37 @@ public class JdbcRepositoryWrapper {
 				});
 	}
 	
-	protected <K> Future<Optional<List<JsonObject>>> retrieveOneNested(K param, String sql) {
-		return getConnection().compose(connection -> {
-			Promise<Optional<List<JsonObject>>> promise = Promise.promise();
-			connection.queryWithParams(sql, new JsonArray().add(param), r -> {
-				if (r.succeeded()) {
-					List<JsonObject> resList = r.result().getRows();
-					if (resList == null || resList.isEmpty()) {
-						promise.complete(Optional.empty());
-					} else {
-						promise.complete(Optional.of(resList));
-					}					
-				} else {
-					promise.fail(r.cause());
-				}
-				connection.close();
-			});
-			return promise.future();
-		});
+	protected Future<JsonObject> findOne(String sql) {
+		return getConnection()
+				.compose(connection -> {
+					Promise<JsonObject> promise = Promise.promise();
+					connection.query(sql, r -> {
+						if (r.succeeded()) {
+							List<JsonObject> resList = r.result().getRows();
+							if (resList == null || (resList.size() != 1)) {
+								promise.fail("NOT_FOUND");
+							} else {
+								promise.complete(resList.get(0));
+							}
+						} else {
+							// promise.fail(r.cause());
+							promise.fail(convertError(r.cause()));
+						}
+						connection.close();
+					});
+					return promise.future();
+				});
 	}
-
 	
-	protected Future<List<JsonObject>> retrieveMany(JsonArray param, String sql) {
+	protected Future<List<JsonObject>> find(String sql, JsonArray params) {
 		return getConnection().compose(connection -> {
 			Promise<List<JsonObject>> promise = Promise.promise();
-			connection.queryWithParams(sql, param, r -> {
+			connection.queryWithParams(sql, params, r -> {
 				if (r.succeeded()) {
 					promise.complete(r.result().getRows());
 				} else {
-					promise.fail(r.cause());
+					// promise.fail(r.cause());
+					promise.fail(convertError(r.cause()));
 				}
 				connection.close();
 			});
@@ -187,14 +141,15 @@ public class JdbcRepositoryWrapper {
 		});
 	}
 
-	protected Future<List<JsonObject>> retrieveAll(String sql) {
+	protected Future<List<JsonObject>> find(String sql) {
 		return getConnection().compose(connection -> {
 			Promise<List<JsonObject>> promise = Promise.promise();
 			connection.query(sql, r -> {
 				if (r.succeeded()) {
 					promise.complete(r.result().getRows());
 				} else {
-					promise.fail(r.cause());
+					// promise.fail(r.cause());
+					promise.fail(convertError(r.cause()));
 				}
 				connection.close();
 			});
@@ -202,57 +157,53 @@ public class JdbcRepositoryWrapper {
 		});
 	}
 
-	protected <K> void removeOne(K id, String sql, Handler<AsyncResult<Void>> resultHandler) {
+	protected void delete(String sql, JsonArray params, Handler<AsyncResult<Void>> resultHandler) {
 		client.getConnection(connHandler(resultHandler, connection -> {
-			JsonArray params = new JsonArray().add(id);
 			connection.updateWithParams(sql, params, r -> {
 				if (r.succeeded()) {
 					resultHandler.handle(Future.succeededFuture());
 				} else {
-					resultHandler.handle(Future.failedFuture(r.cause()));
+					resultHandler.handle(Future.failedFuture(convertError(r.cause())));
+					// resultHandler.handle(Future.failedFuture(r.cause()));
 				}
 				connection.close();
 			});
 		}));
 	}
 
-	protected void removeAll(String sql, Handler<AsyncResult<Void>> resultHandler) {
+	protected void delete(String sql, Handler<AsyncResult<Void>> resultHandler) {
 		client.getConnection(connHandler(resultHandler, connection -> {
 			connection.update(sql, r -> {
 				if (r.succeeded()) {
 					resultHandler.handle(Future.succeededFuture());
 				} else {
-					resultHandler.handle(Future.failedFuture(r.cause()));
+					resultHandler.handle(Future.failedFuture(convertError(r.cause())));
+					// resultHandler.handle(Future.failedFuture(r.cause()));
 				}
 				connection.close();
 			});
 		}));
 	}
 
-	/**
-	 * A helper methods that generates async handler for SQLConnection
-	 *
-	 * @return generated handler
-	 */
 	protected <R> Handler<AsyncResult<SQLConnection>> connHandler(Handler<AsyncResult<R>> h1, Handler<SQLConnection> h2) {
 		return conn -> {
 			if (conn.succeeded()) {
 				final SQLConnection connection = conn.result();
 				h2.handle(connection);
 			} else {
-				h1.handle(Future.failedFuture(conn.cause()));
+				h1.handle(Future.failedFuture(convertError(conn.cause())));
 			}
 		};
 	}
-
+	
 	protected Future<SQLConnection> getConnection() {
 		Promise<SQLConnection> promise = Promise.promise();
 		client.getConnection(promise);
 		return promise.future();
 	}
 	
-	/* --------------------------------- */
-	protected Future<Void> beginTxnAndLock(Entity entity, UUID uuid, String sql) {
+	/* Transactions */
+	protected Future<Void> beginTransaction(Entity entity, UUID uuid, String sql) {
 		Promise<Void> promise = Promise.promise();
 		if ((currUUID != null) && uuid.equals(currUUID)) {
 			counter++;
@@ -270,111 +221,120 @@ public class JdbcRepositoryWrapper {
 									counter = 0;
 									promise.complete();
 								} else {
-									promise.fail(p.cause());
+									// promise.fail(p.cause());
+									promise.fail(convertError(p.cause()));
 								}
 							});
 						} else {
-							promise.fail(res.cause());
+							// promise.fail(res.cause());
+							promise.fail(convertError(res.cause()));
 						}
 					});
 				} else {
-					promise.fail(ar.cause());
+					// promise.fail(ar.cause());
+					promise.fail(convertError(ar.cause()));
 				}
 			});
 		}
 		return promise.future();
 	}
 	
-	protected Future<Integer> globalInsert(JsonArray params, String sql) {
+	protected Future<Integer> transactionInsert(String sql, JsonArray params) {
 		Promise<Integer> promise = Promise.promise();
 		globalConn.updateWithParams(sql, params, ar -> {
 			if (ar.succeeded()) {
 				UpdateResult updateResult = ar.result();
-				if (updateResult.getKeys().size() > 0) {
+				// if (updateResult.getKeys().size() > 0) {
 					promise.complete(updateResult.getKeys().getInteger(0));
-				} else {
-					rollbackAndUnlock();
-					promise.fail("Not inserted");
-				}					 
+				// } else {
+				//	rollbackAndUnlock();
+				//	promise.fail("Not inserted");
+				//}					 
 			} else {
-				rollbackAndUnlock();
-				promise.fail(ar.cause());
+				rollback();
+				// promise.fail(ar.cause());
+				promise.fail(convertError(ar.cause()));
 			}
 		});
 		return promise.future();
 	}
 	
-	protected Future<Void> globalExecute(JsonArray params, String sql) {
+	protected Future<Void> transactionExecute(String sql, JsonArray params) {
 		Promise<Void> promise = Promise.promise();
 		globalConn.updateWithParams(sql, params, ar -> {
 			if (ar.succeeded()) {
 				promise.complete();					 
 			} else {
-				rollbackAndUnlock();
-				promise.fail(ar.cause());
+				rollback();
+				// promise.fail(ar.cause());
+				promise.fail(convertError(ar.cause()));
 			}
 		});
 		return promise.future();
 	}
 	
-	protected Future<Void> globalExecute(String sql) {
+	protected Future<Void> transactionExecute(String sql) {
 		Promise<Void> promise = Promise.promise();
 		globalConn.update(sql, ar -> {
 			if (ar.succeeded()) {
 				promise.complete();					 
 			} else {
-				rollbackAndUnlock();
-				promise.fail(ar.cause());
+				rollback();
+				// promise.fail(ar.cause());
+				promise.fail(convertError(ar.cause()));
 			}
 		});
 		return promise.future();
 	}
 	
-	protected Future<List<JsonObject>> globalRetrieveAll(String sql) { 
+	protected Future<List<JsonObject>> transactionFind(String sql) { 
 		Promise<List<JsonObject>> promise = Promise.promise();
 		globalConn.query(sql, r -> {
 				if (r.succeeded()) {
 					promise.complete(r.result().getRows());
 				} else {
-					rollbackAndUnlock();
-					promise.fail(r.cause());
+					rollback();
+					// promise.fail(r.cause());
+					promise.fail(convertError(r.cause()));
 				}
 			});
 		return promise.future();
 	}
 	
-	protected Future<List<JsonObject>> globalRetrieveMany(JsonArray params, String sql) { 
+	protected Future<List<JsonObject>> transactionFind(String sql, JsonArray params) { 
 		Promise<List<JsonObject>> promise = Promise.promise();
 		globalConn.queryWithParams(sql, params, r -> {
 				if (r.succeeded()) {
 					promise.complete(r.result().getRows());
 				} else {
-					rollbackAndUnlock();
-					promise.fail(r.cause());
+					rollback();
+					// promise.fail(r.cause());
+					promise.fail(convertError(r.cause()));
 				}
 			});
 		return promise.future();
 	}
 	
-	protected Future<Optional<JsonObject>> globalRetrieveOne(JsonArray params, String sql) {
-		Promise<Optional<JsonObject>> promise = Promise.promise();
+	protected Future<JsonObject> transactionFindOne(String sql, JsonArray params) {
+		Promise<JsonObject> promise = Promise.promise();
 		globalConn.queryWithParams(sql, params, r -> {
 			if (r.succeeded()) {
 				List<JsonObject> resList = r.result().getRows();
-				if (resList == null || resList.isEmpty()) {
-					promise.complete(Optional.empty());
+				if (resList == null || (resList.size() != 1)) {
+					promise.fail("NOT_FOUND");
 				} else {
-					promise.complete(Optional.of(resList.get(0)));
+					promise.complete(resList.get(0));
 				}
 			} else {
-				rollbackAndUnlock();
-				promise.fail(r.cause());
+				rollback();
+				// promise.fail(r.cause());
+				promise.fail(convertError(r.cause()));
 			}
 		});
 		return promise.future();
 	}
 	
-	protected Future<Void> commitTxnAndUnlock(Entity entity, UUID uuid) {
+	protected Future<Void> commitTransaction(Entity entity, UUID uuid) {
 		Promise<Void> promise = Promise.promise();
 		if (currUUID.equals(uuid) && currEntity.equals(entity) && (counter == 0)) {
 			globalConn.commit(ar -> {
@@ -387,13 +347,15 @@ public class JdbcRepositoryWrapper {
 						if (done.succeeded()) {
 							promise.complete();
 						} else {
-							promise.fail(done.cause());
+							// promise.fail(done.cause());
+							promise.fail(convertError(done.cause()));
 						}
 					});
 				} else {
 					globalConn.close();
 					globalConn = null;
-					promise.fail(ar.cause());
+					// promise.fail(ar.cause());
+					promise.fail(convertError(ar.cause()));
 				}
 			});
 		} else {
@@ -403,7 +365,7 @@ public class JdbcRepositoryWrapper {
 		return promise.future();
 	}
 	
-	protected void rollbackAndUnlock() {
+	protected void rollback() {
 		if (!currEntity.equals(Entity.NONE)) {
 			globalConn.rollback(ar -> {
 				globalConn.execute("UNLOCK TABLES", done -> {
@@ -414,4 +376,13 @@ public class JdbcRepositoryWrapper {
 		}
 	}
 
+	private String convertError(Throwable error) {
+		String msg = error.getMessage();
+		logger.error("SQL Exception: ", msg);
+		String errorMessage = "INTERNAL";
+		if (msg.contains("Duplicate")) {
+			errorMessage = "CONFLICT";
+		}
+		return errorMessage;
+	}
 }

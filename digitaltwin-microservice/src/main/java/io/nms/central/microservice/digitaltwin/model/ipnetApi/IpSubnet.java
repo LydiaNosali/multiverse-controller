@@ -1,5 +1,6 @@
 package io.nms.central.microservice.digitaltwin.model.ipnetApi;
 
+import java.util.List;
 import java.util.Objects;
 
 import io.nms.central.microservice.common.functional.JSONUtils;
@@ -10,19 +11,7 @@ import io.vertx.core.json.JsonObject;
 public class IpSubnet {
 	
 	private String netAddress;
-    public String getNetAddress() {
-		return netAddress;
-	}
-	public void setNetAddress(String netAddress) {
-		this.netAddress = netAddress;
-	}
-	public int getUsedAddresses() {
-		return usedAddresses;
-	}
-	public void setUsedAddresses(int usedAddresses) {
-		this.usedAddresses = usedAddresses;
-	}
-	private int usedAddresses;
+	private List<String> hostAddresses;
 	
 	/*-----------------------------------------------*/
 	
@@ -33,6 +22,20 @@ public class IpSubnet {
 
 	/*-----------------------------------------------*/
 
+	public String getNetAddress() {
+		return netAddress;
+	}
+	public void setNetAddress(String netAddress) {
+		this.netAddress = netAddress;
+	}
+	
+	public List<String> getHostAddresses() {
+		return hostAddresses;
+	}
+	public void setHostAddresses(List<String> hostAddresses) {
+		this.hostAddresses = hostAddresses;
+	}
+	
 	public JsonObject toJson() {
 		return new JsonObject(JSONUtils.pojo2Json(this, false));
 	}

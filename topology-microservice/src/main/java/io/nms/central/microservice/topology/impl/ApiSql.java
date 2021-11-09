@@ -195,11 +195,11 @@ public class ApiSql {
 			")";
 	
 	/*-------------------- INSERT ITEMS --------------------*/	
-	public static final String INSERT_VSUBNET = "INSERT INTO Vsubnet (name, label, description, info) VALUES (?, ?, ?, ?) "
-			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
-			+ "id=LAST_INSERT_ID(id)";
+	public static final String INSERT_VSUBNET = "INSERT INTO Vsubnet (name, label, description, info) VALUES (?, ?, ?, ?) ";
+			// + "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
+			// + "id=LAST_INSERT_ID(id)";
 	public static final String INSERT_VNODE = "INSERT INTO Vnode (name, label, description, info, status, posx, posy, location, type, vsubnetId, hwaddr, mgmtIp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), status = VALUES(status), "
+		//	+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), status = VALUES(status), "
 			+ "posx = VALUES(posx), posy = VALUES(posy), location = VALUES(location), type = VALUES(type), vsubnetId = VALUES(vsubnetId), hwaddr = VALUES(hwaddr), mgmtIp = VALUES(mgmtIp), "
 			+ "id=LAST_INSERT_ID(id)";
 	public static final String INSERT_VLTP = "INSERT INTO Vltp (name, label, description, info, status, vnodeId, port, bandwidth, mtu, busy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
@@ -397,7 +397,6 @@ public class ApiSql {
 	public static final String DELETE_VCONNECTION = "DELETE FROM Vconnection WHERE id=?";
 	public static final String DELETE_PREFIX = "DELETE FROM Prefix WHERE id=?";
 	public static final String DELETE_PREFIX_BY_NAME = "DELETE FROM Prefix WHERE originId = ? AND name = ?";
-	public static final String DELETE_ROUTE = "DELETE FROM Route WHERE id=?";
 	public static final String DELETE_CROSS_CONNECT = "DELETE FROM CrossConnect WHERE id=?";
 
 	/*-------------------- UPDATE ITEMS BY ID --------------------*/

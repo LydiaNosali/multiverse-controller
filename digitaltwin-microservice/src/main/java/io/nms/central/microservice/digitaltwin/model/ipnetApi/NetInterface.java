@@ -26,31 +26,53 @@ public class NetInterface extends Configurable {
 		public String getValue() { return this.value; }
 	};
 
+	// In LTtp
 	private String name;
+	private InterfaceType type;
 	private InterfaceStatus adminStatus;
 	private String index;
-	private String mtu;
 	private String speed;
+	private String mtu;
+	
+	// In EtherCtp
 	private String macAddr;
 	private String vlan;
+	private String mode;
+	
+	// In Ip4Ctp
+	private String ipAddr; 		// CIDR
+	private String netAddr;
+	private String svi;
+
+	public NetInterface() {}
+	public String getMode() {
+		return mode;
+	}
+	public void setMode(String mode) {
+		this.mode = mode;
+	}
+	public String getNetAddr() {
+		return netAddr;
+	}
+	public void setNetAddr(String netAddr) {
+		this.netAddr = netAddr;
+	}
+	public String getSvi() {
+		return svi;
+	}
+	public void setSvi(String svi) {
+		this.svi = svi;
+	}
+	public NetInterface(JsonObject json) {
+		JSONUtils.fromJson(json, this, NetInterface.class);
+	}
+	
 	public String getVlan() {
 		return vlan;
 	}
 	public void setVlan(String vlan) {
 		this.vlan = vlan;
 	}
-	public boolean isSvi() {
-		return isSvi;
-	}
-	public void setSvi(boolean isSvi) {
-		this.isSvi = isSvi;
-	}
-	private String ipAddr;
-	private InterfaceType type;
-	private boolean isSvi = false;
-	
-	/*-----------------------------------------------*/
-
 	public String getName() {
 		return name;
 	}
@@ -98,10 +120,6 @@ public class NetInterface extends Configurable {
 	}
 	public void setType(InterfaceType type) {
 		this.type = type;
-	}
-	public NetInterface() {}
-	public NetInterface(JsonObject json) {
-		JSONUtils.fromJson(json, this, NetInterface.class);
 	}
 
 	/*-----------------------------------------------*/
