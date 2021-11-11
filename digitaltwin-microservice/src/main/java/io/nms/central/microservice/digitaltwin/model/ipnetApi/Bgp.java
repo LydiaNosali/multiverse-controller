@@ -10,12 +10,12 @@ import io.vertx.core.json.JsonObject;
 public class Bgp extends Configurable {
 		
 	public enum BgpState {
-		IDLE("Idle"),
-		CONNECT("Connect"),
-		ACTIVE("Active"),
-		OPENSENT("OpenSent"),
-		OPENCONFIRM("OpenConfirm"),
-		ESTABLISHED("Established");
+		Idle("Idle"),
+		Connect("Connect"),
+		Active("Active"),
+		OpenSent("OpenSent"),
+		OpenConfirm("OpenConfirm"),
+		Established("Established");
 		private String value;
 		private BgpState(String value) { this.value = value; }
 		public String getValue() { return this.value; }

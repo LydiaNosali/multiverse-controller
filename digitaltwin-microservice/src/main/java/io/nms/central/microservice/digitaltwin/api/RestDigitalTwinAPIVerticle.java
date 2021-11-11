@@ -183,11 +183,11 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	}
 	
 	// view device
-	private void apiViewGetDevice(RoutingContext context) {
+	/* private void apiViewGetDevice(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
 		service.viewGetDevice(viewId, deviceName, resultHandlerNonEmpty(context));
-	}
+	} */
 	private void apiViewUpdateDevice(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
@@ -205,20 +205,20 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	private void apiViewGetDeviceInterfaces(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
-		service.viewGetDevice(viewId, deviceName, resultHandler(context, Json::encodePrettily));
+		service.viewGetDeviceInterfaces(viewId, deviceName, resultHandler(context, Json::encodePrettily));
 	}
-	private void apiViewGetInterface(RoutingContext context) {
+	/* private void apiViewGetInterface(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
 		String itfName = context.request().getParam("itfName");
 		service.viewGetInterface(viewId, deviceName, itfName, resultHandlerNonEmpty(context));
-	}
+	} */
 	private void apiViewUpdateInterface(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
 		String itfName = context.request().getParam("itfName");
 		try {
-			final NetInterface netItf 
+			final NetInterface netItf
 					= JSONUtils.json2PojoE(context.getBodyAsString(), NetInterface.class);
 			service.viewUpdateInterface(viewId, deviceName, itfName, netItf, updateResultHandler(context));
 		} catch (Exception e) {
@@ -233,12 +233,12 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String deviceName = context.request().getParam("deviceName");
 		service.viewGetDeviceBgps(viewId, deviceName, resultHandler(context, Json::encodePrettily));
 	}
-	private void apiViewGetBgp(RoutingContext context) {
+	/* private void apiViewGetBgp(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
 		String itfAddr = context.request().getParam("itfAddr");
 		service.viewGetBgp(viewId, deviceName, itfAddr, resultHandlerNonEmpty(context));
-	}
+	} */
 	/* private void apiViewCreateBgp(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");

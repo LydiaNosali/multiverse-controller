@@ -64,7 +64,7 @@ public class CypherQuery {
 				+ "MERGE (e)-[k:CONTAINS]->(c:Ip4Ctp)\r\n"
 				+ "SET l.adminStatus=$adminStatus, l.index=$index, l.type=$type, l.speed=$speed, l.mtu=$mtu, "
 				+ "e.mode=$mode, e.vlan=$vlan, e.macAddr=$macAddr, "
-				+ "c.ipAddr=$ipAddr, c.netMask=$netMask, c.svi=$svi";
+				+ "c.ipAddr=$ipAddr, c.netMask=$netMask, c.netAddr=$netAddr, c.svi=$svi";
 		public static final String UPDATE_INTERFACE_NOIP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(l:Ltp{name:$itfName})-[:CONTAINS]->(e:EtherCtp)\r\n"
 				+ "OPTIONAL MATCH (e)-[k:CONTAINS]->(c:Ip4Ctp)\r\n"
 				+ "SET l.adminStatus=$adminStatus, l.index=$index, l.type=$type, l.speed=$speed, l.mtu=$mtu, "
@@ -76,7 +76,7 @@ public class CypherQuery {
 	
 	public static class View {
 		public static final String CREATE_VIEW = "CREATE DATABASE $viewId";
-		public static final String IMPORT_VIEW_JSON = "CALL apoc.import.json(\"file:////view.json\")";
+		public static final String IMPORT_VIEW_JSON = "CALL apoc.import.json(\"file:///view.json\")";
 		public static final String DELETE_VIEW = "DROP DATABASE $viewId";
 	
 		public static final List<String> INIT_VIEW = Arrays.asList(
@@ -88,7 +88,7 @@ public class CypherQuery {
 				+ "headerParams: { Authorization: \"Basic \" + apoc.text.base64Encode(\"%s:%s\") }, \r\n"
 				+ "payload: '{ \"cypher\": \"MATCH (h:Host)-[:CONTAINS]->(l:Ltp) WITH h limit 1 CALL apoc.path.subgraphAll(h, {maxLevel: 10, labelFilter:\\'+Host|Ltp|EtherCtp|Ip4Ctp|Bgp|Acl|AclRule\\'}) YIELD nodes, relationships RETURN nodes, relationships\" }'\r\n"
 				+ "})";
-		private static final String EXTRACT_VIEW_JSON = "MATCH (h:Host)-[:CONTAINS]->(l:Ltp) WITH h limit 1\r\n"
+		public static final String EXTRACT_VIEW_JSON = "MATCH (h:Host)-[:CONTAINS]->(l:Ltp) WITH h limit 1\r\n"
 				+ "CALL apoc.path.subgraphAll(h, {maxLevel: 10, labelFilter:'+Host|Ltp|EtherCtp|Ip4Ctp|Bgp|Acl|AclRule'}) YIELD nodes, relationships\r\n"
 				+ "WITH nodes as a, relationships as b\r\n"
 				+ "CALL apoc.export.json.data(a, b, \"view.json\", null)\r\n"

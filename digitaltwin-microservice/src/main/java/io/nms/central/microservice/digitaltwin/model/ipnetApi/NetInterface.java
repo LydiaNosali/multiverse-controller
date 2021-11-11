@@ -13,17 +13,17 @@ import io.vertx.core.json.JsonObject;
 public class NetInterface extends Configurable {
 	
 	public enum InterfaceType {
-		BRIDGE("Bridge"),
-		VLAN("Vlan"),
-		OTHER("Other");
+		Bridge("Bridge"),
+		Vlan("Vlan"),
+		Other("Other");
 		private String value;
 		private InterfaceType(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 	};
 	
 	public enum InterfaceStatus {
-		UP("up"),
-		DOWN("down");
+		up("up"),
+		down("down");
 		private String value;
 		private InterfaceStatus(String value) { this.value = value; }
 		public String getValue() { return this.value; }

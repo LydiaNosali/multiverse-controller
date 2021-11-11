@@ -3,6 +3,8 @@ package io.nms.central.microservice.digitaltwin.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.net.util.SubnetUtils;
+
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
@@ -183,8 +185,23 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService viewUpdateDevice(String viewId, String deviceName, Device device, 
 			Handler<AsyncResult<Void>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName)
+				.put("hostname", device.getHostname())
+				.put("bgpStatus", device.getBgpStatus())
+				.put("bgpAsn", device.getBgpAsn())
+				.put("type", device.getType().getValue())
+				.put("platform", device.getPlatform())
+				.put("mac", device.getMac())
+				.put("hwsku", device.getHwsku());
+		execute(viewId, CypherQuery.Api.UPDATE_HOST, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
 	}
 
 	@Override
@@ -203,9 +220,32 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 
 	@Override
 	public DigitalTwinService viewUpdateInterface(String viewId, String deviceName, String itfName,
-			NetInterface netInterface, Handler<AsyncResult<Void>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+			NetInterface netItf, Handler<AsyncResult<Void>> resultHandler) {
+		String updateQuery = CypherQuery.Api.UPDATE_INTERFACE_NOIP;
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName).put("itfName", itfName)
+				.put("adminStatus", netItf.getAdminStatus().getValue()).put("index", netItf.getIndex())
+				.put("type", netItf.getType().getValue()).put("speed", netItf.getSpeed())
+				.put("mtu", netItf.getMtu()).put("mode", netItf.getMode())
+				.put("vlan", netItf.getVlan()).put("macAddr", netItf.getMacAddr());
+		if (!netItf.getIpAddr().isEmpty()) {
+			logger.info("Update interface includes IP config");
+			String[] cird = netItf.getIpAddr().split("/");
+			String subnetAddr = getSubnetAddress(netItf.getIpAddr());
+			params
+					.put("ipAddr", cird[0]).put("netMask", "/"+cird[1])
+					.put("netAddr", subnetAddr).put("svi", netItf.getSvi());
+			updateQuery = CypherQuery.Api.UPDATE_INTERFACE_IP;
+		}
+		
+		execute(viewId, updateQuery, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
 	}
 
 	@Override
@@ -232,15 +272,41 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService viewUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp,
 			Handler<AsyncResult<Void>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName)
+				.put("itfAddr", itfAddr)
+				.put("localAsn", bgp.getLocalAsn())
+				.put("localId", bgp.getLocalId())
+				.put("remoteAddr", bgp.getRemoteAddr())
+				.put("remoteAsn", bgp.getRemoteAsn())
+				.put("remoteId", bgp.getRemoteId())
+				.put("holdTime", bgp.getHoldTime())
+				.put("keepAlive", bgp.getKeepAlive())
+				.put("state", bgp.getState().getValue());
+		execute(viewId, CypherQuery.Api.CREATE_BGP, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
 	}
 
 	@Override
 	public DigitalTwinService viewDeleteBgp(String viewId, String deviceName, String itfAddr,
 			Handler<AsyncResult<Void>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName)
+				.put("itfAddr", itfAddr);
+		execute(viewId, CypherQuery.Api.DELETE_BGP, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
 	}
 	
 	private void getNetwork(String db, Handler<AsyncResult<Network>> resultHandler) {
@@ -292,5 +358,15 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}
 		});
+	}
+	
+	private String getSubnetAddress(String cidrIp) {
+		try {
+			SubnetUtils subnet = new SubnetUtils(cidrIp);
+			return subnet.getInfo().getNetworkAddress();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		}
+		return "";
 	}
 }
