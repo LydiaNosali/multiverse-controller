@@ -1,8 +1,10 @@
 package io.nms.central.microservice.common.functional;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.vertx.core.json.JsonObject;
@@ -43,6 +45,19 @@ public final class JSONUtils {
 		String cleaned = x.replaceAll("\\\\", "").replaceAll("\"\\{", "{").replaceAll("\\}\"", "}");
         try {
 			return objectMapper.readValue(cleaned, clazz);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	public static <T> List<T> json2PojoList(String x, Class<T> clazz) {
+        if (x == null || x.equals("")) {
+            return null;
+		}
+		String cleaned = x.replaceAll("\\\\", "").replaceAll("\"\\{", "{").replaceAll("\\}\"", "}");
+        try {
+			return objectMapper.readValue(cleaned, new TypeReference<List<T>>(){});
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 			return null;

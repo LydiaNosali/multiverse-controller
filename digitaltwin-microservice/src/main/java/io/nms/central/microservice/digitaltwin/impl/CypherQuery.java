@@ -1,5 +1,9 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class CypherQuery {
 	public static final String CLEAR_DB = "MATCH (n) DETACH DELETE n;";
 	
@@ -34,8 +38,6 @@ public class CypherQuery {
 	}
 	
 	public static class Api {
-		public static final String CREATE_VIEW = "CREATE DATABASE $viewId";
-		
 		public static final String CREATE_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})\r\n"
 				+ "MERGE (c)-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "SET b.lAsn=$localAsn, b.lId=$localId, b.rAddr=$remoteAddr, b.rAsn=$remoteAsn, b.rId=$remoteId, "
@@ -68,10 +70,33 @@ public class CypherQuery {
 				+ "SET l.adminStatus=$adminStatus, l.index=$index, l.type=$type, l.speed=$speed, l.mtu=$mtu, "
 				+ "e.mode=$mode, e.vlan=$vlan, e.macAddr=$macAddr "
 				+ "DETACH DELETE c";
-
-		public static final String DELETE_VIEW = "DROP DATABASE $viewId";
 		public static final String DELETE_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "DETACH DELETE b";
+	}
+	
+	public static class View {
+		public static final String CREATE_VIEW = "CREATE DATABASE $viewId";
+		public static final String IMPORT_VIEW_JSON = "CALL apoc.import.json(\"file:////view.json\")";
+		public static final String DELETE_VIEW = "DROP DATABASE $viewId";
+	
+		public static final List<String> INIT_VIEW = Arrays.asList(
+		"CREATE CONSTRAINT n10s_unique_uri ON (r:Resource) ASSERT r.uri IS UNIQUE",
+				"CALL n10s.graphconfig.init({handleVocabUris: 'MAP'})");
+		private static final String P_EXTRACT_VIEW = "CALL n10s.rdf.import.fetch(\"http://localhost:7474/rdf/%s/cypher\",\"Turtle\",\r\n"
+				+ "{ \r\n"
+				+ "handleVocabUris: \"IGNORE\" , \r\n"
+				+ "headerParams: { Authorization: \"Basic \" + apoc.text.base64Encode(\"%s:%s\") }, \r\n"
+				+ "payload: '{ \"cypher\": \"MATCH (h:Host)-[:CONTAINS]->(l:Ltp) WITH h limit 1 CALL apoc.path.subgraphAll(h, {maxLevel: 10, labelFilter:\\'+Host|Ltp|EtherCtp|Ip4Ctp|Bgp|Acl|AclRule\\'}) YIELD nodes, relationships RETURN nodes, relationships\" }'\r\n"
+				+ "})";
+		private static final String EXTRACT_VIEW_JSON = "MATCH (h:Host)-[:CONTAINS]->(l:Ltp) WITH h limit 1\r\n"
+				+ "CALL apoc.path.subgraphAll(h, {maxLevel: 10, labelFilter:'+Host|Ltp|EtherCtp|Ip4Ctp|Bgp|Acl|AclRule'}) YIELD nodes, relationships\r\n"
+				+ "WITH nodes as a, relationships as b\r\n"
+				+ "CALL apoc.export.json.data(a, b, \"view.json\", null)\r\n"
+				+ "YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data\r\n"
+				+ "RETURN done";
+		public static String getExtractionQuery(String db, String user, String password) {
+			return String.format(P_EXTRACT_VIEW, db, user, password);
+		}
 	}
 	
 	public static class Verify {

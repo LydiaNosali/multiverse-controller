@@ -1,5 +1,7 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
+import static org.neo4j.driver.internal.summary.InternalSummaryCounters.EMPTY_STATS;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -13,8 +15,6 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.SessionConfig;
-import org.neo4j.driver.Value;
-import org.neo4j.driver.Values;
 import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.ResultCursor;
@@ -23,7 +23,6 @@ import org.neo4j.driver.exceptions.NoSuchRecordException;
 import org.neo4j.driver.internal.summary.InternalSummaryCounters;
 import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.driver.summary.SummaryCounters;
-import static org.neo4j.driver.internal.summary.InternalSummaryCounters.EMPTY_STATS;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
@@ -35,7 +34,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 /**
- * Helper and wrapper class for JDBC repository services.
+ * Helper and wrapper class for Neo4j database services.
  */
 public class Neo4jWrapper {
 
@@ -44,13 +43,17 @@ public class Neo4jWrapper {
 	private Driver driver;
 	private final Vertx vertx;
 	
+	protected final String dbUser;
+	protected final String dbPassword;
+	
 	private AsyncTransaction tx;
     private AsyncSession txSession;
 
 	public Neo4jWrapper(Vertx vertx, JsonObject config) {
 		this.vertx = vertx;
-		this.driver = GraphDatabase.driver(config.getString("url"), 
-				AuthTokens.basic(config.getString("user"), config.getString("password")));
+		this.dbUser = config.getString("user");
+		this.dbPassword = config.getString("password");
+		this.driver = GraphDatabase.driver(config.getString("url"), AuthTokens.basic(dbUser, dbPassword));
 		try {
 			driver.verifyConnectivity();
 			logger.info("Connected to neo4j");
@@ -64,15 +67,9 @@ public class Neo4jWrapper {
 		execute(db, query, new JsonObject(), resultHandler);
 	}
 	protected void execute(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
-		Value v;
-		if (params.isEmpty()) {
-			v = Values.parameters();
-		} else {
-			v = Values.parameters(params.getMap());
-		}
 		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
 		Context context = vertx.getOrCreateContext();
-		session.writeTransactionAsync(tx -> tx.runAsync(query, v).thenCompose(ResultCursor::consumeAsync))
+		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::consumeAsync))
 			    .whenComplete(wrapCallbackSummary(context, resultHandler))
 				.thenCompose(ignore -> session.closeAsync());
 	}
@@ -81,15 +78,9 @@ public class Neo4jWrapper {
 		findOne(db, query, new JsonObject(), resultHandler);
     }
 	protected void findOne(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
-		Value v;
-		if (params.isEmpty()) {
-			v = Values.parameters();
-		} else {
-			v = Values.parameters(params.getMap());
-		}
 		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
 		Context context = vertx.getOrCreateContext();
-		session.writeTransactionAsync(tx -> tx.runAsync(query, v).thenCompose(ResultCursor::singleAsync))
+		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::singleAsync))
 			    .whenComplete(wrapCallbackSingle(context, resultHandler))
 				.thenCompose(ignore -> session.closeAsync());
     }
@@ -98,15 +89,9 @@ public class Neo4jWrapper {
 		find(db, query, new JsonObject(), resultHandler);
     }
 	protected void find(String db, String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
-		Value v;
-		if (params.isEmpty()) {
-			v = Values.parameters();
-		} else {
-			v = Values.parameters(params.getMap());
-		}
 		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.READ));
 		Context context = vertx.getOrCreateContext();
-		session.writeTransactionAsync(tx -> tx.runAsync(query, v).thenCompose(ResultCursor::listAsync))
+		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::listAsync))
 			    .whenComplete(wrapCallbackList(context, resultHandler))
 				.thenCompose(ignore -> session.closeAsync());
     }
@@ -115,19 +100,12 @@ public class Neo4jWrapper {
 		delete(db, query, new JsonObject(), resultHandler);
 	}
 	protected void delete(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
-		Value v;
-		if (params.isEmpty()) {
-			v = Values.parameters();
-		} else {
-			v = Values.parameters(params.getMap());
-		}
 		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
 		Context context = vertx.getOrCreateContext();
-		session.writeTransactionAsync(tx -> tx.runAsync(query, v).thenCompose(ResultCursor::consumeAsync))
+		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::consumeAsync))
 			    .whenComplete(wrapCallbackSummary(context, resultHandler))
 				.thenCompose(ignore -> session.closeAsync());
 	}
-	
 	
 	/* Transactions */
 	// Create a new transaction, no automatic rollback/commit on subsequent operations
@@ -147,14 +125,8 @@ public class Neo4jWrapper {
         transactionExecute(query, new JsonObject(), resultHandler);
     }
 	protected void transactionExecute(String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
-        Value v;
-		if (params.isEmpty()) {
-			v = Values.parameters();
-		} else {
-			v = Values.parameters(params.getMap());
-		}
 		Context context = vertx.getOrCreateContext();
-        this.tx.runAsync(query, v)
+        this.tx.runAsync(query, params.getMap())
         		.thenCompose(ResultCursor::consumeAsync)
         		.whenComplete(wrapCallbackSummary(context, resultHandler));
     }
@@ -163,14 +135,8 @@ public class Neo4jWrapper {
         transactionFind(query, new JsonObject(), resultHandler);
     }
 	protected void transactionFind(String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
-        Value v;
-		if (params.isEmpty()) {
-			v = Values.parameters();
-		} else {
-			v = Values.parameters(params.getMap());
-		}
 		Context context = vertx.getOrCreateContext();
-		this.tx.runAsync(query, v)
+		this.tx.runAsync(query, params.getMap())
         		.thenCompose(ResultCursor::listAsync)
         		.whenComplete(wrapCallbackList(context, resultHandler));
     }
@@ -230,8 +196,6 @@ public class Neo4jWrapper {
 	         summaryCounters.systemUpdates() + summaryCounters2.systemUpdates()
 	 );
 
-
-	
 	/* Result wrappers */
 	private <T> BiConsumer<T, Throwable> wrapCallbackSummary(Context context, Handler<AsyncResult<JsonObject>> resultHandler) {
         return (result, error) -> {
@@ -286,7 +250,7 @@ public class Neo4jWrapper {
             });
         };
     }
-	
+
 	private SessionConfig configBuilder(String db, AccessMode am) {
 		return SessionConfig.builder()
 				.withDatabase(db)
@@ -325,7 +289,4 @@ public class Neo4jWrapper {
 	        resultHandler.handle(Future.failedFuture("INTERNAL"));
 		}
 	}
-	
-	// "CREATE (a:Greeting) SET a.message = $message RETURN a.message + ', from node ' + id(a)"
-	// Values.parameters( "message", message )
 }

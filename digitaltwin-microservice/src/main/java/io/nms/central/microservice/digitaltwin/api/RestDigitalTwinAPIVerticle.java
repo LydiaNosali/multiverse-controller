@@ -36,9 +36,9 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	private static final String API_RUNNING_INTERFACES = "/running/device/:deviceName/interfaces";
 	private static final String API_RUNNING_BGPS = "/running/device/:deviceName/bgps";
 	
-	private static final String API_ONE_VIEW = "/view/:id";
-	private static final String API_VIEW_CONFIG_VERIFY = "/view/:id/config/verify";
-	private static final String API_VIEW_CONFIG_GENERATE = "/view/:id/config/generate";
+	private static final String API_ONE_VIEW = "/view/:viewId";
+	private static final String API_VIEW_CONFIG_VERIFY = "/view/:viewId/config/verify";
+	private static final String API_VIEW_CONFIG_GENERATE = "/view/:viewId/config/generate";
 	private static final String API_VIEW_NETWORK = "/view/:viewId/network";
 	private static final String API_VIEW_ONE_DEVICE = "/view/:viewId/device/:deviceName";
 	private static final String API_VIEW_INTERFACES = "/view/:viewId/device/:deviceName/interfaces";
@@ -81,15 +81,15 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		
 		router.get(API_VIEW_NETWORK).handler(this::checkAdminRole).handler(this::apiViewGetNetwork);
 		
-		router.get(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewGetDevice);
+		// router.get(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewGetDevice);
 		router.put(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewUpdateDevice);
 		
 		router.get(API_VIEW_INTERFACES).handler(this::checkAdminRole).handler(this::apiViewGetDeviceInterfaces);
-		router.get(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewGetInterface);
+		// router.get(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewGetInterface);
 		router.put(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewUpdateInterface);
 		
 		router.get(API_VIEW_BGPS).handler(this::checkAdminRole).handler(this::apiViewGetDeviceBgps);
-		router.get(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewGetBgp);
+		// router.get(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewGetBgp);
 		// router.post(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewCreateBgp);
 		router.put(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewUpdateBgp);
 		router.delete(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewDeleteBgp);
@@ -133,6 +133,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	}
 	private void apiRunningGetDeviceInterfaces(RoutingContext context) {
 		String deviceName = context.request().getParam("deviceName");
+		logger.info("device name: " + deviceName);
 		service.runningGetDeviceInterfaces(deviceName, resultHandler(context, Json::encodePrettily));
 	}
 	private void apiRunningGetDeviceBgps(RoutingContext context) {
@@ -178,7 +179,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	// view network
 	private void apiViewGetNetwork(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
-		service.runningGetNetwork(resultHandlerNonEmpty(context));
+		service.viewGetNetwork(viewId, resultHandlerNonEmpty(context));
 	}
 	
 	// view device

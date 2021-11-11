@@ -2,6 +2,9 @@ package io.nms.central.microservice.digitaltwin.model.ipnetApi;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -40,7 +43,10 @@ public class NetInterface extends Configurable {
 	private String mode;
 	
 	// In Ip4Ctp
+	@JsonInclude(Include.NON_NULL)
 	private String ipAddr = ""; 		// CIDR
+	
+	@JsonInclude(Include.NON_NULL)
 	private String svi = "";
 
 	public NetInterface() {}
