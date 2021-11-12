@@ -46,6 +46,9 @@ public class CypherQuery {
 		public static final String GET_NETWORK_HOSTS = "MATCH (h:Host) RETURN h.name as name, "
 				+ "h.hostname as hostname, h.bgpStatus as bgpStatus, h.bgpAsn as bgpAsn, "
 				+ "h.type as type, h.platform as platform, h.mac as mac, h.hwsku as hwsku";
+		public static final String GET_HOST = "MATCH (h:Host{name:$deviceName}) RETURN h.name as name, "
+				+ "h.hostname as hostname, h.bgpStatus as bgpStatus, h.bgpAsn as bgpAsn, "
+				+ "h.type as type, h.platform as platform, h.mac as mac, h.hwsku as hwsku";
 		public static final String GET_NETWORK_LINKS = "MATCH (sH:Host)-[:CONTAINS]->(sL:Ltp)-[l:LINKED]->(dL:Ltp)<-[:CONTAINS]-(dH:Host) "
 				+ "RETURN sH.name as srcDevice, sL.name as srcInterface, dH.name as destDevice, dL.name as destInterface";
 		public static final String GET_NETWORK_SUBNETS = "MATCH (c:Ip4Ctp) WHERE c.netMask <> '/32' "
@@ -54,7 +57,14 @@ public class CypherQuery {
 				+ "OPTIONAL MATCH (e)-[:CONTAINS]->(c:Ip4Ctp)\r\n"
 				+ "RETURN l.adminStatus as adminStatus, l.name as name, l.index as index, l.type as type, l.speed as speed, l.mtu as mtu, "
 				+ "e.mode as mode, e.vlan as vlan, e.macAddr as macAddr, c.ipAddr+c.netMask as ipAddr, c.svi as svi";
+		public static final String GET_INTERFACE = "MATCH (h:Host{name: $deviceName})-[:CONTAINS]->(l:Ltp{name: $itfName})-[:CONTAINS]->(e:EtherCtp) \r\n"
+				+ "OPTIONAL MATCH (e)-[:CONTAINS]->(c:Ip4Ctp)\r\n"
+				+ "RETURN l.adminStatus as adminStatus, l.name as name, l.index as index, l.type as type, l.speed as speed, l.mtu as mtu, "
+				+ "e.mode as mode, e.vlan as vlan, e.macAddr as macAddr, c.ipAddr+c.netMask as ipAddr, c.svi as svi";
 		public static final String GET_HOST_BGPS = "MATCH (h:Host{name: $deviceName})-[:CONTAINS*3]->(c:Ip4Ctp)-[:HAS_CONFIG]->(b:Bgp)\r\n"
+				+ "RETURN c.ipAddr as localAddr, b.lAsn as localAsn, b.lId as localId, b.rAddr as remoteAddr, b.rAsn as remoteAsn, b.rId as remoteId, "
+				+ "b.holdTime as holdTime, b.keepAlive as keepAlive, b.state as state";
+		public static final String GET_BGP = "MATCH (h:Host{name: $deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr: $itfAddr})-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "RETURN c.ipAddr as localAddr, b.lAsn as localAsn, b.lId as localId, b.rAddr as remoteAddr, b.rAsn as remoteAsn, b.rId as remoteId, "
 				+ "b.holdTime as holdTime, b.keepAlive as keepAlive, b.state as state";
 		

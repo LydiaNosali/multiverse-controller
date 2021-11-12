@@ -51,10 +51,16 @@ public interface DigitalTwinService {
 	@Fluent	
 	DigitalTwinService runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
 	
+	@Fluent	
+	DigitalTwinService runningGetDevice(String deviceName, Handler<AsyncResult<Device>> resultHandler);
 	@Fluent
 	DigitalTwinService runningGetDeviceInterfaces(String deviceName, Handler<AsyncResult<List<NetInterface>>> resultHandler);
 	@Fluent	
+	DigitalTwinService runningGetInterface(String deviceName, String itfName, Handler<AsyncResult<NetInterface>> resultHandler);
+	@Fluent	
 	DigitalTwinService runningGetDeviceBgps(String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
+	@Fluent	
+	DigitalTwinService runningGetBgp(String deviceName, String itfAddr, Handler<AsyncResult<Bgp>> resultHandler);
 	
 	/* Operations on view network */
 	// view

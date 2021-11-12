@@ -77,14 +77,14 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	}
 
 	@Override
-	public DigitalTwinService runningQueryNetwork(DtQuery query, Handler<AsyncResult<DtQueryResult>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public DigitalTwinService runningGetNetwork(Handler<AsyncResult<Network>> resultHandler) {
 		getNetwork(MAIN_DB, resultHandler);
+		return this;
+	}
+	
+	@Override
+	public DigitalTwinService runningGetDevice(String deviceName, Handler<AsyncResult<Device>> resultHandler) {
+		getDevice(MAIN_DB, deviceName, resultHandler);
 		return this;
 	}
 
@@ -94,13 +94,35 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		getDeviceInterfaces(MAIN_DB, deviceName, resultHandler);
 		return this;
 	}
+	
+	@Override
+	public DigitalTwinService runningGetInterface(String deviceName, String itfName,
+			Handler<AsyncResult<NetInterface>> resultHandler) {
+		getInterface(MAIN_DB, deviceName, itfName, resultHandler);
+		return this;
+	}
 
 	@Override
 	public DigitalTwinService runningGetDeviceBgps(String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler) {
 		getDeviceBgps(MAIN_DB, deviceName, resultHandler);
 		return this;
 	}
+	
+	@Override
+	public DigitalTwinService runningGetBgp(String deviceName, String itfAddr,
+			Handler<AsyncResult<Bgp>> resultHandler) {
+		getBgp(MAIN_DB, deviceName, itfAddr, resultHandler);
+		return this;
+	}
+	
+	/* Query running network */
+	@Override
+	public DigitalTwinService runningQueryNetwork(DtQuery query, Handler<AsyncResult<DtQueryResult>> resultHandler) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
+	/* Operations on view */
 	@Override
 	public DigitalTwinService createView(String viewId, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject params = new JsonObject().put("viewId", viewId);
@@ -180,8 +202,8 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService viewGetDevice(String viewId, String deviceName,
 			Handler<AsyncResult<Device>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+		getDevice(viewId, deviceName, resultHandler);
+		return this;
 	}
 
 	@Override
@@ -216,8 +238,8 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService viewGetInterface(String viewId, String deviceName, String itfName,
 			Handler<AsyncResult<NetInterface>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+		getInterface(viewId, deviceName, itfName, resultHandler);
+		return this;
 	}
 
 	@Override
@@ -233,7 +255,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		if (!netItf.getIpAddr().isEmpty()) {
 			logger.info("Update interface includes IP config");
 			String[] cird = netItf.getIpAddr().split("/");
-			String subnetAddr = getSubnetAddress(netItf.getIpAddr());
+			String subnetAddr = parseSubnetAddress(netItf.getIpAddr());
 			params
 					.put("ipAddr", cird[0]).put("netMask", "/"+cird[1])
 					.put("netAddr", subnetAddr).put("svi", netItf.getSvi());
@@ -260,8 +282,8 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService viewGetBgp(String viewId, String deviceName, String itfAddr,
 			Handler<AsyncResult<Bgp>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+		getBgp(viewId, deviceName, itfAddr, resultHandler);
+		return this;
 	}
 
 	@Override
@@ -345,6 +367,19 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		});
 	}
 	
+	private void getDevice(String db, String deviceName,
+			Handler<AsyncResult<Device>> resultHandler) {
+		JsonObject params = new JsonObject().put("deviceName", deviceName);
+		findOne(db, CypherQuery.Api.GET_HOST, params, res -> {
+			if (res.succeeded()) {
+				Device device = JSONUtils.json2Pojo(res.result().encode(), Device.class);
+				resultHandler.handle(Future.succeededFuture(device));
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	
 	private void getDeviceInterfaces(String db, String deviceName,
 			Handler<AsyncResult<List<NetInterface>>> resultHandler) {
 		JsonObject params = new JsonObject().put("deviceName", deviceName);
@@ -352,6 +387,21 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 			if (res.succeeded()) {
 				List<NetInterface> netItfs = JSONUtils.json2PojoList(new JsonArray(res.result()).encode(), NetInterface.class);
 				resultHandler.handle(Future.succeededFuture(netItfs));
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	
+	private void getInterface(String db, String deviceName, String itfName,
+			Handler<AsyncResult<NetInterface>> resultHandler) {
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName)
+				.put("itfName", itfName);
+		findOne(db, CypherQuery.Api.GET_INTERFACE, params, res -> {
+			if (res.succeeded()) {
+				NetInterface netItf = JSONUtils.json2Pojo(res.result().encode(), NetInterface.class);
+				resultHandler.handle(Future.succeededFuture(netItf));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}
@@ -370,7 +420,22 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		});
 	}
 	
-	private String getSubnetAddress(String cidrIp) {
+	private void getBgp(String db, String deviceName, String itfAddr,
+			Handler<AsyncResult<Bgp>> resultHandler) {
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName)
+				.put("itfAddr", itfAddr);
+		findOne(db, CypherQuery.Api.GET_BGP, params, res -> {
+			if (res.succeeded()) {
+				Bgp bgp = JSONUtils.json2Pojo(res.result().encode(), Bgp.class);
+				resultHandler.handle(Future.succeededFuture(bgp));
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	
+	private String parseSubnetAddress(String cidrIp) {
 		try {
 			SubnetUtils subnet = new SubnetUtils(cidrIp);
 			return subnet.getInfo().getNetworkAddress();
