@@ -45,7 +45,7 @@ public interface DigitalTwinService {
 	@Fluent	
 	DigitalTwinService runningProcessNetworkConfig(NetConfigCollection config, Handler<AsyncResult<Report>> resultHandler);
 	@Fluent	
-	DigitalTwinService runningVerifyNetworkConfig(Handler<AsyncResult<Report>> resultHandler);
+	DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<Report>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningQueryNetwork(DtQuery query, Handler<AsyncResult<DtQueryResult>> resultHandler);
 	@Fluent	
@@ -64,8 +64,8 @@ public interface DigitalTwinService {
 	DigitalTwinService deleteView(String viewId, Handler<AsyncResult<Void>> resultHandler);
 	// view config
 	@Fluent	
-	DigitalTwinService viewVerifyConfig(String viewId, Configuration configuration, Handler<AsyncResult<Void>> resultHandler);
-	@Fluent	 // TODO: replace JsonOBject with NetworkConfig object
+	DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<Report>> resultHandler);
+	@Fluent	 // TODO: replace JsonObject with NetworkConfig object
 	DigitalTwinService viewGenerateNetworkConfig(String viewId, Configuration configuration, Handler<AsyncResult<JsonObject>> resultHandler);
 	
 	// view network

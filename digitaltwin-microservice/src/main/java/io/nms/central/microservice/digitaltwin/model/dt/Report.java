@@ -1,7 +1,10 @@
 package io.nms.central.microservice.digitaltwin.model.dt;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
@@ -10,8 +13,10 @@ import io.vertx.core.json.JsonObject;
 @DataObject(generateConverter = true)
 public class Report {
 
-	private String ts;
-	private List<ReportMessage> report;
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+	private String timestamp;
+	private String netId;
+	private List<ReportMessage> reports;
 
 	public Report() {}
 	public Report(JsonObject json) {
@@ -30,60 +35,25 @@ public class Report {
 	}
 	@Override
 	public int hashCode() {
-		return Objects.hash(ts+report.hashCode());
+		return Objects.hash(timestamp.hashCode()+reports.hashCode());
 	}
 	
-	public String getTs() {
-		return ts;
+	public String getTimestamp() {
+		return timestamp;
 	}
-	public void setTs(String ts) {
-		this.ts = ts;
+	public void setTimestamp(String timestamp) {
+		this.timestamp = timestamp;
 	}
-	public List<ReportMessage> getReport() {
-		return report;
+	public List<ReportMessage> getReports() {
+		return reports;
 	}
-	public void setReport(List<ReportMessage> report) {
-		this.report = report;
+	public void setReports(List<ReportMessage> reports) {
+		this.reports = reports;
 	}
-
-	/*-----------------------------------------------*/
-	
-	public class ReportMessage {
-		private int code; // To be defined
-		private String message;
-
-		public ReportMessage() {}
-		public ReportMessage(JsonObject json) {
-			JSONUtils.fromJson(json, this, ReportMessage.class);
-		}
-		
-		public JsonObject toJson() {
-			return new JsonObject(JSONUtils.pojo2Json(this, false));
-		}
-		@Override
-		public String toString() {
-			return JSONUtils.pojo2Json(this, false);
-		}
-		@Override
-		public boolean equals(Object obj) {
-			return Objects.equals(toString(), ((ReportMessage) obj).toString());
-		}
-		@Override
-		public int hashCode() {
-			return Objects.hash(code+message);
-		}
-		
-		public int getCode() {
-			return code;
-		}
-		public void setCode(int code) {
-			this.code = code;
-		}
-		public String getMessage() {
-			return message;
-		}
-		public void setMessage(String message) {
-			this.message = message;
-		}
+	public String getNetId() {
+		return netId;
+	}
+	public void setNetId(String netId) {
+		this.netId = netId;
 	}
 }

@@ -6,7 +6,6 @@ import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
 import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
-import io.nms.central.microservice.digitaltwin.model.ipnetApi.Configuration;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.vertx.core.Future;
@@ -30,15 +29,15 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	private static final String API_VERSION = "/v";
 	
 	private static final String API_RUNNING = "/running";
-	private static final String API_RUNNING_REPORT = "/running/report";
-	private static final String API_RUNNING_QUERY = "/running/query";
+	private static final String API_RUNNING_VERIFY = "/running/verify";
+	// private static final String API_RUNNING_QUERY = "/running/query";
 	private static final String API_RUNNING_NETWORK = "/running/network";
 	private static final String API_RUNNING_INTERFACES = "/running/device/:deviceName/interfaces";
 	private static final String API_RUNNING_BGPS = "/running/device/:deviceName/bgps";
 	
 	private static final String API_ONE_VIEW = "/view/:viewId";
-	private static final String API_VIEW_CONFIG_VERIFY = "/view/:viewId/config/verify";
-	private static final String API_VIEW_CONFIG_GENERATE = "/view/:viewId/config/generate";
+	private static final String API_VIEW_VERIFY = "/view/:viewId/verify";
+	private static final String API_VIEW_NETCONFIG = "/view/:viewId/netconfig";
 	private static final String API_VIEW_NETWORK = "/view/:viewId/network";
 	private static final String API_VIEW_ONE_DEVICE = "/view/:viewId/device/:deviceName";
 	private static final String API_VIEW_INTERFACES = "/view/:viewId/device/:deviceName/interfaces";
@@ -66,8 +65,8 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		
 		/* Operations on running network */
 		router.post(API_RUNNING).handler(this::checkAdminRole).handler(this::apiRunningProcessNetworkConfig);
-		router.post(API_RUNNING_REPORT).handler(this::checkAdminRole).handler(this::apiRunningVerifyNetworkConfig);
-		router.post(API_RUNNING_QUERY).handler(this::checkAdminRole).handler(this::apiRunningQueryNetwork);
+		router.get(API_RUNNING_VERIFY).handler(this::checkAdminRole).handler(this::apiRunningVerifyNetwork);
+		// router.post(API_RUNNING_QUERY).handler(this::checkAdminRole).handler(this::apiRunningQueryNetwork);
 		router.get(API_RUNNING_NETWORK).handler(this::checkAdminRole).handler(this::apiRunningGetNetwork);
 		router.get(API_RUNNING_INTERFACES).handler(this::checkAdminRole).handler(this::apiRunningGetDeviceInterfaces);
 		router.get(API_RUNNING_BGPS).handler(this::checkAdminRole).handler(this::apiRunningGetDeviceBgps);
@@ -76,8 +75,8 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		router.post(API_ONE_VIEW).handler(this::checkAdminRole).handler(this::apiCreateView);
 		router.delete(API_ONE_VIEW).handler(this::checkAdminRole).handler(this::apiDeleteView);
 		
-		router.post(API_VIEW_CONFIG_VERIFY).handler(this::checkAdminRole).handler(this::apiViewVerifyConfig);
-		router.post(API_VIEW_CONFIG_GENERATE).handler(this::checkAdminRole).handler(this::apiViewGenerateNetworkConfig);
+		router.get(API_VIEW_VERIFY).handler(this::checkAdminRole).handler(this::apiViewVerify);
+		router.get(API_VIEW_NETCONFIG).handler(this::checkAdminRole).handler(this::apiViewGenerateNetworkConfig);
 		
 		router.get(API_VIEW_NETWORK).handler(this::checkAdminRole).handler(this::apiViewGetNetwork);
 		
@@ -115,18 +114,8 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 			badRequest(context, e);
 		}
 	}
-	private void apiRunningVerifyNetworkConfig(RoutingContext context) {
-		service.runningVerifyNetworkConfig(resultHandlerNonEmpty(context));
-	}
-	private void apiRunningQueryNetwork(RoutingContext context) {
-		try {
-			final DtQuery query 
-					= JSONUtils.json2PojoE(context.getBodyAsString(), DtQuery.class);
-			service.runningQueryNetwork(query, resultHandlerNonEmpty(context));
-		} catch (Exception e) {
-			logger.info("API input argument exception: " + e.getMessage());
-			badRequest(context, e);
-		}
+	private void apiRunningVerifyNetwork(RoutingContext context) {
+		service.runningVerifyNetwork(resultHandlerNonEmpty(context));
 	}
 	private void apiRunningGetNetwork(RoutingContext context) {
 		service.runningGetNetwork(resultHandlerNonEmpty(context));
@@ -140,6 +129,16 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String deviceName = context.request().getParam("deviceName");
 		service.runningGetDeviceBgps(deviceName, resultHandler(context, Json::encodePrettily));
 	}
+	/* private void apiRunningQueryNetwork(RoutingContext context) {
+	try {
+		final DtQuery query 
+				= JSONUtils.json2PojoE(context.getBodyAsString(), DtQuery.class);
+		service.runningQueryNetwork(query, resultHandlerNonEmpty(context));
+	} catch (Exception e) {
+		logger.info("API input argument exception: " + e.getMessage());
+		badRequest(context, e);
+	}
+    } */
 	
 	/* Operations on view network */
 	// view
@@ -153,18 +152,11 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	}
 	
 	// view config
-	private void apiViewVerifyConfig(RoutingContext context) {
+	private void apiViewVerify(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
-		try {
-			final Configuration config 
-					= JSONUtils.json2PojoE(context.getBodyAsString(), Configuration.class);
-			service.viewVerifyConfig(viewId, config, resultHandlerNonEmpty(context));
-		} catch (Exception e) {
-			logger.info("API input argument exception: " + e.getMessage());
-			badRequest(context, e);
-		}
+		service.viewVerify(viewId, (resultHandlerNonEmpty(context)));
 	}
-	private void apiViewGenerateNetworkConfig(RoutingContext context) {
+	/* private void apiViewVerify(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		try {
 			final Configuration config 
@@ -174,6 +166,8 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 			logger.info("API input argument exception: " + e.getMessage());
 			badRequest(context, e);
 		}
+	} */
+	private void apiViewGenerateNetworkConfig(RoutingContext context) {
 	}
 	
 	// view network

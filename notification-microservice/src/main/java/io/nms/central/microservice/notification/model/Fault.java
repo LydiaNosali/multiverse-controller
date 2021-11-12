@@ -19,7 +19,7 @@ public class Fault {
 	private String msg;
 	
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-	private OffsetDateTime timestamp; 
+	private OffsetDateTime timestamp;
 	
 	public Fault() {}
 	

@@ -63,6 +63,28 @@ public class Neo4jWrapper {
 		}
 	}
 
+	public void findOne(String db, String query, Handler<AsyncResult<JsonObject>> resultHandler) {
+		findOne(db, query, new JsonObject(), resultHandler);
+    }
+	public void findOne(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
+		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
+		Context context = vertx.getOrCreateContext();
+		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::singleAsync))
+			    .whenComplete(wrapCallbackSingle(context, resultHandler))
+				.thenCompose(ignore -> session.closeAsync());
+    }
+	
+	public void find(String db, String query, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+		find(db, query, new JsonObject(), resultHandler);
+    }
+	public void find(String db, String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.READ));
+		Context context = vertx.getOrCreateContext();
+		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::listAsync))
+			    .whenComplete(wrapCallbackList(context, resultHandler))
+				.thenCompose(ignore -> session.closeAsync());
+    }
+
 	protected void execute(String db, String query, Handler<AsyncResult<JsonObject>> resultHandler) {
 		execute(db, query, new JsonObject(), resultHandler);
 	}
@@ -73,29 +95,7 @@ public class Neo4jWrapper {
 			    .whenComplete(wrapCallbackSummary(context, resultHandler))
 				.thenCompose(ignore -> session.closeAsync());
 	}
-	
-	protected void findOne(String db, String query, Handler<AsyncResult<JsonObject>> resultHandler) {
-		findOne(db, query, new JsonObject(), resultHandler);
-    }
-	protected void findOne(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
-		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
-		Context context = vertx.getOrCreateContext();
-		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::singleAsync))
-			    .whenComplete(wrapCallbackSingle(context, resultHandler))
-				.thenCompose(ignore -> session.closeAsync());
-    }
-	
-	protected void find(String db, String query, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
-		find(db, query, new JsonObject(), resultHandler);
-    }
-	protected void find(String db, String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
-		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.READ));
-		Context context = vertx.getOrCreateContext();
-		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::listAsync))
-			    .whenComplete(wrapCallbackList(context, resultHandler))
-				.thenCompose(ignore -> session.closeAsync());
-    }
-	
+
 	protected void delete(String db, String query, Handler<AsyncResult<JsonObject>> resultHandler) {
 		delete(db, query, new JsonObject(), resultHandler);
 	}
@@ -164,7 +164,7 @@ public class Neo4jWrapper {
 	}
 	
 	/* Bulk queries */
-	 public void bulkExecute(String db, List<String> queries, Handler<AsyncResult<JsonObject>> resultHandler) {
+	 protected void bulkExecute(String db, List<String> queries, Handler<AsyncResult<JsonObject>> resultHandler) {
 	        AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
 	        Context context = vertx.getOrCreateContext();
 	        session.writeTransactionAsync(tx -> {
@@ -181,7 +181,7 @@ public class Neo4jWrapper {
 	        .thenCompose(ignore -> session.closeAsync());
 	    }
 	 
-	 static final BinaryOperator<SummaryCounters> AGGREGATE_COUNTERS = (summaryCounters, summaryCounters2) -> new InternalSummaryCounters(
+	 private final BinaryOperator<SummaryCounters> AGGREGATE_COUNTERS = (summaryCounters, summaryCounters2) -> new InternalSummaryCounters(
 			 summaryCounters.nodesCreated() + summaryCounters2.nodesCreated(),
 	         summaryCounters.nodesDeleted() + summaryCounters2.nodesDeleted(),
 	         summaryCounters.relationshipsCreated() + summaryCounters2.relationshipsCreated(),

@@ -307,7 +307,8 @@
 [frame="topbot"]
 |===
 ^|Name | Type ^| Description
-|[[ts]]`@ts`|`String`|-
+|[[netId]]`@netId`|`String`|-
+|[[timestamp]]`@timestamp`|`String`|-
 |===
 
 [[Vlan]]

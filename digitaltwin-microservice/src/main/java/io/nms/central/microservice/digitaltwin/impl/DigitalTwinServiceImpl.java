@@ -1,6 +1,7 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.net.util.SubnetUtils;
@@ -35,9 +36,11 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	private static final Logger logger = LoggerFactory.getLogger(DigitalTwinServiceImpl.class);
 
 	private static final String MAIN_DB = "neo4j";
+	private final NetworkAnalyser na;
 
 	public DigitalTwinServiceImpl(Vertx vertx, JsonObject config) {
 		super(vertx, config);
+		na = new NetworkAnalyser(this);
 	}
 
 	@Override
@@ -50,7 +53,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		constraints.add(CypherQuery.Constraints.UNIQUE_BGP);
 		bulkExecute(MAIN_DB, constraints, res -> {
 			if (res.succeeded()) {
-				logger.info("DB initialized: " + res.result().encodePrettily());
+				logger.info("Neo4j DB initialized");
 				resultHandler.handle(Future.succeededFuture());
 			} else {
 				logger.error(res.cause());
@@ -68,9 +71,9 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	}
 
 	@Override
-	public DigitalTwinService runningVerifyNetworkConfig(Handler<AsyncResult<Report>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+	public DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<Report>> resultHandler) {
+		na.verifyNetwork(MAIN_DB, resultHandler);
+		return this;
 	}
 
 	@Override
@@ -156,10 +159,9 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	}
 
 	@Override
-	public DigitalTwinService viewVerifyConfig(String viewId, Configuration configuration,
-			Handler<AsyncResult<Void>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+	public DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<Report>> resultHandler) {
+		na.verifyNetwork(viewId, resultHandler);
+		return this;
 	}
 
 	@Override
@@ -285,7 +287,15 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				.put("state", bgp.getState().getValue());
 		execute(viewId, CypherQuery.Api.CREATE_BGP, params, res -> {
 			if (res.succeeded()) {
-				resultHandler.handle(Future.succeededFuture());
+				List<String> bgpQ = 
+						Arrays.asList(CypherQuery.Internal.DISCONNECT_BGP, CypherQuery.Internal.RECONNECT_BGP);
+				bulkExecute(viewId, bgpQ, done -> {
+					if (done.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
+					} else {
+						resultHandler.handle(Future.failedFuture(done.cause()));
+					}
+				});
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}

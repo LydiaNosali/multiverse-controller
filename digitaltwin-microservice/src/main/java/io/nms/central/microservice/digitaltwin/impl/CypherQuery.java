@@ -99,7 +99,57 @@ public class CypherQuery {
 		}
 	}
 	
+	public static class Internal {
+		public static final String DISCONNECT_BGP = "MATCH ()-[b:BGP_PEER]-() DELETE b";
+		public static final String RECONNECT_BGP =
+				"MATCH (b1:Bgp)<-[:HAS_CONFIG]-(c1:Ip4Ctp)-[:IP_CONN]->(c2:Ip4Ctp)-[:HAS_CONFIG]->(b2:Bgp)\r\n"
+				+ "WHERE EXISTS((c2)-[:IP_CONN]->(c1))\r\n"
+				+ "AND b1.rAddr=c2.ipAddr AND b2.rAddr=c1.ipAddr AND b1.rAsn=b2.lAsn AND b2.rAsn=b1.lAsn AND b1.rId=b2.lId AND b2.rId=b1.lId\r\n"
+				+ "WITH DISTINCT b1,b2\r\n"
+				+ "CREATE (b1)-[:BGP_PEER]->(b2);";
+	}
+	
 	public static class Verify {
-		public static final String DUPLICATE_HOSTNAME = "";
+		public static final String DUPLICATE_HOSTNAME = "MATCH (h:Host) "
+				+ "WITH h.hostname as hn, COLLECT(h) AS hns, COUNT(*) AS count WHERE count > 1 "
+				+ "RETURN hn as hostname, count";
+
+		public static final String DUPLICATE_MAC = "MATCH (c:EtherCtp) "
+				+ "WITH c.macAddr as m, COLLECT(c) AS ctps, COUNT(*) AS count WHERE count > 1 "
+				+ "UNWIND ctps AS x "
+				+ "MATCH (h:Host)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(x) "
+				+ "RETURN h.name as deviceName, l.name as itfName, x.macAddr as dupMacAddr";
+
+		public static final String DUPLICATE_IP = "MATCH (c:Ip4Ctp) "
+				+ "WITH c.ipAddr AS addr, c.netMask as mask, COLLECT(c) AS ctps, COUNT(*) AS count WHERE count > 1 "
+				+ "UNWIND ctps AS x "
+				+ "MATCH (h:Host)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(e:EtherCtp)-[:CONTAINS]->(x) "
+				+ "RETURN h.name as deviceName, l.name as itfName, x.ipAddr as dupIpAddr";
+
+		public static final String DUPLICATE_VLAN = "MATCH (c1:Ip4Ctp) WHERE c1.svi <> '-' "
+				+ "WITH c1 "
+				+ "MATCH (c2:Ip4Ctp) WHERE c2.svi <> '-' AND c1.vlan = c2.vlan AND c1.netAddr <> c2.netAddr "
+				+ "MATCH (n1:Host)-[:CONTAINS]->(l1:Ltp)-[:CONTAINS]-(e1:EtherCtp)-[:CONTAINS]->(c1) "
+				+ "MATCH (n2:Host)-[:CONTAINS]->(l2:Ltp)-[:CONTAINS]-(e2:EtherCtp)-[:CONTAINS]->(c2) "
+				+ "RETURN DISTINCT "
+				+ "n1.name as deviceName1, l1.name as itfName1, c1.netAddr as netAddr1, "
+				+ "n2.name as deviceName2, l2.name as itfName2, c2.netAddr as netAddr2, c1.vlan as vlan";
+
+		public static final String BAD_BGP_PEER = "MATCH (b1:Bgp)<-[:HAS_CONFIG]-(c1:Ip4Ctp)-[:IP_CONN]-(c2:Ip4Ctp)-[:HAS_CONFIG]->(b2:Bgp) "
+				+ "WHERE NOT EXISTS((b1)-[:BGP_PEER]-(b2)) "
+				+ "WITH DISTINCT c1, b1, c2, b2 "
+				+ "MATCH (h1:Host)-[:CONTAINS*3]->(c1) "
+				+ "MATCH (h2:Host)-[:CONTAINS*3]->(c2) "
+				+ "RETURN "
+				+ "h1.name as deviceName1, c1.ipAddr as ipAddr1, b1.lAsn as lAsn1, b1.rAsn as rAsn1, b1.rAddr as rAddr1, "
+				+ "h2.name as deviceName2, c2.ipAddr as ipAddr2, b2.lAsn as lAsn2, b2.rAsn as rAsn2, b2.rAddr as rAddr2";
+		
+		public static final String MISCONFIGURED_DEFAULT_ROUTE = "MATCH (h:Host)-[:CONTAINS*3]->(:Ip4Ctp)-[:TO_ROUTE]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp) "
+				+ "WHERE NOT (e)-[:IP_CONN]->(:Ip4Ctp) "
+				+ "RETURN DISTINCT h.name, e.ipAddr "
+				+ "UNION "
+				+ "MATCH (h:Host)-[:CONTAINS*3]-(:Ip4Ctp)-[:TO_ROUTE]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp)-[:IP_CONN]->(x:Ip4Ctp) "
+				+ "WHERE e.netAddr <> x.netAddr "
+				+ "RETURN DISTINCT h.name as deviceName, e.ipAddr as misconfGateway";
 	}
 }
