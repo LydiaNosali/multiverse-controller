@@ -1,10 +1,7 @@
-package io.nms.central.microservice.digitaltwin.model.ipnetApi;
+package io.nms.central.microservice.ipnet.model;
 
 import java.util.Objects;
-
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.util.UUID;
 
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
@@ -15,7 +12,7 @@ public class ConfigChange {
 	
 	public enum ResourceTypeEnum {
 		DEVICE("DEVICE"), INTERFACE("INTERFACE"), 
-		BGP("BGP"), IPROUTE("IPROUTE"), VLAN("VLAN"),
+		BGP("BGP"), IPROUTE("IPROUTE"),
 		ACLTABLE("ACLTABLE"), ACLRULE("ACLRULE");
         private String value;
         private ResourceTypeEnum(String value) {this.value = value;}
@@ -29,16 +26,16 @@ public class ConfigChange {
         public String getValue() {return this.value;}
     };
 
-	private ResourceTypeEnum resourceType;
-	private String resourceLocation;
+    private String id = UUID.randomUUID().toString();
+	private ResourceTypeEnum type;
 	private ActionEnum action;
-
-	@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "resourceType")
-	@JsonSubTypes({@Type(value = Device.class, name = "DEVICE"),
-        @Type(value = NetInterface.class, name = "INTERFACE"), @Type(value = Bgp.class, name = "BGP")})
-	private Configurable content;
+	private String location;
+	// private Report report;
 	
 	public ConfigChange() {}
+	public ConfigChange(String id) {
+		this.id = id;
+	}
 	public ConfigChange(JsonObject json) {
 		JSONUtils.fromJson(json, this, ConfigChange.class);
 	}
@@ -56,30 +53,30 @@ public class ConfigChange {
 	}
 	@Override
 	public int hashCode() {
-		return Objects.hash(resourceType.getValue()+resourceLocation+action.getValue()+content.hashCode());
+		return Objects.hash(id+type.getValue()+location+action.getValue());
 	}
-	public ResourceTypeEnum getResourceType() {
-		return resourceType;
+	public String getId() {
+		return id;
 	}
-	public void setResourceType(ResourceTypeEnum resourceType) {
-		this.resourceType = resourceType;
+	public void setId(String id) {
+		this.id = id;
 	}
-	public String getResourceLocation() {
-		return resourceLocation;
+	public ResourceTypeEnum getType() {
+		return type;
 	}
-	public void setResourceLocation(String resourceLocation) {
-		this.resourceLocation = resourceLocation;
+	public void setType(ResourceTypeEnum type) {
+		this.type = type;
+	}
+	public String getLocation() {
+		return location;
+	}
+	public void setLocation(String location) {
+		this.location = location;
 	}
 	public ActionEnum getAction() {
 		return action;
 	}
 	public void setAction(ActionEnum action) {
 		this.action = action;
-	}
-	public Configurable getContent() {
-		return content;
-	}
-	public void setContent(Configurable content) {
-		this.content = content;
 	}
 }

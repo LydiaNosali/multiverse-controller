@@ -131,7 +131,6 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	}
 	private void apiRunningGetDeviceInterfaces(RoutingContext context) {
 		String deviceName = context.request().getParam("deviceName");
-		logger.info("device name: " + deviceName);
 		service.runningGetDeviceInterfaces(deviceName, resultHandler(context, Json::encodePrettily));
 	}
 	private void apiRunningGetInterface(RoutingContext context) {

@@ -13,7 +13,6 @@ import io.nms.central.microservice.digitaltwin.model.dt.DtQueryResult;
 import io.nms.central.microservice.digitaltwin.model.dt.Report;
 import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
-import io.nms.central.microservice.digitaltwin.model.ipnetApi.Configuration;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpSubnet;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
@@ -181,19 +180,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	}
 
 	@Override
-	public DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<Report>> resultHandler) {
-		na.verifyNetwork(viewId, resultHandler);
-		return this;
-	}
-
-	@Override
-	public DigitalTwinService viewGenerateNetworkConfig(String viewId, Configuration configuration,
-			Handler<AsyncResult<JsonObject>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public DigitalTwinService viewGetNetwork(String viewId, Handler<AsyncResult<Network>> resultHandler) {
 		getNetwork(viewId, resultHandler);
 		return this;
@@ -339,6 +325,18 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 			}
 		});
 		return this;
+	}
+	
+	@Override
+	public DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<Report>> resultHandler) {
+		na.verifyNetwork(viewId, resultHandler);
+		return this;
+	}
+	
+	@Override
+	public DigitalTwinService viewGenerateNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	private void getNetwork(String db, Handler<AsyncResult<Network>> resultHandler) {

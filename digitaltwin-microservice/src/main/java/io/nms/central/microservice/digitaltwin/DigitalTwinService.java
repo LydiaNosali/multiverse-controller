@@ -6,7 +6,6 @@ import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQueryResult;
 import io.nms.central.microservice.digitaltwin.model.dt.Report;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
-import io.nms.central.microservice.digitaltwin.model.ipnetApi.Configuration;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
@@ -72,7 +71,7 @@ public interface DigitalTwinService {
 	@Fluent	
 	DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<Report>> resultHandler);
 	@Fluent	 // TODO: replace JsonObject with NetworkConfig object
-	DigitalTwinService viewGenerateNetworkConfig(String viewId, Configuration configuration, Handler<AsyncResult<JsonObject>> resultHandler);
+	DigitalTwinService viewGenerateNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
 	
 	// view network
 	@Fluent	

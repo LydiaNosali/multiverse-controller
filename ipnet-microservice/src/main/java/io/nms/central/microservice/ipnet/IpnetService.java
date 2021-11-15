@@ -2,6 +2,13 @@ package io.nms.central.microservice.ipnet;
 
 import java.util.List;
 
+import io.nms.central.microservice.digitaltwin.model.dt.Report;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
+import io.nms.central.microservice.ipnet.model.ApplyConfigResult;
+import io.nms.central.microservice.ipnet.model.ConfigChange;
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.AsyncResult;
@@ -30,11 +37,28 @@ public interface IpnetService {
 
 	String FROTNEND_ADDRESS = "mvs.to.frontend";
 	
-	
-	void initializePersistence(Handler<AsyncResult<List<Integer>>> resultHandler);
 
+	void initializePersistence(Handler<AsyncResult<List<Integer>>> resultHandler);
 	
 	/* API */
-		
-	/* Processing */
+	void runningVerify(Handler<AsyncResult<Report>> resultHandler);
+	void runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
+	void runningGetDeviceInterfaces(String deviceName, Handler<AsyncResult<List<NetInterface>>> resultHandler);
+	void runningGetDeviceBgps(String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
+	
+	void configGetNetwork(String viewId, Handler<AsyncResult<Network>> resultHandler);
+	void configUpdateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
+	void configGetDeviceInterfaces(String viewId, String deviceName, Handler<AsyncResult<List<NetInterface>>> resultHandler);
+	void configUpdateInterface(String viewId, String deviceName, String itfName, NetInterface netItf, Handler<AsyncResult<Void>> resultHandler);
+	void configGetDeviceBgps(String viewId, String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
+	void configCreateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
+	void configUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
+	void configDeleteBgp(String viewId, String deviceName, String itfAddr, Handler<AsyncResult<Void>> resultHandler);
+
+	void configVerify(String viewId, Handler<AsyncResult<Report>> resultHandler);
+	void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler);
+	
+	void saveConfigChange(String viewId, ConfigChange cc, Handler<AsyncResult<Void>> resultHandler);
+	void getAllConfigChanges(String viewId, Handler<AsyncResult<List<ConfigChange>>> resultHandler);
+	void undoConfigChange(String viewId, String id, Handler<AsyncResult<Void>> resultHandler);
 }
