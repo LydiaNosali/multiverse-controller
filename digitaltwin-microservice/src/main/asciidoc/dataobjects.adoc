@@ -82,30 +82,6 @@
 |[[remoteRouterId]]`@remoteRouterId`|`String`|-
 |===
 
-[[ConfigChange]]
-== ConfigChange
-
-
-[cols=">25%,25%,50%"]
-[frame="topbot"]
-|===
-^|Name | Type ^| Description
-|[[action]]`@action`|`link:enums.html#ActionEnum[ActionEnum]`|-
-|[[resourceLocation]]`@resourceLocation`|`String`|-
-|[[resourceType]]`@resourceType`|`link:enums.html#ResourceTypeEnum[ResourceTypeEnum]`|-
-|===
-
-[[Configuration]]
-== Configuration
-
-
-[cols=">25%,25%,50%"]
-[frame="topbot"]
-|===
-^|Name | Type ^| Description
-|[[configs]]`@configs`|`link:dataobjects.html#ConfigChange[ConfigChange]`|-
-|===
-
 [[Device]]
 == Device
 

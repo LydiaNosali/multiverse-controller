@@ -8,15 +8,6 @@ import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
 public class Metadata {
-	
-	public enum HostType {
-		SpineRouter("SpineRouter"),
-		SpineLeaf("SpineLeaf"),
-		Server("Server");
-		private String value;
-		private HostType(String value) { this.value = value; }
-		public String getValue() { return this.value; }
-	};
 
 	private String hostname;
 	private String mac;

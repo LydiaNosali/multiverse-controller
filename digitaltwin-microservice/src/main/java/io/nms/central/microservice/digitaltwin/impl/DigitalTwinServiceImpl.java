@@ -3,6 +3,7 @@ package io.nms.central.microservice.digitaltwin.impl;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.net.util.SubnetUtils;
 
@@ -22,7 +23,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -341,26 +341,38 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	
 	private void getNetwork(String db, Handler<AsyncResult<Network>> resultHandler) {
 		Network network = new Network();
-		find(db, CypherQuery.Api.GET_NETWORK_HOSTS, hosts -> {
-			if (hosts.succeeded()) {
-				network.setDevices(JSONUtils.json2PojoList(new JsonArray(hosts.result()).encode(), Device.class));
-				find(MAIN_DB, CypherQuery.Api.GET_NETWORK_LINKS, links -> {
-					if (links.succeeded()) {
-						network.setLinks(JSONUtils.json2PojoList(new JsonArray(links.result()).encode(), Link.class));
-						find(MAIN_DB, CypherQuery.Api.GET_NETWORK_SUBNETS, subnets -> {
-							if (subnets.succeeded()) {
-								network.setSubnets(JSONUtils.json2PojoList(new JsonArray(subnets.result()).encode(), IpSubnet.class));
+		find(db, CypherQuery.Api.GET_NETWORK_HOSTS, hs -> {
+			if (hs.succeeded()) {
+				// network.setDevices(JSONUtils.json2PojoList(new JsonArray(hosts.result()).encode(), Device.class));
+				List<Device> devices = hs.result().stream()
+						.map(o -> {return new Device(o);})
+						.collect(Collectors.toList());
+				network.setDevices(devices);
+				find(MAIN_DB, CypherQuery.Api.GET_NETWORK_LINKS, ls -> {
+					if (ls.succeeded()) {
+						// network.setLinks(JSONUtils.json2PojoList(new JsonArray(links.result()).encode(), Link.class));
+						List<Link> links = ls.result().stream()
+								.map(o -> {return new Link(o);})
+								.collect(Collectors.toList());
+						network.setLinks(links);
+						find(MAIN_DB, CypherQuery.Api.GET_NETWORK_SUBNETS, sn -> {
+							if (sn.succeeded()) {
+								// network.setSubnets(JSONUtils.json2PojoList(new JsonArray(subnets.result()).encode(), IpSubnet.class));
+								List<IpSubnet> subnets = sn.result().stream()
+										.map(o -> {return new IpSubnet(o);})
+										.collect(Collectors.toList());
+								network.setSubnets(subnets);
 								resultHandler.handle(Future.succeededFuture(network));
 							} else {
-								resultHandler.handle(Future.failedFuture(subnets.cause()));
+								resultHandler.handle(Future.failedFuture(sn.cause()));
 							}
 						});
 					} else {
-						resultHandler.handle(Future.failedFuture(links.cause()));
+						resultHandler.handle(Future.failedFuture(ls.cause()));
 					}
 				});
 			} else {
-				resultHandler.handle(Future.failedFuture(hosts.cause()));
+				resultHandler.handle(Future.failedFuture(hs.cause()));
 			}
 		});
 	}
@@ -383,7 +395,9 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		JsonObject params = new JsonObject().put("deviceName", deviceName);
 		find(db, CypherQuery.Api.GET_HOST_INTERFACES, params, res -> {
 			if (res.succeeded()) {
-				List<NetInterface> netItfs = JSONUtils.json2PojoList(new JsonArray(res.result()).encode(), NetInterface.class);
+				List<NetInterface> netItfs = res.result().stream()
+						.map(o -> {return new NetInterface(o);})
+						.collect(Collectors.toList());
 				resultHandler.handle(Future.succeededFuture(netItfs));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
@@ -410,7 +424,9 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		JsonObject params = new JsonObject().put("deviceName", deviceName);
 		find(db, CypherQuery.Api.GET_HOST_BGPS, params, res -> {
 			if (res.succeeded()) {
-				List<Bgp> bgps = JSONUtils.json2PojoList(new JsonArray(res.result()).encode(), Bgp.class);
+				List<Bgp> bgps = res.result().stream()
+						.map(o -> {return new Bgp(o);})
+						.collect(Collectors.toList());
 				resultHandler.handle(Future.succeededFuture(bgps));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));

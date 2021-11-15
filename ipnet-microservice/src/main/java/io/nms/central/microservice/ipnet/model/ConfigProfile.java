@@ -12,7 +12,7 @@ public class ConfigProfile {
 	
 	private String viewId;
 	private String viewUpdated;
-	private Report verifReport;
+	private Report verifyReport;
 	
 	public ConfigProfile() {}
 	public ConfigProfile(JsonObject json) {
@@ -46,10 +46,10 @@ public class ConfigProfile {
 	public void setViewUpdated(String viewUpdated) {
 		this.viewUpdated = viewUpdated;
 	}
-	public Report getVerifReport() {
-		return verifReport;
+	public Report getVerifyReport() {
+		return verifyReport;
 	}
-	public void setVerifReport(Report verifReport) {
-		this.verifReport = verifReport;
+	public void setVerifyReport(Report verifyReport) {
+		this.verifyReport = verifyReport;
 	}
 }

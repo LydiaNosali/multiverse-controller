@@ -51,7 +51,7 @@ public final class JSONUtils {
 		}
 	}
 
-	public static <T> List<T> json2PojoList(String x, Class<T> clazz) {
+	/* public static <T> List<T> json2PojoList(String x, Class<T> clazz) {
         if (x == null || x.equals("")) {
             return null;
 		}
@@ -62,7 +62,7 @@ public final class JSONUtils {
 			e.printStackTrace();
 			return null;
 		}
-	}
+	} */
 
 	public static <T> void fromJson(JsonObject json, T obj, Class<T> clazz) {
 		try {

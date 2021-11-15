@@ -3,21 +3,13 @@ package io.nms.central.microservice.digitaltwin.model.ipnetApi;
 import java.util.Objects;
 
 import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.digitaltwin.model.graph.HostType;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
 public class Device extends Configurable {
 	
-	public enum HostType {
-		SpineRouter("SpineRouter"),
-		SpineLeaf("SpineLeaf"),
-		Server("Server");
-		private String value;
-		private HostType(String value) { this.value = value; }
-		public String getValue() { return this.value; }
-	};
-
 	private String name;
 	private String hostname;
 	private String mac;

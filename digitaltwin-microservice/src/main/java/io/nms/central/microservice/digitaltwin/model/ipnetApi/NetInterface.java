@@ -44,12 +44,16 @@ public class NetInterface extends Configurable {
 	
 	// In Ip4Ctp
 	@JsonInclude(Include.NON_NULL)
-	private String ipAddr = ""; 		// CIDR
+	private String ipAddr; 		// CIDR
 	
 	@JsonInclude(Include.NON_NULL)
-	private String svi = "";
+	private String svi;
 
 	public NetInterface() {}
+	public NetInterface(JsonObject json) {
+		JSONUtils.fromJson(json, this, NetInterface.class);
+	}
+
 	public String getMode() {
 		return mode;
 	}
@@ -62,10 +66,6 @@ public class NetInterface extends Configurable {
 	public void setSvi(String svi) {
 		this.svi = svi;
 	}
-	public NetInterface(JsonObject json) {
-		JSONUtils.fromJson(json, this, NetInterface.class);
-	}
-	
 	public String getVlan() {
 		return vlan;
 	}
@@ -122,7 +122,6 @@ public class NetInterface extends Configurable {
 	}
 
 	/*-----------------------------------------------*/
-
 	public JsonObject toJson() {
 		return new JsonObject(JSONUtils.pojo2Json(this, false));
 	}

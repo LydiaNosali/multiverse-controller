@@ -26,13 +26,15 @@ public class ConfigChange {
         public String getValue() {return this.value;}
     };
 
-    private String id = UUID.randomUUID().toString();
+    private String id;
 	private ResourceTypeEnum type;
 	private ActionEnum action;
 	private String location;
 	// private Report report;
 	
-	public ConfigChange() {}
+	public ConfigChange() {
+		this.id = UUID.randomUUID().toString();
+	}
 	public ConfigChange(String id) {
 		this.id = id;
 	}

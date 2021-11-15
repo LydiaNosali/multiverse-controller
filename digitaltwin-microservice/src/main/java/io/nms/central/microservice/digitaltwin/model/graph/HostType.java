@@ -3,8 +3,10 @@ package io.nms.central.microservice.digitaltwin.model.graph;
 public enum HostType {
 
 	SpineRouter("SpineRouter"),
-	SpineLeaf("SpineLeaf"),
-	Server("Server");
+	LeafRouter("LeafRouter"),
+	BorderRouter("BorderRouter"),
+	Firewall("Firewall"),
+	server("server");
 
 	private String value;
 	private HostType(String value) { this.value = value; }
