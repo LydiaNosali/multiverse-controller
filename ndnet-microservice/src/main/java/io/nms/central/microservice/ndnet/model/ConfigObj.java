@@ -33,7 +33,6 @@ public class ConfigObj {
 
 	@Override
 	public boolean equals(Object obj) {
-		// return Objects.equals(toJson().encode(), ((ConfigObj) obj).toJson().encode());
 		return getConfig().equals(((ConfigObj) obj).getConfig());
 	}
 

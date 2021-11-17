@@ -42,15 +42,16 @@ public interface NdnetService {
 
 	
 	/* API */
+	void getAllCandidateConfigs(Handler<AsyncResult<List<ConfigObj>>> resultHandler);
 	void getCandidateConfig(int nodeId, Handler<AsyncResult<ConfigObj>> resultHandler);
 	void removeCandidateConfig(int nodeId, Handler<AsyncResult<Void>> resultHandler);
 	
+	void getAllRunningConfigs(Handler<AsyncResult<List<ConfigObj>>> resultHandler);
+	void getRunningConfig(int nodeId, Handler<AsyncResult<ConfigObj>> resultHandler);
 	void upsertRunningConfig(int nodeId, ConfigObj config, Handler<AsyncResult<Void>> resultHandler);
 	void updateRunningConfig(int nodeId, JsonArray patch, Handler<AsyncResult<Void>> resultHandler);
-	void getRunningConfig(int nodeId, Handler<AsyncResult<ConfigObj>> resultHandler);
 	void removeRunningConfig(int nodeId, Handler<AsyncResult<Void>> resultHandler);
 	
-		
 	/* Processing */
 	void computeRoutes(List<Vnode> nodes, List<Vconnection> links, List<Prefix> pas, Handler<AsyncResult<List<Route>>> resultHandler);
 	void computeConfigurations(List<Vnode> nodes, List<Vconnection> edges, List<Vctp> faces, List<Prefix> pas, Handler<AsyncResult<List<ConfigObj>>> resultHandler);

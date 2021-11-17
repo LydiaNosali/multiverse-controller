@@ -458,7 +458,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		service.updateVconnection(id, vconnection, resultVoidHandler(context, 200));
 	}
 
-	// Prefix Announcement API
+	// Prefix API
 	private void apiAddPrefix(RoutingContext context) {
 		Prefix prefix;
 		try {

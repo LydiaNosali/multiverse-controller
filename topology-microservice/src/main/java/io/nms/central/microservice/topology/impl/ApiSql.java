@@ -196,41 +196,14 @@ public class ApiSql {
 	
 	/*-------------------- INSERT ITEMS --------------------*/	
 	public static final String INSERT_VSUBNET = "INSERT INTO Vsubnet (name, label, description, info) VALUES (?, ?, ?, ?) ";
-			// + "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
-			// + "id=LAST_INSERT_ID(id)";
-	public static final String INSERT_VNODE = "INSERT INTO Vnode (name, label, description, info, status, posx, posy, location, type, vsubnetId, hwaddr, mgmtIp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-		//	+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), status = VALUES(status), "
-			+ "posx = VALUES(posx), posy = VALUES(posy), location = VALUES(location), type = VALUES(type), vsubnetId = VALUES(vsubnetId), hwaddr = VALUES(hwaddr), mgmtIp = VALUES(mgmtIp), "
-			+ "id=LAST_INSERT_ID(id)";
-	public static final String INSERT_VLTP = "INSERT INTO Vltp (name, label, description, info, status, vnodeId, port, bandwidth, mtu, busy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
-			+ "status = VALUES(status), vnodeId = VALUES(vnodeId), port = VALUES(port), bandwidth = VALUES(bandwidth), mtu = VALUES(mtu), busy = VALUES(busy), "
-			+ "id=LAST_INSERT_ID(id)";
-	public static final String INSERT_VCTP_VCTP = "INSERT INTO Vctp (name, label, description, info, connType, connInfo, status, vctpId, vnodeId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
-			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
-			+ "status = VALUES(status), connType = VALUES(connType), connInfo = VALUES(connInfo), vctpId = VALUES(vctpId), vnodeId = VALUES(vnodeId), "
-			+ "id=LAST_INSERT_ID(id)";
-	public static final String INSERT_VCTP_VLTP = "INSERT INTO Vctp (name, label, description, info, connType, connInfo, status, vltpId, vnodeId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
-			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
-			+ "status = VALUES(status), connType = VALUES(connType), connInfo = VALUES(connInfo), vltpId = VALUES(vltpId), vnodeId = VALUES(vnodeId), "
-			+ "id=LAST_INSERT_ID(id)";
-	public static final String INSERT_VLINK = "INSERT INTO Vlink (name, label, description, info, status, srcVltpId, destVltpId) VALUES (?, ?, ?, ?, ?, ?, ?) "
-			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
-			+ "status = VALUES(status), srcVltpId = VALUES(srcVltpId), destVltpId = VALUES(destVltpId), "
-			+ "id=LAST_INSERT_ID(id)";
-	public static final String INSERT_VLINKCONN = "INSERT INTO VlinkConn (name, label, description, info, status, srcVctpId, destVctpId, vlinkId) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
-			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
-			+ "status = VALUES(status), srcVctpId = VALUES(srcVctpId), destVctpId = VALUES(destVctpId), vlinkId = VALUES(vlinkId), "
-			+ "id=LAST_INSERT_ID(id)";
-	public static final String INSERT_VCONNECTION = "INSERT INTO Vconnection (name, label, description, info, status, srcVctpId, destVctpId) VALUES (?, ?, ?, ?, ?, ?, ?) "
-			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), info = VALUES(info), "
-			+ "status = VALUES(status), srcVctpId = VALUES(srcVctpId), destVctpId = VALUES(destVctpId), "
-			+ "id=LAST_INSERT_ID(id)";
-
-	public static final String INSERT_CROSS_CONNECT = "INSERT INTO CrossConnect (name, label, description, switchId, ingressPortId, egressPortId) VALUES (?, ?, ?, ?, ?, ?) "
-			+ "ON DUPLICATE KEY UPDATE name = VALUES(name), label = VALUES(label), description = VALUES(description), "
-			+ "switchId = VALUES(switchId), ingressPortId = VALUES(ingressPortId), egressPortId = VALUES(egressPortId), "
-			+ "id=LAST_INSERT_ID(id)";
+	public static final String INSERT_VNODE = "INSERT INTO Vnode (name, label, description, info, status, posx, posy, location, type, vsubnetId, hwaddr, mgmtIp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ";
+	public static final String INSERT_VLTP = "INSERT INTO Vltp (name, label, description, info, status, vnodeId, port, bandwidth, mtu, busy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ";
+	public static final String INSERT_VCTP_VCTP = "INSERT INTO Vctp (name, label, description, info, connType, connInfo, status, vctpId, vnodeId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ";
+	public static final String INSERT_VCTP_VLTP = "INSERT INTO Vctp (name, label, description, info, connType, connInfo, status, vltpId, vnodeId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ";
+	public static final String INSERT_VLINK = "INSERT INTO Vlink (name, label, description, info, status, srcVltpId, destVltpId) VALUES (?, ?, ?, ?, ?, ?, ?) ";
+	public static final String INSERT_VLINKCONN = "INSERT INTO VlinkConn (name, label, description, info, status, srcVctpId, destVctpId, vlinkId) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ";
+	public static final String INSERT_VCONNECTION = "INSERT INTO Vconnection (name, label, description, info, status, srcVctpId, destVctpId) VALUES (?, ?, ?, ?, ?, ?, ?) ";
+	public static final String INSERT_CROSS_CONNECT = "INSERT INTO CrossConnect (name, label, description, switchId, ingressPortId, egressPortId) VALUES (?, ?, ?, ?, ?, ?) ";
 
 	// insert ignore for PUT
 	public static final String INSERT_PREFIX = "INSERT IGNORE INTO Prefix (name, originId, available) VALUES (?, ?, ?)";

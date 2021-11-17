@@ -54,13 +54,14 @@ public class Neo4jWrapper {
 		this.dbUser = config.getString("user");
 		this.dbPassword = config.getString("password");
 		this.driver = GraphDatabase.driver(config.getString("url"), AuthTokens.basic(dbUser, dbPassword));
-		try {
-			driver.verifyConnectivity();
-			logger.info("Connected to neo4j");
-		} catch (Exception e) {
-			driver.close();
-			logger.error(e.getCause());
-		}
+		driver.verifyConnectivityAsync().thenAcceptAsync(r -> {
+        	logger.info("Connected to neo4j");
+        	return;
+        }).exceptionally(e -> {
+            logger.info(e.getMessage());
+            driver.closeAsync();
+            return null;
+        });
 	}
 
 	public void findOne(String db, String query, Handler<AsyncResult<JsonObject>> resultHandler) {

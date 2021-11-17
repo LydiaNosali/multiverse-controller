@@ -57,8 +57,7 @@ public interface IpnetService {
 
 	void configVerify(String viewId, Handler<AsyncResult<Report>> resultHandler);
 	void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler);
-	
-	void saveConfigChange(String viewId, ConfigChange cc, Handler<AsyncResult<Void>> resultHandler);
+
 	void getAllConfigChanges(String viewId, Handler<AsyncResult<List<ConfigChange>>> resultHandler);
 	void undoConfigChange(String viewId, String id, Handler<AsyncResult<Void>> resultHandler);
 }

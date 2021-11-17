@@ -122,16 +122,20 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 	    /*----------------------------------------------------------------*/
 
 		// enable HTTPS
-		String certsPath = "/opt/data/";
-		HttpServerOptions httpServerOptions = new HttpServerOptions()
-				.setSsl(true)
-				.setPemKeyCertOptions(
-    		            new PemKeyCertOptions()
+		boolean https = config().getBoolean("api.gateway.https", false);
+		HttpServerOptions httpServerOptions = new HttpServerOptions();
+		if (https) {
+			String certsPath = "/opt/data/";
+			httpServerOptions
+					.setSsl(true)
+					.setPemKeyCertOptions(
+    		            	new PemKeyCertOptions()
     		  		       .setKeyPath(certsPath+"multiverse.controller.key.pem")
     		  		       .setCertPath(certsPath+"multiverse.controller.crt.pem"));
+		}
 		vertx.createHttpServer(httpServerOptions)
-		.requestHandler(router)
-		.listen(port, host, ar -> {
+				.requestHandler(router)
+				.listen(port, host, ar -> {
 			if (ar.succeeded()) {
 				publishApiGateway(host, port)
 				.onComplete(promise);
@@ -143,9 +147,9 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 		});
 
 		// dev only
-		/* vertx.createHttpServer()
-			.requestHandler(router)
-			.listen(8788, host); */
+		//vertx.createHttpServer()
+		//	.requestHandler(router)
+		//	.listen(8788, host);
 	}
 
 	private void dispatchRequests(RoutingContext context) {

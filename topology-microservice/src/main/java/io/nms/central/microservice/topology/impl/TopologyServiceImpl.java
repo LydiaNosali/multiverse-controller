@@ -160,7 +160,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			resultHandler.handle(Future.failedFuture("IP address not valid"));
 			return this;
 		}
-
 		JsonArray params = new JsonArray()
 				.add(vnode.getName())
 				.add(vnode.getLabel())

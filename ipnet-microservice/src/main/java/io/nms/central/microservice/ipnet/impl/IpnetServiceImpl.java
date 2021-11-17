@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.nms.central.microservice.common.functional.JSONUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.dt.Report;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
@@ -20,6 +21,7 @@ import io.nms.central.microservice.ipnet.model.ConfigProfile;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -194,7 +196,7 @@ public class IpnetServiceImpl implements IpnetService {
 	}
 	@Override
 	public void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler) {
-		removeConfigProfile(viewId, res -> {
+		deleteConfigProfile(viewId, res -> {
 			// TODO: get device configs
 			resultHandler.handle(Future.succeededFuture(new ApplyConfigResult()));
 		});
@@ -225,10 +227,65 @@ public class IpnetServiceImpl implements IpnetService {
 	}
 	@Override
 	public void undoConfigChange(String viewId, String id, Handler<AsyncResult<Void>> resultHandler) {
-		// TODO: get cc, get bkp (if needed), revert action, delete cc
+		Promise<ConfigChange> reverted = Promise.promise();
+		findConfigChange(id, res -> {
+			if (res.succeeded()) {
+				ConfigChange cc = res.result();
+				if (cc.getType().equals(ResourceTypeEnum.DEVICE)) {
+					undoDeviceConfig(viewId, cc, reverted);
+				} else {
+					reverted.fail("Unexpected resource type: "+cc.getType().getValue());
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		reverted.future().onComplete(res -> {
+			if (res.succeeded()) {
+				deleteConfigChange(res.result().getId(), resultHandler);
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 	}
-	@Override
-	public void saveConfigChange(String viewId, ConfigChange cc, Handler<AsyncResult<Void>> resultHandler) {
+	private void undoDeviceConfig(String viewId, ConfigChange cc, 
+			Handler<AsyncResult<ConfigChange>> resultHandler) {
+		findResourceBkp(cc.getId(), Device.class, res -> {
+			if (res.succeeded()) {
+				Device deviceBkp = res.result();
+				if (cc.getAction().equals(ActionEnum.UPDATE)) {
+					digitalTwinSvcProxy()
+							.viewUpdateDevice(viewId, deviceBkp.getName(), deviceBkp, done -> {
+						if (done.succeeded()) {
+							resultHandler.handle(Future.succeededFuture(cc));
+						} else {
+							resultHandler.handle(Future.failedFuture(done.cause()));
+						}
+					});
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	private void findConfigChange(String id, Handler<AsyncResult<ConfigChange>> resultHandler) {
+		JsonObject query = new JsonObject().put("id", id);
+		client.findOne(COLL_CONFIG_CHANGE, query, null, ar -> {
+			if (ar.succeeded()) {
+				if (ar.result() != null) {
+					ar.result().remove("_id");
+					ar.result().remove("_viewId");
+					final ConfigChange cc = new ConfigChange(ar.result());
+					resultHandler.handle(Future.succeededFuture(cc));
+				} else {
+					resultHandler.handle(Future.failedFuture("NOT_FOUND"));
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
+			}
+		});
+	}
+	private void saveConfigChange(String viewId, ConfigChange cc, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject doc = cc.toJson();
 		doc.put("_viewId", viewId);
 		client.save(COLL_CONFIG_CHANGE, doc, ar -> {
@@ -239,8 +296,35 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
+	private void deleteConfigChange(String id, Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject query = new JsonObject().put("id", id);
+		client.removeDocument(COLL_CONFIG_CHANGE, query, ar -> {
+			if (ar.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
+			}
+		});
+	}
 	
 	/* Resource config backup */
+	private <T> void findResourceBkp(String cgId, Class<T> clazz, Handler<AsyncResult<T>> resultHandler) {
+		JsonObject query = new JsonObject().put("_cgId", cgId);
+		client.findOne(COLL_RESOURCE_BKP, query, null, ar -> {
+			if (ar.succeeded()) {
+				if (ar.result() != null) {
+					ar.result().remove("_cgId");
+					ar.result().remove("_id");
+					final T resource = JSONUtils.json2Pojo(ar.result().encode(), clazz);
+					resultHandler.handle(Future.succeededFuture(resource));
+				} else {
+					resultHandler.handle(Future.failedFuture("NOT_FOUND"));
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
+			}
+		});
+	}
 	private void saveResourceBkp(String cgId, Configurable resource, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject doc = resource.toJson();
 		doc.put("_cgId", cgId);
@@ -262,8 +346,7 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
-	
-	
+
 	/* ConfigProfile COW */
 	private void getOrCreateConfigProfile(String viewId, Handler<AsyncResult<ConfigProfile>> resultHandler) {
 		findConfigProfile(viewId, res -> {
@@ -329,7 +412,7 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
-	private void removeConfigProfile(String viewId, Handler<AsyncResult<Void>> resultHandler) {
+	private void deleteConfigProfile(String viewId, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject query = new JsonObject().put("viewId", viewId);
 		client.removeDocument(COLL_CONFIG_PROFILE, query, ar -> {
 			if (ar.succeeded()) {

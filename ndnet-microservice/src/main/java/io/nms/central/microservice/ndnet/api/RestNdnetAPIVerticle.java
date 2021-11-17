@@ -38,9 +38,11 @@ public class RestNdnetAPIVerticle extends RestAPIVerticle {
 	private static final String API_ONE_PA = "/pa/:name";
 
 	private static final String API_CANDIDATE_CONFIG = "/intended-config";
+	private static final String API_ALL_CANDIDATE_CONFIG = "/intended-config/all";
 	private static final String API_ONE_CANDIDATE_CONFIG = "/intended-config/:nodeId";
 
 	private static final String API_RUNNING_CONFIG = "/running-config";
+	private static final String API_ALL_RUNNING_CONFIG = "/running-config/all";
 	private static final String API_ONE_RUNNING_CONFIG = "/running-config/:nodeId";
 
 	private final NdnetService service;
@@ -61,16 +63,17 @@ public class RestNdnetAPIVerticle extends RestAPIVerticle {
 		router.delete(API_ONE_PA).handler(this::checkAgentRole).handler(this::apiDeletePrefixAnnouncement);
 		
 		// Confguration API
+		router.get(API_ALL_CANDIDATE_CONFIG).handler(this::checkAdminRole).handler(this::apiGetAllCandidateConfigs);
 		router.get(API_ONE_CANDIDATE_CONFIG).handler(this::checkAdminRole).handler(this::apiGetUserCandidateConfig);
 		router.get(API_CANDIDATE_CONFIG).handler(this::checkAgentRole).handler(this::apiGetAgentCandidateConfig);		
 		// router.delete(API_ONE_CANDIDATE_CONFIG).handler(this::checkAdminRole).handler(this::apiDeleteCandidateConfig);
 		
+		router.get(API_ALL_RUNNING_CONFIG).handler(this::checkAdminRole).handler(this::apiGetAllRunningConfigs);
 		router.get(API_ONE_RUNNING_CONFIG).handler(this::checkAdminRole).handler(this::apiGetUserRunningConfig);
 		router.get(API_RUNNING_CONFIG).handler(this::checkAgentRole).handler(this::apiGetAgentRunningConfig);
-		// router.delete(API_ONE_RUNNING_CONFIG).handler(this::checkAdminRole).handler(this::apiDeleteRunningConfig);
-		
 		router.put(API_RUNNING_CONFIG).handler(this::checkAgentRole).handler(this::apiPutAgentRunningConfig);
 		router.patch(API_RUNNING_CONFIG).handler(this::checkAgentRole).handler(this::apiPatchAgentRunningConfig);
+		// router.delete(API_ONE_RUNNING_CONFIG).handler(this::checkAdminRole).handler(this::apiDeleteRunningConfig);
 
 		// get HTTP host and port from configuration, or use default value
 		String host = config().getString("ndnet.http.address", "0.0.0.0");
@@ -135,6 +138,10 @@ public class RestNdnetAPIVerticle extends RestAPIVerticle {
 	}
 
 	// Configuration API
+	/* Candidate (intended) config */
+	private void apiGetAllCandidateConfigs(RoutingContext context) {
+		service.getAllCandidateConfigs(resultHandler(context, Json::encodePrettily));
+	}
 	private void apiGetUserCandidateConfig(RoutingContext context) {
 		int nodeId = Integer.valueOf(context.request().getParam("nodeId"));
 		getCandidateConfig(nodeId, context);
@@ -173,6 +180,10 @@ public class RestNdnetAPIVerticle extends RestAPIVerticle {
 		service.removeCandidateConfig(nodeId, deleteResultHandler(context));
 	} */
 	
+	/* Running config */
+	private void apiGetAllRunningConfigs(RoutingContext context) {
+		service.getAllRunningConfigs(resultHandler(context, Json::encodePrettily));
+	}
 	private void apiGetUserRunningConfig(RoutingContext context) {
 		int nodeId = Integer.valueOf(context.request().getParam("nodeId"));
 		service.getRunningConfig(nodeId, resultHandlerNonEmpty(context));
@@ -182,11 +193,6 @@ public class RestNdnetAPIVerticle extends RestAPIVerticle {
 		int nodeId = principal.getInteger("nodeId");
 		service.getRunningConfig(nodeId, resultHandlerNonEmpty(context));
 	}
-	/* private void apiDeleteRunningConfig(RoutingContext context) {
-		int nodeId = Integer.valueOf(context.request().getParam("nodeId"));
-		service.removeRunningConfig(nodeId, deleteResultHandler(context));
-	} */
-
 	private void apiPutAgentRunningConfig(RoutingContext context) {
 		ConfigObj config;
 		try {
@@ -213,6 +219,10 @@ public class RestNdnetAPIVerticle extends RestAPIVerticle {
 			badRequest(context, new Throwable("wrong or missing request body"));
 		}
 	}
+	/* private void apiDeleteRunningConfig(RoutingContext context) {
+		int nodeId = Integer.valueOf(context.request().getParam("nodeId"));
+		service.removeRunningConfig(nodeId, deleteResultHandler(context));
+	} */
 
 	private boolean isBase64(String str) {
 		if (str.isEmpty()) {

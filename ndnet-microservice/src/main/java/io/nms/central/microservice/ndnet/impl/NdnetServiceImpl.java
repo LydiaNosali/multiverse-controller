@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.nms.central.microservice.ndnet.NdnetService;
 import io.nms.central.microservice.ndnet.model.ConfigFace;
@@ -55,7 +56,28 @@ public class NdnetServiceImpl implements NdnetService {
 	public void initializePersistence(Handler<AsyncResult<Void>> resultHandler) {
 		resultHandler.handle(Future.succeededFuture());
 	}
-	
+
+	@Override
+	public void getAllCandidateConfigs(Handler<AsyncResult<List<ConfigObj>>> resultHandler) {
+		JsonObject query = new JsonObject();
+		client.find(COLL_CANDIDATE_CONFIG, query, ar -> {
+			if (ar.succeeded()) {
+				if (ar.result() == null) {
+					resultHandler.handle(Future.succeededFuture());
+				} else {
+					List<ConfigObj> result = ar.result().stream()
+							.map(raw -> {
+								raw.remove("_id");
+								ConfigObj co = new ConfigObj(raw);
+								return co;
+							}).collect(Collectors.toList());
+					resultHandler.handle(Future.succeededFuture(result));
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
+			}
+		});
+	}
 	@Override
 	public void getCandidateConfig(int nodeId, Handler<AsyncResult<ConfigObj>> resultHandler) {
 		JsonObject query = new JsonObject().put("nodeId", nodeId);
@@ -84,7 +106,43 @@ public class NdnetServiceImpl implements NdnetService {
 		});
 	}
 	
-
+	@Override
+	public void getAllRunningConfigs(Handler<AsyncResult<List<ConfigObj>>> resultHandler) {
+		JsonObject query = new JsonObject();
+		client.find(COLL_RUNNING_CONFIG, query, ar -> {
+			if (ar.succeeded()) {
+				if (ar.result() == null) {
+					resultHandler.handle(Future.succeededFuture());
+				} else {
+					List<ConfigObj> result = ar.result().stream()
+							.map(raw -> {
+								raw.remove("_id");
+								ConfigObj co = new ConfigObj(raw);
+								return co;
+							}).collect(Collectors.toList());
+					resultHandler.handle(Future.succeededFuture(result));
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
+			}
+		});
+	}
+	@Override
+	public void getRunningConfig(int nodeId, Handler<AsyncResult<ConfigObj>> resultHandler) {
+		JsonObject query = new JsonObject().put("nodeId", nodeId);
+		client.findOne(COLL_RUNNING_CONFIG, query, null, ar -> {
+			if (ar.succeeded()) {
+				if (ar.result() == null) {
+					resultHandler.handle(Future.succeededFuture());
+				} else {
+					ConfigObj result = new ConfigObj(ar.result());
+					resultHandler.handle(Future.succeededFuture(result));
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
+			}
+		});
+	}
 	@Override
 	public void upsertRunningConfig(int nodeId, ConfigObj config, Handler<AsyncResult<Void>> resultHandler) {
 		config.setNodeId(nodeId);
@@ -125,22 +183,6 @@ public class NdnetServiceImpl implements NdnetService {
 					});
 				} catch (IllegalArgumentException e) {
 					resultHandler.handle(Future.failedFuture(e.getMessage()));
-				}
-			} else {
-				resultHandler.handle(Future.failedFuture(ar.cause()));
-			}
-		});
-	}
-	@Override
-	public void getRunningConfig(int nodeId, Handler<AsyncResult<ConfigObj>> resultHandler) {
-		JsonObject query = new JsonObject().put("nodeId", nodeId);
-		client.findOne(COLL_RUNNING_CONFIG, query, null, ar -> {
-			if (ar.succeeded()) {
-				if (ar.result() == null) {
-					resultHandler.handle(Future.succeededFuture());
-				} else {
-					ConfigObj result = new ConfigObj(ar.result());
-					resultHandler.handle(Future.succeededFuture(result));
 				}
 			} else {
 				resultHandler.handle(Future.failedFuture(ar.cause()));
