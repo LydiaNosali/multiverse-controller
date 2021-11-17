@@ -42,7 +42,6 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 	private static final String API_CONFIG_ONE_BGP = "/config/device/:deviceName/bgp/:itfAddr";
 	
 	private static final String API_CONFIG_CHANGES = "/config/changes";
-	private static final String API_CONFIG_ONE_CHANGE = "/config/changes/:id";
 	
 	private static final String API_CONFIG_VERIFY = "/config/verify";
 	private static final String API_CONFIG_APPLY = "/config/apply";
@@ -77,7 +76,7 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		router.delete(API_CONFIG_ONE_BGP).handler(this::checkAdminRole).handler(this::apiConfigDeleteBgp);
 		
 		router.get(API_CONFIG_CHANGES).handler(this::checkAdminRole).handler(this::apiConfigGetAllChanges);
-		router.delete(API_CONFIG_ONE_CHANGE).handler(this::checkAdminRole).handler(this::apiConfigUndoChange);
+		router.delete(API_CONFIG_CHANGES).handler(this::checkAdminRole).handler(this::apiConfigUndoChange);
 
 		router.get(API_CONFIG_VERIFY).handler(this::checkAdminRole).handler(this::apiConfigVerify);
 		router.get(API_CONFIG_APPLY).handler(this::checkAdminRole).handler(this::apiConfigApply);
@@ -208,8 +207,7 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 	private void apiConfigUndoChange(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String username = principal.getString("username");
-		String id = context.request().getParam("id");
-		service.undoConfigChange(username, id, deleteResultHandler(context));
+		service.undoConfigChange(username, deleteResultHandler(context));
 	}
 	
 	/* get service version */

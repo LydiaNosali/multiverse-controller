@@ -11,9 +11,9 @@ done
 # export volume location
 export CONTROLLER_VOL=$1
 
-# Start persistence containers only
+# Start persistence containers
 docker-compose -f docker-compose.yml up -d mysql mongo activemq neo4j
-sleep 10
+sleep 30
 
 mvn -f ../pom.xml clean install
 

@@ -136,7 +136,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 								String eq = CypherQuery.View.getExtractionQuery(MAIN_DB, dbUser, dbPassword);
 									findOne(viewId, eq, done -> {
 										if (done.succeeded()) {
-											logger.info("View creation done: " + done.result().encodePrettily());
+											logger.info("View creation done");
 											resultHandler.handle(Future.succeededFuture());
 										} else {
 											deleteView(viewId, res -> {

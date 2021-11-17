@@ -46,7 +46,7 @@ import io.vertx.serviceproxy.ServiceProxyBuilder;
 public class APIGatewayVerticle extends RestAPIVerticle {
 
 	private static final int DEFAULT_PORT = 8787;
-	private static final int TOKEN_EXPIRES_MN = 60;
+	private static final int TOKEN_EXPIRES_MN = 120;
 	
 	private static final Logger logger = LoggerFactory.getLogger(APIGatewayVerticle.class);
 	private JWTAuth jwt;

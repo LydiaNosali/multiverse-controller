@@ -59,5 +59,5 @@ public interface IpnetService {
 	void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler);
 
 	void getAllConfigChanges(String viewId, Handler<AsyncResult<List<ConfigChange>>> resultHandler);
-	void undoConfigChange(String viewId, String id, Handler<AsyncResult<Void>> resultHandler);
+	void undoConfigChange(String viewId, Handler<AsyncResult<Void>> resultHandler);
 }

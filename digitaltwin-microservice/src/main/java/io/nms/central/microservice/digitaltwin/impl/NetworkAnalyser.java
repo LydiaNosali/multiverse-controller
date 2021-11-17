@@ -74,8 +74,8 @@ public class NetworkAnalyser {
 				List<String> messages = new ArrayList<String>();
 				for(JsonObject row: result.result()) {
 					// Hostname, count
-					String msg = "Hostname <" + row.getString("hostname") + "> is used " 
-							+ row.getInteger("count") + " times"; 
+					String msg = "Hostname <" + row.getString("hostname") + "> is used on " 
+							+ row.getInteger("count") + " devices"; 
 					messages.add(msg);
 				}
 				report.setMessages(messages);

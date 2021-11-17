@@ -23,6 +23,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -100,6 +101,7 @@ public class IpnetServiceImpl implements IpnetService {
 								digitalTwinSvcProxy()
 										.viewUpdateDevice(viewId, deviceName, device, updated -> {
 									if (updated.succeeded()) {
+										cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
 										saveConfigChange(viewId, cc, done -> {
 											if (done.succeeded()) {
 												resultHandler.handle(Future.succeededFuture());
@@ -226,9 +228,9 @@ public class IpnetServiceImpl implements IpnetService {
 		});
 	}
 	@Override
-	public void undoConfigChange(String viewId, String id, Handler<AsyncResult<Void>> resultHandler) {
+	public void undoConfigChange(String viewId, Handler<AsyncResult<Void>> resultHandler) {
 		Promise<ConfigChange> reverted = Promise.promise();
-		findConfigChange(id, res -> {
+		findLatestConfigChange(viewId, res -> {
 			if (res.succeeded()) {
 				ConfigChange cc = res.result();
 				if (cc.getType().equals(ResourceTypeEnum.DEVICE)) {
@@ -268,22 +270,38 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
-	private void findConfigChange(String id, Handler<AsyncResult<ConfigChange>> resultHandler) {
-		JsonObject query = new JsonObject().put("id", id);
-		client.findOne(COLL_CONFIG_CHANGE, query, null, ar -> {
-			if (ar.succeeded()) {
-				if (ar.result() != null) {
-					ar.result().remove("_id");
-					ar.result().remove("_viewId");
-					final ConfigChange cc = new ConfigChange(ar.result());
-					resultHandler.handle(Future.succeededFuture(cc));
+	private void findLatestConfigChange(String viewId, Handler<AsyncResult<ConfigChange>> resultHandler) {
+		JsonObject match = new JsonObject().put("_viewId", viewId);
+		JsonObject sort = new JsonObject().put("datetime", -1);
+			
+			JsonObject command = new JsonObject()
+				.put("aggregate", COLL_CONFIG_CHANGE)
+				.put("pipeline", new JsonArray()
+						.add(new JsonObject().put("$match", match))
+						.add(new JsonObject().put("$sort", sort))
+						.add(new JsonObject().put("$limit", 1)))
+				.put("cursor", new JsonObject());
+							
+			client.runCommand("aggregate", command, res -> {
+				if (res.succeeded()) {
+					if (res.result().getInteger("ok") == 1) {
+						JsonArray batch = res.result().getJsonObject("cursor").getJsonArray("firstBatch");
+						if (!batch.isEmpty()) {
+							JsonObject result = batch.getJsonObject(0);
+							result.remove("_id");
+							result.remove("_viewId");
+							final ConfigChange cc = new ConfigChange(result);
+							resultHandler.handle(Future.succeededFuture(cc));
+						} else {
+							resultHandler.handle(Future.failedFuture("NOT_FOUND"));
+						}
+					} else {
+						resultHandler.handle(Future.failedFuture("NOT_FOUND"));
+					}
 				} else {
-					resultHandler.handle(Future.failedFuture("NOT_FOUND"));
+					resultHandler.handle(Future.failedFuture(res.cause()));
 				}
-			} else {
-				resultHandler.handle(Future.failedFuture(ar.cause()));
-			}
-		});
+			});
 	}
 	private void saveConfigChange(String viewId, ConfigChange cc, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject doc = cc.toJson();

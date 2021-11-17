@@ -30,6 +30,7 @@ public class ConfigChange {
 	private ResourceTypeEnum type;
 	private ActionEnum action;
 	private String location;
+	private String datetime;
 	// private Report report;
 	
 	public ConfigChange() {
@@ -80,5 +81,11 @@ public class ConfigChange {
 	}
 	public void setAction(ActionEnum action) {
 		this.action = action;
+	}
+	public String getDatetime() {
+		return datetime;
+	}
+	public void setDatetime(String datetime) {
+		this.datetime = datetime;
 	}
 }
