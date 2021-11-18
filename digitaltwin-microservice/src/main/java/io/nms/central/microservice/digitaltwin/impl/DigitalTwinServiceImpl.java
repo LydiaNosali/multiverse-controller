@@ -238,7 +238,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				.put("type", netItf.getType().getValue()).put("speed", netItf.getSpeed())
 				.put("mtu", netItf.getMtu()).put("mode", netItf.getMode())
 				.put("vlan", netItf.getVlan()).put("macAddr", netItf.getMacAddr());
-		if (!netItf.getIpAddr().isEmpty()) {
+		if (netItf.getIpAddr() != null) {
 			logger.info("Update interface includes IP config");
 			String[] cird = netItf.getIpAddr().split("/");
 			String subnetAddr = parseSubnetAddress(netItf.getIpAddr());
@@ -343,21 +343,18 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		Network network = new Network();
 		find(db, CypherQuery.Api.GET_NETWORK_HOSTS, hs -> {
 			if (hs.succeeded()) {
-				// network.setDevices(JSONUtils.json2PojoList(new JsonArray(hosts.result()).encode(), Device.class));
 				List<Device> devices = hs.result().stream()
 						.map(o -> {return new Device(o);})
 						.collect(Collectors.toList());
 				network.setDevices(devices);
 				find(MAIN_DB, CypherQuery.Api.GET_NETWORK_LINKS, ls -> {
 					if (ls.succeeded()) {
-						// network.setLinks(JSONUtils.json2PojoList(new JsonArray(links.result()).encode(), Link.class));
 						List<Link> links = ls.result().stream()
 								.map(o -> {return new Link(o);})
 								.collect(Collectors.toList());
 						network.setLinks(links);
 						find(MAIN_DB, CypherQuery.Api.GET_NETWORK_SUBNETS, sn -> {
 							if (sn.succeeded()) {
-								// network.setSubnets(JSONUtils.json2PojoList(new JsonArray(subnets.result()).encode(), IpSubnet.class));
 								List<IpSubnet> subnets = sn.result().stream()
 										.map(o -> {return new IpSubnet(o);})
 										.collect(Collectors.toList());

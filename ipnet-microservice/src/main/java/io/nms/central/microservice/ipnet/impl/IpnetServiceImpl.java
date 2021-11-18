@@ -111,8 +111,8 @@ public class IpnetServiceImpl implements IpnetService {
 												digitalTwinSvcProxy()
 														.viewUpdateDevice(viewId, deviceName, deviceBkp, 
 														undo -> {
-															deleteResourceBkp(cc.getId(), ignore -> {});
-														});
+													deleteResourceBkp(cc.getId(), ignore -> {});
+												});
 											}
 										});
 									} else {
@@ -142,9 +142,55 @@ public class IpnetServiceImpl implements IpnetService {
 	}
 
 	@Override
-	public void configUpdateInterface(String viewId, String deviceName, String itfName, NetInterface netItf,
-			Handler<AsyncResult<Void>> resultHandler) {
-		//
+	public void configUpdateInterface(String viewId, String deviceName, String itfName, 
+			NetInterface netItf, Handler<AsyncResult<Void>> resultHandler) {
+		getOrCreateConfigProfile(viewId, cp -> {
+			if (cp.succeeded()) {
+				ConfigChange cc = new ConfigChange();
+				cc.setType(ResourceTypeEnum.INTERFACE);
+				cc.setAction(ActionEnum.UPDATE);
+				cc.setLocation(getConfigInterfaceURL(deviceName, itfName));
+
+				digitalTwinSvcProxy().viewGetInterface(viewId, deviceName, itfName, res -> {
+					if (res.succeeded()) {
+						NetInterface netItfBkp = res.result();
+						saveResourceBkp(cc.getId(), netItfBkp, saved -> {
+							if (saved.succeeded()) {
+								digitalTwinSvcProxy()
+										.viewUpdateInterface(viewId, deviceName, itfName, netItf, updated -> {
+									if (updated.succeeded()) {
+										cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
+										saveConfigChange(viewId, cc, done -> {
+											if (done.succeeded()) {
+												resultHandler.handle(Future.succeededFuture());
+											} else {
+												resultHandler.handle(Future.failedFuture(done.cause()));
+												// undo update, delete bkp
+												digitalTwinSvcProxy()
+														.viewUpdateInterface(viewId, deviceName, itfName, netItfBkp, 
+														undo -> {
+													deleteResourceBkp(cc.getId(), ignore -> {});
+												});
+											}
+										});
+									} else {
+										resultHandler.handle(Future.failedFuture(updated.cause()));
+										// delete bkp
+										deleteResourceBkp(cc.getId(), ignore -> {});
+									}
+								});
+							} else {
+								resultHandler.handle(Future.failedFuture(saved.cause()));
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(res.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(cp.cause()));
+			}
+		});
 	}
 
 	@Override
@@ -156,19 +202,140 @@ public class IpnetServiceImpl implements IpnetService {
 	@Override
 	public void configCreateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, 
 			Handler<AsyncResult<Void>> resultHandler) {
-		// 
+		getOrCreateConfigProfile(viewId, cp -> {
+			if (cp.succeeded()) {
+				ConfigChange cc = new ConfigChange();
+				cc.setType(ResourceTypeEnum.BGP);
+				cc.setAction(ActionEnum.CREATE);
+				cc.setLocation(getConfigBgpURL(deviceName, itfAddr));
+
+				digitalTwinSvcProxy().viewUpdateBgp(viewId, deviceName, itfAddr, bgp, 
+						created -> {
+					if (created.succeeded()) {
+						cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
+						saveConfigChange(viewId, cc, done -> {
+							if (done.succeeded()) {
+								resultHandler.handle(Future.succeededFuture());
+							} else {
+								resultHandler.handle(Future.failedFuture(done.cause()));
+								// undo creation
+								digitalTwinSvcProxy()
+										.viewDeleteBgp(viewId, deviceName, itfAddr, 
+										ignore -> {});
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(created.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(cp.cause()));
+			}
+		}); 
 	}
 
 	@Override
 	public void configUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, 
 			Handler<AsyncResult<Void>> resultHandler) {
-		// 
+		getOrCreateConfigProfile(viewId, cp -> {
+			if (cp.succeeded()) {
+				ConfigChange cc = new ConfigChange();
+				cc.setType(ResourceTypeEnum.BGP);
+				cc.setAction(ActionEnum.UPDATE);
+				cc.setLocation(getConfigBgpURL(deviceName, itfAddr));
+
+				digitalTwinSvcProxy().viewGetBgp(viewId, deviceName, itfAddr, res -> {
+					if (res.succeeded()) {
+						Bgp bgpBkp = res.result();
+						saveResourceBkp(cc.getId(), bgpBkp, saved -> {
+							if (saved.succeeded()) {
+								digitalTwinSvcProxy()
+										.viewUpdateBgp(viewId, deviceName, itfAddr, bgp, updated -> {
+									if (updated.succeeded()) {
+										cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
+										saveConfigChange(viewId, cc, done -> {
+											if (done.succeeded()) {
+												resultHandler.handle(Future.succeededFuture());
+											} else {
+												resultHandler.handle(Future.failedFuture(done.cause()));
+												// undo update, delete bkp
+												digitalTwinSvcProxy()
+														.viewUpdateBgp(viewId, deviceName, itfAddr, bgpBkp, 
+														undo -> {
+													deleteResourceBkp(cc.getId(), ignore -> {});
+												});
+											}
+										});
+									} else {
+										resultHandler.handle(Future.failedFuture(updated.cause()));
+										// delete bkp
+										deleteResourceBkp(cc.getId(), ignore -> {});
+									}
+								});
+							} else {
+								resultHandler.handle(Future.failedFuture(saved.cause()));
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(res.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(cp.cause()));
+			}
+		}); 
 	}
 
 	@Override
 	public void configDeleteBgp(String viewId, String deviceName, String itfAddr, 
 			Handler<AsyncResult<Void>> resultHandler) {
-		// 
+		getOrCreateConfigProfile(viewId, cp -> {
+			if (cp.succeeded()) {
+				ConfigChange cc = new ConfigChange();
+				cc.setType(ResourceTypeEnum.BGP);
+				cc.setAction(ActionEnum.DELETE);
+				cc.setLocation(getConfigBgpURL(deviceName, itfAddr));
+
+				digitalTwinSvcProxy().viewGetBgp(viewId, deviceName, itfAddr, res -> {
+					if (res.succeeded()) {
+						Bgp bgpBkp = res.result();
+						saveResourceBkp(cc.getId(), bgpBkp, saved -> {
+							if (saved.succeeded()) {
+								digitalTwinSvcProxy()
+										.viewDeleteBgp(viewId, deviceName, itfAddr, deleted -> {
+									if (deleted.succeeded()) {
+										cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
+										saveConfigChange(viewId, cc, done -> {
+											if (done.succeeded()) {
+												resultHandler.handle(Future.succeededFuture());
+											} else {
+												resultHandler.handle(Future.failedFuture(done.cause()));
+												// undo update, delete bkp
+												digitalTwinSvcProxy()
+														.viewCreateBgp(viewId, deviceName, itfAddr, bgpBkp, 
+														undo -> {
+													deleteResourceBkp(cc.getId(), ignore -> {});
+												});
+											}
+										});
+									} else {
+										resultHandler.handle(Future.failedFuture(deleted.cause()));
+										// delete bkp
+										deleteResourceBkp(cc.getId(), ignore -> {});
+									}
+								});
+							} else {
+								resultHandler.handle(Future.failedFuture(saved.cause()));
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(res.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(cp.cause()));
+			}
+		}); 
 	}
 
 	/* Verify and Apply */
@@ -235,6 +402,10 @@ public class IpnetServiceImpl implements IpnetService {
 				ConfigChange cc = res.result();
 				if (cc.getType().equals(ResourceTypeEnum.DEVICE)) {
 					undoDeviceConfig(viewId, cc, reverted);
+				} else if (cc.getType().equals(ResourceTypeEnum.INTERFACE)) {
+					undoInterfaceConfig(viewId, cc, reverted);
+				} else if (cc.getType().equals(ResourceTypeEnum.BGP)) {
+					undoBgpConfig(viewId, cc, reverted);
 				} else {
 					reverted.fail("Unexpected resource type: "+cc.getType().getValue());
 				}
@@ -264,6 +435,71 @@ public class IpnetServiceImpl implements IpnetService {
 							resultHandler.handle(Future.failedFuture(done.cause()));
 						}
 					});
+				} else {
+					resultHandler.handle(Future.failedFuture("Unexpected config action on Device: "
+							+cc.getAction().getValue()));
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	private void undoInterfaceConfig(String viewId, ConfigChange cc, 
+			Handler<AsyncResult<ConfigChange>> resultHandler) {
+		findResourceBkp(cc.getId(), NetInterface.class, res -> {
+			if (res.succeeded()) {
+				NetInterface netItfBkp = res.result();
+				String[] urlParams = cc.getLocation().split("/");
+				if (cc.getAction().equals(ActionEnum.UPDATE)) {
+					digitalTwinSvcProxy()
+							.viewUpdateInterface(viewId, urlParams[5], urlParams[7], netItfBkp, done -> {
+						if (done.succeeded()) {
+							resultHandler.handle(Future.succeededFuture(cc));
+						} else {
+							resultHandler.handle(Future.failedFuture(done.cause()));
+						}
+					});
+				} else {
+					resultHandler.handle(Future.failedFuture(
+							"Unexpected config action on Interface: "+cc.getAction().getValue()));
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	private void undoBgpConfig(String viewId, ConfigChange cc, 
+			Handler<AsyncResult<ConfigChange>> resultHandler) {
+		String[] urlParams = cc.getLocation().split("/");
+		
+		if (cc.getAction().equals(ActionEnum.CREATE)) {
+			digitalTwinSvcProxy().viewDeleteBgp(viewId, urlParams[5], urlParams[7], 
+					deleted -> {
+				if (deleted.succeeded()) {
+					resultHandler.handle(Future.succeededFuture(cc));
+				} else {
+					resultHandler.handle(Future.failedFuture(deleted.cause()));
+				}
+			});
+			return;
+		}
+		findResourceBkp(cc.getId(), Bgp.class, res -> {
+			if (res.succeeded()) {
+				Bgp bgpBkp = res.result();
+				if (cc.getAction().equals(ActionEnum.UPDATE) ||
+						cc.getAction().equals(ActionEnum.DELETE)) {
+					digitalTwinSvcProxy()
+							.viewUpdateBgp(viewId, urlParams[5], urlParams[7], bgpBkp, 
+							done -> {
+						if (done.succeeded()) {
+							resultHandler.handle(Future.succeededFuture(cc));
+						} else {
+							resultHandler.handle(Future.failedFuture(done.cause()));
+						}
+					});
+				} else {
+					resultHandler.handle(Future.failedFuture(
+							"Unexpected config action on Bgp: "+cc.getAction().getValue()));
 				}
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));

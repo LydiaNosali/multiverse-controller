@@ -43,10 +43,10 @@ public class NetInterface extends Configurable {
 	private String mode;
 	
 	// In Ip4Ctp
-	@JsonInclude(Include.NON_NULL)
+	// @JsonInclude(Include.NON_NULL)
 	private String ipAddr; 		// CIDR
 	
-	@JsonInclude(Include.NON_NULL)
+	// @JsonInclude(Include.NON_NULL)
 	private String svi;
 
 	public NetInterface() {}
