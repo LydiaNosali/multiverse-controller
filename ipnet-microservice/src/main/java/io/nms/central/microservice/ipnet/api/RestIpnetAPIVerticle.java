@@ -1,7 +1,7 @@
 package io.nms.central.microservice.ipnet.api;
 
 import io.nms.central.microservice.common.RestAPIVerticle;
-import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
@@ -119,7 +119,7 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		String deviceName = context.request().getParam("deviceName");
 		try {
 			final Device device 
-					= JSONUtils.json2PojoE(context.getBodyAsString(), Device.class);
+					= JsonUtils.json2PojoE(context.getBodyAsString(), Device.class);
 			service.configUpdateDevice(username, deviceName, device, resultVoidHandler(context, 200));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
@@ -139,7 +139,7 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		String itfName = context.request().getParam("itfName");
 		try {
 			final NetInterface netItf 
-					= JSONUtils.json2PojoE(context.getBodyAsString(), NetInterface.class);
+					= JsonUtils.json2PojoE(context.getBodyAsString(), NetInterface.class);
 			service.configUpdateInterface(username, deviceName, itfName, netItf, resultVoidHandler(context, 200));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
@@ -159,7 +159,7 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		try {
 			final Bgp bgp 
-					= JSONUtils.json2PojoE(context.getBodyAsString(), Bgp.class);
+					= JsonUtils.json2PojoE(context.getBodyAsString(), Bgp.class);
 			service.configCreateBgp(username, deviceName, itfAddr, bgp, createResultHandler(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
@@ -173,7 +173,7 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		try {
 			final Bgp bgp 
-					= JSONUtils.json2PojoE(context.getBodyAsString(), Bgp.class);
+					= JsonUtils.json2PojoE(context.getBodyAsString(), Bgp.class);
 			service.configUpdateBgp(username, deviceName, itfAddr, bgp, resultVoidHandler(context, 200));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());

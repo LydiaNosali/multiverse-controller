@@ -6,7 +6,7 @@ import java.util.Map;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import io.nms.central.microservice.common.RestAPIVerticle;
-import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.graph.DeviceConfigCollection;
 import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
@@ -118,7 +118,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 			TypeReference<HashMap<String,DeviceConfigCollection>> typeRef 
             		= new TypeReference<HashMap<String,DeviceConfigCollection>>() {};
 			final Map<String, DeviceConfigCollection> configs 
-					= JSONUtils.json2Pojo(context.getBodyAsString(), typeRef);
+					= JsonUtils.json2Pojo(context.getBodyAsString(), typeRef);
 			final NetConfigCollection netConfig = new NetConfigCollection();
 			netConfig.setConfigs(configs);
 			service.runningProcessNetworkConfig(netConfig, resultHandlerNonEmpty(context));
@@ -190,7 +190,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String deviceName = context.request().getParam("deviceName");
 		try {
 			final Device device 
-					= JSONUtils.json2PojoE(context.getBodyAsString(), Device.class);
+					= JsonUtils.json2PojoE(context.getBodyAsString(), Device.class);
 			service.viewUpdateDevice(viewId, deviceName, device, updateResultHandler(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
@@ -216,7 +216,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String itfName = context.request().getParam("itfName");
 		try {
 			final NetInterface netItf
-					= JSONUtils.json2PojoE(context.getBodyAsString(), NetInterface.class);
+					= JsonUtils.json2PojoE(context.getBodyAsString(), NetInterface.class);
 			service.viewUpdateInterface(viewId, deviceName, itfName, netItf, updateResultHandler(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
@@ -242,7 +242,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		try {
 			final Bgp bgp 
-					= JSONUtils.json2PojoE(context.getBodyAsString(), Bgp.class);
+					= JsonUtils.json2PojoE(context.getBodyAsString(), Bgp.class);
 			service.viewCreateBgp(viewId, deviceName, itfAddr, bgp, createResultHandler(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
@@ -255,7 +255,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		try {
 			final Bgp bgp 
-					= JSONUtils.json2PojoE(context.getBodyAsString(), Bgp.class);
+					= JsonUtils.json2PojoE(context.getBodyAsString(), Bgp.class);
 			service.viewUpdateBgp(viewId, deviceName, itfAddr, bgp, updateResultHandler(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());

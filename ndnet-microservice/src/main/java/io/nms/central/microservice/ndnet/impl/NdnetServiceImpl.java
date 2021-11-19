@@ -1,12 +1,12 @@
 package io.nms.central.microservice.ndnet.impl;
 
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.ndnet.NdnetService;
 import io.nms.central.microservice.ndnet.model.ConfigFace;
 import io.nms.central.microservice.ndnet.model.ConfigObj;
@@ -172,7 +172,7 @@ public class NdnetServiceImpl implements NdnetService {
 					jConfig = ar.result();
 				}
 				try {
-					JsonObject uDoc = computePatched(jConfig, patch);
+					JsonObject uDoc = Functional.computePatched(jConfig, patch);
 					uDoc.put("nodeId", nodeId);
 					client.replaceDocuments(COLL_RUNNING_CONFIG, query, uDoc, done -> {
 						if (done.succeeded()) {
@@ -305,31 +305,6 @@ public class NdnetServiceImpl implements NdnetService {
 			});
 		}
 		CompositeFuture.all(fts).map((Void) null).onComplete(resultHandler);
-	}
-
-
-	private JsonObject computePatched(JsonObject origin, JsonArray patch) throws IllegalArgumentException {
-		String sPatched = rawPatch(origin.encode(), patch.encode());
-		return new JsonObject(sPatched);
-	}
-	
-	private String rawPatch(String sOrigin, String sPatch) throws IllegalArgumentException {
-		try {
-			javax.json.JsonReader origReader = javax.json.Json.createReader(new ByteArrayInputStream(sOrigin.getBytes()));
-			javax.json.JsonObject origin = origReader.readObject();
-			
-			javax.json.JsonReader patchReader = javax.json.Json.createReader(new ByteArrayInputStream(sPatch.getBytes()));
-			javax.json.JsonPatch patch = javax.json.Json.createPatch(patchReader.readArray());
-		
-			patchReader.close();
-			origReader.close();
-		
-			javax.json.JsonObject patched = patch.apply(origin);
-			
-			return patched.toString();
-		} catch (javax.json.JsonException e) {
-			throw new IllegalArgumentException("error in json patch");
-		}
 	}
 }
 

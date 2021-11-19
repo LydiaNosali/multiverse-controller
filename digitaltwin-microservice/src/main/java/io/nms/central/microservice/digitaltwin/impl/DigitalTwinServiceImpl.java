@@ -8,9 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.net.util.SubnetUtils;
-
-import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.common.functional.JsonUtils;
+import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
@@ -234,7 +233,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		if (netItf.getIpAddr() != null) {
 			logger.info("Update interface includes IP config");
 			String[] cird = netItf.getIpAddr().split("/");
-			String subnetAddr = parseSubnetAddress(netItf.getIpAddr());
+			String subnetAddr = Functional.parseSubnetAddress(netItf.getIpAddr());
 			params
 					.put("ipAddr", cird[0]).put("netMask", "/"+cird[1])
 					.put("netAddr", subnetAddr).put("svi", netItf.getSvi());
@@ -415,7 +414,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		JsonObject params = new JsonObject().put("deviceName", deviceName);
 		findOne(db, CypherQuery.Api.GET_HOST, params, res -> {
 			if (res.succeeded()) {
-				Device device = JSONUtils.json2Pojo(res.result().encode(), Device.class);
+				Device device = JsonUtils.json2Pojo(res.result().encode(), Device.class);
 				resultHandler.handle(Future.succeededFuture(device));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
@@ -445,7 +444,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				.put("itfName", itfName);
 		findOne(db, CypherQuery.Api.GET_INTERFACE, params, res -> {
 			if (res.succeeded()) {
-				NetInterface netItf = JSONUtils.json2Pojo(res.result().encode(), NetInterface.class);
+				NetInterface netItf = JsonUtils.json2Pojo(res.result().encode(), NetInterface.class);
 				resultHandler.handle(Future.succeededFuture(netItf));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
@@ -474,21 +473,11 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				.put("itfAddr", itfAddr);
 		findOne(db, CypherQuery.Api.GET_BGP, params, res -> {
 			if (res.succeeded()) {
-				Bgp bgp = JSONUtils.json2Pojo(res.result().encode(), Bgp.class);
+				Bgp bgp = JsonUtils.json2Pojo(res.result().encode(), Bgp.class);
 				resultHandler.handle(Future.succeededFuture(bgp));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}
 		});
-	}
-	
-	private String parseSubnetAddress(String cidrIp) {
-		try {
-			SubnetUtils subnet = new SubnetUtils(cidrIp);
-			return subnet.getInfo().getNetworkAddress();
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		}
-		return "";
 	}
 }

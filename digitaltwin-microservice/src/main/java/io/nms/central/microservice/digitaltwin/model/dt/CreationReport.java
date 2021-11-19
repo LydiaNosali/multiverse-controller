@@ -5,7 +5,7 @@ import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
-import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.common.functional.JsonUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
@@ -21,14 +21,14 @@ public class CreationReport {
 
 	public CreationReport() {}
 	public CreationReport(JsonObject json) {
-		JSONUtils.fromJson(json, this, CreationReport.class);
+		JsonUtils.fromJson(json, this, CreationReport.class);
 	}
 	public JsonObject toJson() {
-		return new JsonObject(JSONUtils.pojo2Json(this, false));
+		return new JsonObject(JsonUtils.pojo2Json(this, false));
 	}
 	@Override
 	public String toString() {
-		return JSONUtils.pojo2Json(this, false);
+		return JsonUtils.pojo2Json(this, false);
 	}
 	@Override
 	public boolean equals(Object obj) {

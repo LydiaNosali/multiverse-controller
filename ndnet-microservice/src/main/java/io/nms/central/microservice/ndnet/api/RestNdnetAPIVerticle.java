@@ -1,7 +1,5 @@
 package io.nms.central.microservice.ndnet.api;
 
-import java.util.Base64;
-
 import io.nms.central.microservice.common.RestAPIVerticle;
 import io.nms.central.microservice.ndnet.NdnetService;
 import io.nms.central.microservice.ndnet.model.ConfigObj;
@@ -19,6 +17,7 @@ import io.vertx.serviceproxy.ServiceProxyBuilder;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.nms.central.microservice.common.functional.Functional;
 
 
 /**
@@ -105,7 +104,7 @@ public class RestNdnetAPIVerticle extends RestAPIVerticle {
 			badRequest(context, new Throwable("name is missing"));
 			return;
 		}
-		if (!isBase64(prefix.getName())) {
+		if (!Functional.isBase64(prefix.getName())) {
 			badRequest(context, new Throwable("name must be a base64 string"));
 			return;
 		}
@@ -223,17 +222,4 @@ public class RestNdnetAPIVerticle extends RestAPIVerticle {
 		int nodeId = Integer.valueOf(context.request().getParam("nodeId"));
 		service.removeRunningConfig(nodeId, deleteResultHandler(context));
 	} */
-
-	private boolean isBase64(String str) {
-		if (str.isEmpty()) {
-			return false;
-		}
-		Base64.Decoder decoder = Base64.getDecoder();
-		try {
-			decoder.decode(str);
-			return true;
-		} catch(IllegalArgumentException iae) {
-			return false;
-		}
-	}
 }

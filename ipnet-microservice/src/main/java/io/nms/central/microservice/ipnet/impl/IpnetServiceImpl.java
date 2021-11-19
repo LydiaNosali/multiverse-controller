@@ -4,7 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
@@ -569,7 +569,7 @@ public class IpnetServiceImpl implements IpnetService {
 				if (ar.result() != null) {
 					ar.result().remove("_cgId");
 					ar.result().remove("_id");
-					final T resource = JSONUtils.json2Pojo(ar.result().encode(), clazz);
+					final T resource = JsonUtils.json2Pojo(ar.result().encode(), clazz);
 					resultHandler.handle(Future.succeededFuture(resource));
 				} else {
 					resultHandler.handle(Future.failedFuture("NOT_FOUND"));

@@ -1,9 +1,8 @@
 package io.nms.central.microservice.topology.api;
 
-import java.util.Base64;
-
 import io.nms.central.microservice.common.RestAPIVerticle;
-import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.common.functional.JsonUtils;
+import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.topology.TopologyService;
 import io.nms.central.microservice.topology.model.CrossConnect;
 import io.nms.central.microservice.topology.model.Prefix;
@@ -25,6 +24,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+
 
 /**
  * This verticle exposes a HTTP endpoint to process topology operations with
@@ -179,7 +179,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// Subnet API
 	private void apiAddSubnet(RoutingContext context) {
 		try {
-			final Vsubnet vsubnet = JSONUtils.json2PojoE(context.getBodyAsString(), Vsubnet.class);
+			final Vsubnet vsubnet = JsonUtils.json2PojoE(context.getBodyAsString(), Vsubnet.class);
 			service.addVsubnet(vsubnet, createResultHandler(context, "/subnet"));
 		} catch (Exception e) {
 			logger.info("Exception: " + e.getMessage());
@@ -210,7 +210,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// Node API
 	private void apiAddNode(RoutingContext context) {
 		try {
-			final Vnode vnode = JSONUtils.json2PojoE(context.getBodyAsString(), Vnode.class);
+			final Vnode vnode = JsonUtils.json2PojoE(context.getBodyAsString(), Vnode.class);
 			service.addVnode(vnode, res -> {
 				if (res.succeeded()) {
 					notifyTopologyChange();
@@ -262,7 +262,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// Ltp API
 	private void apiAddLtp(RoutingContext context) {
 		try {
-			final Vltp vltp = JSONUtils.json2PojoE(context.getBodyAsString(), Vltp.class);
+			final Vltp vltp = JsonUtils.json2PojoE(context.getBodyAsString(), Vltp.class);
 			service.addVltp(vltp, createResultHandler(context, "/ltp"));
 		} catch (Exception e) {
 			logger.info("Exception: " + e.getMessage());
@@ -298,7 +298,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// Ctp API
 	private void apiAddCtp(RoutingContext context) {
 		try {
-			final Vctp vctp = JSONUtils.json2PojoE(context.getBodyAsString(), Vctp.class);
+			final Vctp vctp = JsonUtils.json2PojoE(context.getBodyAsString(), Vctp.class);
 			service.addVctp(vctp, res -> {
 				if (res.succeeded()) {
 					notifyTopologyChange();
@@ -352,7 +352,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// Link API
 	private void apiAddLink(RoutingContext context) {
 		try {
-			final Vlink vlink = JSONUtils.json2PojoE(context.getBodyAsString(), Vlink.class);
+			final Vlink vlink = JsonUtils.json2PojoE(context.getBodyAsString(), Vlink.class);
 			service.addVlink(vlink, createResultHandler(context, "/link"));
 		} catch (Exception e) {
 			logger.info("Exception: " + e.getMessage());
@@ -383,7 +383,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// LinkConn API
 	private void apiAddLinkConn(RoutingContext context) {
 		try {
-			final VlinkConn vlc = JSONUtils.json2PojoE(context.getBodyAsString(), VlinkConn.class);
+			final VlinkConn vlc = JsonUtils.json2PojoE(context.getBodyAsString(), VlinkConn.class);
 			service.addVlinkConn(vlc, createResultHandler(context, "/lc"));
 		} catch (Exception e) {
 			badRequest(context, e);
@@ -417,7 +417,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// connection API
 	private void apiAddConnection(RoutingContext context) {
 		try {
-			final Vconnection vconn = JSONUtils.json2PojoE(context.getBodyAsString(), Vconnection.class);
+			final Vconnection vconn = JsonUtils.json2PojoE(context.getBodyAsString(), Vconnection.class);
 			service.addVconnection(vconn, res -> {
 				if (res.succeeded()) {
 					notifyTopologyChange();
@@ -471,7 +471,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 			badRequest(context, new Throwable("name is missing"));
 			return;
 		}
-		if (!isBase64(prefix.getName())) {
+		if (!Functional.isBase64(prefix.getName())) {
 			badRequest(context, new Throwable("name must be a base64 string"));
 			return;
 		}
@@ -512,7 +512,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// CrossConnect API
 	private void apiAddCrossConnect(RoutingContext context) {
 		try {
-			final CrossConnect crossConnect = JSONUtils.json2PojoE(context.getBodyAsString(), CrossConnect.class);
+			final CrossConnect crossConnect = JsonUtils.json2PojoE(context.getBodyAsString(), CrossConnect.class);
 	
 			service.addCrossConnect(crossConnect, res -> {
 				if (res.succeeded()) {
@@ -542,19 +542,6 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 			}
 			deleteResultHandler(context).handle(res);
 		});
-	}
-
-	private boolean isBase64(String str) {
-		if (str.isEmpty()) {
-			return false;
-		}
-		Base64.Decoder decoder = Base64.getDecoder();
-		try {
-			decoder.decode(str);
-			return true;
-		} catch(IllegalArgumentException iae) {
-			return false;
-		}
 	}
 
 	public void notifyTopologyChange() {

@@ -3,11 +3,10 @@ package io.nms.central.microservice.topology.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.common.functional.Functional;
+import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.common.service.JdbcRepositoryWrapper;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.nms.central.microservice.topology.TopologyService;
@@ -18,11 +17,11 @@ import io.nms.central.microservice.topology.model.Prefix;
 import io.nms.central.microservice.topology.model.Vconnection;
 import io.nms.central.microservice.topology.model.Vctp;
 import io.nms.central.microservice.topology.model.Vctp.ConnTypeEnum;
-import io.nms.central.microservice.topology.model.Vnode.NodeTypeEnum;
 import io.nms.central.microservice.topology.model.Vlink;
 import io.nms.central.microservice.topology.model.VlinkConn;
 import io.nms.central.microservice.topology.model.Vltp;
 import io.nms.central.microservice.topology.model.Vnode;
+import io.nms.central.microservice.topology.model.Vnode.NodeTypeEnum;
 import io.nms.central.microservice.topology.model.Vsubnet;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
@@ -108,7 +107,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vsubnet.getName())
 				.add(vsubnet.getLabel())
 				.add(vsubnet.getDescription())
-				.add(JSONUtils.pojo2Json(vsubnet.getInfo(), false));
+				.add(JsonUtils.pojo2Json(vsubnet.getInfo(), false));
 		insert(ApiSql.INSERT_VSUBNET, params, resultHandler);
 		return this;
 	}
@@ -116,7 +115,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getVsubnet(String vsubnetId, Handler<AsyncResult<Vsubnet>> resultHandler) {
 		this.findOne(ApiSql.FETCH_VSUBNET_BY_ID, new JsonArray().add(vsubnetId)).map(json -> {
-			return JSONUtils.json2Pojo(json.encode(), Vsubnet.class);
+			return JsonUtils.json2Pojo(json.encode(), Vsubnet.class);
 		}).onComplete(resultHandler);
 		return this;
 	}
@@ -124,7 +123,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getAllVsubnets(Handler<AsyncResult<List<Vsubnet>>> resultHandler) {
 		this.find(ApiSql.FETCH_ALL_VSUBNETS).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vsubnet.class);
+			return JsonUtils.json2Pojo(row.encode(), Vsubnet.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -140,7 +139,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		JsonArray params = new JsonArray()
 				.add(vsubnet.getLabel())
 				.add(vsubnet.getDescription())
-				.add(JSONUtils.pojo2Json(vsubnet.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vsubnet.getInfo(), false))
 				.add(id);
 		execute(ApiSql.UPDATE_VSUBNET, params, resultHandler);
 		return this;
@@ -149,14 +148,14 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	/********** Vnode **********/
 	@Override
 	public TopologyService addVnode(Vnode vnode, Handler<AsyncResult<Integer>> resultHandler) {
-		String macAddr = validateAndConvertMAC(vnode.getHwaddr());
+		String macAddr = Functional.validateAndConvertMAC(vnode.getHwaddr());
 		if (macAddr.isEmpty()) {
 				resultHandler.handle(Future.failedFuture("MAC address not valid"));
 				return this;
 		}
 		vnode.setHwaddr(macAddr);
 
-		if (!checkCidrIp(vnode.getMgmtIp())) {
+		if (!Functional.checkCidrIp(vnode.getMgmtIp())) {
 			resultHandler.handle(Future.failedFuture("IP address not valid"));
 			return this;
 		}
@@ -164,7 +163,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vnode.getName())
 				.add(vnode.getLabel())
 				.add(vnode.getDescription())
-				.add(JSONUtils.pojo2Json(vnode.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vnode.getInfo(), false))
 				.add(vnode.getStatus().getValue())
 				.add(vnode.getPosx())
 				.add(vnode.getPosy())
@@ -180,7 +179,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getVnode(String vnodeId, Handler<AsyncResult<Vnode>> resultHandler) {
 		this.findOne(ApiSql.FETCH_VNODE_BY_ID, new JsonArray().add(vnodeId)).map(json -> {
-			return JSONUtils.json2Pojo(json.encode(), Vnode.class);
+			return JsonUtils.json2Pojo(json.encode(), Vnode.class);
 		}).onComplete(resultHandler);
 		return this;
 	}
@@ -188,7 +187,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getAllVnodes(Handler<AsyncResult<List<Vnode>>> resultHandler) {
 		this.find(ApiSql.FETCH_ALL_VNODES).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vnode.class);
+			return JsonUtils.json2Pojo(row.encode(), Vnode.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -197,7 +196,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getVnodesByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vnode>>> resultHandler) {
 		JsonArray params = new JsonArray().add(vsubnetId);
 		this.find(ApiSql.FETCH_VNODES_BY_VSUBNET, params).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vnode.class);
+			return JsonUtils.json2Pojo(row.encode(), Vnode.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -206,7 +205,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getVnodesByType(NodeTypeEnum type, Handler<AsyncResult<List<Vnode>>> resultHandler) {
 		JsonArray params = new JsonArray().add(type.getValue());
 		this.find(ApiSql.FETCH_VNODES_BY_TYPE, params).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vnode.class);
+			return JsonUtils.json2Pojo(row.encode(), Vnode.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -221,7 +220,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			if (ar.succeeded()) {
 				transactionFind(ApiSql.FETCH_VLTPS_BY_VNODE, pVnodeId).onComplete(res -> {
 					if (res.succeeded()) {
-						Vltp[] vltps = JSONUtils.json2Pojo(new JsonArray(res.result()).encode(), Vltp[].class);
+						Vltp[] vltps = JsonUtils.json2Pojo(new JsonArray(res.result()).encode(), Vltp[].class);
 						List<Future> futures = new ArrayList<>();
 						for (Vltp vltp : vltps) {
 							Promise<Void> p = Promise.promise();
@@ -252,14 +251,14 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 
 	@Override
 	public TopologyService updateVnode(String id, Vnode vnode, Handler<AsyncResult<Void>> resultHandler) {
-		String macAddr = validateAndConvertMAC(vnode.getHwaddr());
+		String macAddr = Functional.validateAndConvertMAC(vnode.getHwaddr());
 		if (macAddr.isEmpty()) {
 				resultHandler.handle(Future.failedFuture("MAC address not valid"));
 				return this;
 		}
 		vnode.setHwaddr(macAddr);
 
-		if (!checkCidrIp(vnode.getMgmtIp())) {
+		if (!Functional.checkCidrIp(vnode.getMgmtIp())) {
 			resultHandler.handle(Future.failedFuture("IP address not valid"));
 			return this;
 		}
@@ -267,7 +266,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		JsonArray params = new JsonArray()
 				.add(vnode.getLabel())
 				.add(vnode.getDescription())
-				.add(JSONUtils.pojo2Json(vnode.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vnode.getInfo(), false))
 				.add(vnode.getStatus().getValue())
 				.add(vnode.getPosx()).add(vnode.getPosy())
 				.add(vnode.getLocation())
@@ -285,7 +284,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vltp.getName())
 				.add(vltp.getLabel())
 				.add(vltp.getDescription())
-				.add(JSONUtils.pojo2Json(vltp.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vltp.getInfo(), false))
 				.add(vltp.getStatus().getValue())
 				.add(vltp.getVnodeId())
 				.add(vltp.getPort())
@@ -299,7 +298,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getVltp(String vltpId, Handler<AsyncResult<Vltp>> resultHandler) {
 		findOne(ApiSql.FETCH_VLTP_BY_ID, new JsonArray().add(vltpId)).map(json -> {
-			return JSONUtils.json2Pojo(json.encode(), Vltp.class);
+			return JsonUtils.json2Pojo(json.encode(), Vltp.class);
 		}).onComplete(resultHandler);
 		return this;
 	}
@@ -307,7 +306,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getAllVltps(Handler<AsyncResult<List<Vltp>>> resultHandler) {
 		find(ApiSql.FETCH_ALL_VLTPS).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vltp.class);
+			return JsonUtils.json2Pojo(row.encode(), Vltp.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -316,7 +315,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getVltpsByVnode(String vnodeId, Handler<AsyncResult<List<Vltp>>> resultHandler) {
 		JsonArray params = new JsonArray().add(vnodeId);
 		find(ApiSql.FETCH_VLTPS_BY_VNODE, params).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vltp.class);
+			return JsonUtils.json2Pojo(row.encode(), Vltp.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -333,7 +332,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		JsonArray params = new JsonArray()
 				.add(vltp.getLabel())
 				.add(vltp.getDescription())
-				.add(JSONUtils.pojo2Json(vltp.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vltp.getInfo(), false))
 				.add(vltp.getStatus().getValue())
 				.add(vltp.isBusy())
 				.add(id);
@@ -349,7 +348,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				transactionFind(InternalSql.FETCH_LINK_BY_LTP, pVltpId).onComplete(res -> {
 					if (res.succeeded()) {
 						if (!res.result().isEmpty()) {
-							Vlink vlink = JSONUtils.json2Pojo(res.result().get(0).encode(), Vlink.class);
+							Vlink vlink = JsonUtils.json2Pojo(res.result().get(0).encode(), Vlink.class);
 							deleteVlink(op, vlink.getId(), linkDeleted);
 						} else {
 							linkDeleted.complete();
@@ -379,7 +378,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService addVctp(Vctp vctp, Handler<AsyncResult<Integer>> resultHandler) {
 		ConnTypeEnum ct = vctp.getConnType();
 		if (ct.equals(ConnTypeEnum.Ether)) {
-			String macAddr = validateAndConvertMAC(((EtherConnInfo)vctp.getConnInfo()).getAddress());
+			String macAddr = Functional.validateAndConvertMAC(((EtherConnInfo)vctp.getConnInfo()).getAddress());
 			if (macAddr.isEmpty()) {
 				resultHandler.handle(Future.failedFuture("MAC address not valid"));
 				return this;
@@ -387,8 +386,8 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			((EtherConnInfo)vctp.getConnInfo()).setAddress(macAddr);
 		}
 		if (ct.equals(ConnTypeEnum.NDN)) {
-			String lMacAddr = validateAndConvertMAC(((NdnConnInfo) vctp.getConnInfo()).getLocal());
-			String rMacAddr = validateAndConvertMAC(((NdnConnInfo) vctp.getConnInfo()).getRemote());
+			String lMacAddr = Functional.validateAndConvertMAC(((NdnConnInfo) vctp.getConnInfo()).getLocal());
+			String rMacAddr = Functional.validateAndConvertMAC(((NdnConnInfo) vctp.getConnInfo()).getRemote());
 			if (lMacAddr.isEmpty() || rMacAddr.isEmpty()){
 				resultHandler.handle(Future.failedFuture("MAC address not valid"));
 				return this;
@@ -397,22 +396,19 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			((NdnConnInfo) vctp.getConnInfo()).setRemote(rMacAddr);
 		}
 
-		String queryNode;
-		String queryInsert;
 		JsonArray pQueryNode = new JsonArray().add(vctp.getParentId());
 
 		if (vctp.getConnType().equals(ConnTypeEnum.Ether)) {
 			findOne(ApiSql.FETCH_VLTP_BY_ID, pQueryNode).onComplete(ar -> {
 				if (ar.succeeded()) {
-					// int nodeId = ar.result().get().getInteger("vnodeId");
-					Vltp parentLtp = JSONUtils.json2Pojo(ar.result().encode(), Vltp.class);
+					Vltp parentLtp = JsonUtils.json2Pojo(ar.result().encode(), Vltp.class);
 					JsonArray params = new JsonArray()
 							.add(vctp.getName())
 							.add(vctp.getLabel())
 							.add(vctp.getDescription())
-							.add(JSONUtils.pojo2Json(vctp.getInfo(), false))
+							.add(JsonUtils.pojo2Json(vctp.getInfo(), false))
 							.add(vctp.getConnType())
-							.add(JSONUtils.pojo2Json(vctp.getConnInfo(), false))
+							.add(JsonUtils.pojo2Json(vctp.getConnInfo(), false))
 							.add(vctp.getStatus().getValue())
 							.add(vctp.getParentId())
 							.add(parentLtp.getVnodeId());
@@ -421,20 +417,17 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 					resultHandler.handle(Future.failedFuture(ar.cause()));
 				}
 			});
-			// queryNode = ApiSql.FETCH_VLTP_BY_ID;
-			// queryInsert = ApiSql.INSERT_VCTP_VLTP;
 		} else {
 			findOne(ApiSql.FETCH_VCTP_BY_ID, pQueryNode).onComplete(ar -> {
 				if (ar.succeeded()) {
-					// int nodeId = ar.result().get().getInteger("vnodeId");
-					Vctp parentCtp = JSONUtils.json2Pojo(ar.result().encode(), Vctp.class);
+					Vctp parentCtp = JsonUtils.json2Pojo(ar.result().encode(), Vctp.class);
 					JsonArray params = new JsonArray()
 							.add(vctp.getName())
 							.add(vctp.getLabel())
 							.add(vctp.getDescription())
-							.add(JSONUtils.pojo2Json(vctp.getInfo(), false))
+							.add(JsonUtils.pojo2Json(vctp.getInfo(), false))
 							.add(vctp.getConnType())
-							.add(JSONUtils.pojo2Json(vctp.getConnInfo(), false))
+							.add(JsonUtils.pojo2Json(vctp.getConnInfo(), false))
 							.add(vctp.getStatus().getValue())
 							.add(vctp.getParentId())
 							.add(parentCtp.getVnodeId());
@@ -443,8 +436,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 					resultHandler.handle(Future.failedFuture(ar.cause()));
 				}
 			});
-			// queryNode = ApiSql.FETCH_VCTP_BY_ID;
-			// queryInsert = ApiSql.INSERT_VCTP_VCTP;
 		}
 		return this;
 	}
@@ -458,7 +449,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			if (json.getInteger("vctpId") == null) {
 				json.remove("vctpId");
 			}
-			return JSONUtils.json2Pojo(json.encode(), Vctp.class);
+			return JsonUtils.json2Pojo(json.encode(), Vctp.class);
 		}).onComplete(resultHandler);
 		return this;
 	}
@@ -472,7 +463,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			if (row.getInteger("vctpId") == null) {
 				row.remove("vctpId");
 			}
-			return JSONUtils.json2Pojo(row.encode(), Vctp.class);
+			return JsonUtils.json2Pojo(row.encode(), Vctp.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -487,7 +478,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			if (row.getInteger("vctpId") == null) {
 				row.remove("vctpId");
 			}
-			return JSONUtils.json2Pojo(row.encode(), Vctp.class);
+			return JsonUtils.json2Pojo(row.encode(), Vctp.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -497,7 +488,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		JsonArray params = new JsonArray().add(vltpId);
 		find(ApiSql.FETCH_VCTPS_BY_VLTP, params).map(rawList -> rawList.stream().map(row -> {
 			row.remove("vctpId");
-			return JSONUtils.json2Pojo(row.encode(), Vctp.class);
+			return JsonUtils.json2Pojo(row.encode(), Vctp.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -507,7 +498,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		JsonArray params = new JsonArray().add(vctpId);
 		find(ApiSql.FETCH_VCTPS_BY_VCTP, params).map(rawList -> rawList.stream().map(row -> {
 			row.remove("vltpId");
-			return JSONUtils.json2Pojo(row.encode(), Vctp.class);
+			return JsonUtils.json2Pojo(row.encode(), Vctp.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -522,7 +513,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			if (row.getInteger("vctpId") == null) {
 				row.remove("vctpId");
 			}
-			return JSONUtils.json2Pojo(row.encode(), Vctp.class);
+			return JsonUtils.json2Pojo(row.encode(), Vctp.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -538,7 +529,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		JsonArray params = new JsonArray()
 				.add(vctp.getLabel())
 				.add(vctp.getDescription())
-				.add(JSONUtils.pojo2Json(vctp.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vctp.getInfo(), false))
 				.add(vctp.getStatus().getValue())
 				.add(id);
 		execute(ApiSql.UPDATE_VCTP, params, resultHandler);
@@ -552,7 +543,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vlink.getName())
 				.add(vlink.getLabel())
 				.add(vlink.getDescription())
-				.add(JSONUtils.pojo2Json(vlink.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vlink.getInfo(), false))
 				.add(vlink.getStatus().getValue())
 				.add(vlink.getSrcVltpId())
 				.add(vlink.getDestVltpId());
@@ -589,7 +580,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getVlink(String vlinkId, Handler<AsyncResult<Vlink>> resultHandler) {
 		findOne(ApiSql.FETCH_VLINK_BY_ID, new JsonArray().add(vlinkId)).map(json -> {
-			return JSONUtils.json2Pojo(json.encode(), Vlink.class);
+			return JsonUtils.json2Pojo(json.encode(), Vlink.class);
 		}).onComplete(resultHandler);
 		return this;
 	}
@@ -597,7 +588,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getAllVlinks(Handler<AsyncResult<List<Vlink>>> resultHandler) {
 		find(ApiSql.FETCH_ALL_VLINKS).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vlink.class);
+			return JsonUtils.json2Pojo(row.encode(), Vlink.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -606,7 +597,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getVlinksByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vlink>>> resultHandler) {
 		JsonArray params = new JsonArray().add(vsubnetId);
 		find(ApiSql.FETCH_VLINKS_BY_VSUBNET, params).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vlink.class);
+			return JsonUtils.json2Pojo(row.encode(), Vlink.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -623,7 +614,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		JsonArray params = new JsonArray()
 				.add(vlink.getLabel())
 				.add(vlink.getDescription())
-				.add(JSONUtils.pojo2Json(vlink.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vlink.getInfo(), false))
 				.add(vlink.getStatus().getValue())
 				.add(id);
 		execute(ApiSql.UPDATE_VLINK, params, resultHandler);
@@ -637,7 +628,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				transactionFindOne(ApiSql.FETCH_VLINK_BY_ID, pVlinkId)
 						.onComplete(res -> {
 							if (res.succeeded()) {
-								Vlink vlink = JSONUtils.json2Pojo(res.result().encode(), Vlink.class);
+								Vlink vlink = JsonUtils.json2Pojo(res.result().encode(), Vlink.class);
 								JsonArray pSrcLtp = new JsonArray().add(false).add(vlink.getSrcVltpId());
 								JsonArray pDestLtp = new JsonArray().add(false).add(vlink.getDestVltpId());
 
@@ -664,7 +655,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vlinkConn.getName())
 				.add(vlinkConn.getLabel())
 				.add(vlinkConn.getDescription())
-				.add(JSONUtils.pojo2Json(vlinkConn.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vlinkConn.getInfo(), false))
 				.add(vlinkConn.getStatus().getValue())
 				.add(vlinkConn.getSrcVctpId())
 				.add(vlinkConn.getDestVctpId())
@@ -676,7 +667,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getVlinkConn(String vlinkConnId, Handler<AsyncResult<VlinkConn>> resultHandler) {
 		findOne(ApiSql.FETCH_VLINKCONN_BY_ID, new JsonArray().add(vlinkConnId)).map(json -> {
-			return JSONUtils.json2Pojo(json.encode(), VlinkConn.class);
+			return JsonUtils.json2Pojo(json.encode(), VlinkConn.class);
 		}).onComplete(resultHandler);
 		return this;
 	}
@@ -684,7 +675,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getAllVlinkConns(Handler<AsyncResult<List<VlinkConn>>> resultHandler) {
 		find(ApiSql.FETCH_ALL_VLINKCONNS).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), VlinkConn.class);
+			return JsonUtils.json2Pojo(row.encode(), VlinkConn.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -693,7 +684,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getVlinkConnsByVlink(String vlinkId, Handler<AsyncResult<List<VlinkConn>>> resultHandler) {
 		JsonArray params = new JsonArray().add(vlinkId);
 		find(ApiSql.FETCH_VLINKCONNS_BY_VLINK, params).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), VlinkConn.class);
+			return JsonUtils.json2Pojo(row.encode(), VlinkConn.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -702,7 +693,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getVlinkConnsByVsubnet(String vsubnetId, Handler<AsyncResult<List<VlinkConn>>> resultHandler) {
 		JsonArray params = new JsonArray().add(vsubnetId);
 		find(ApiSql.FETCH_VLINKCONNS_BY_VSUBNET, params).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), VlinkConn.class);
+			return JsonUtils.json2Pojo(row.encode(), VlinkConn.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -718,7 +709,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		JsonArray params = new JsonArray()
 				.add(vlinkConn.getLabel())
 				.add(vlinkConn.getDescription())
-				.add(JSONUtils.pojo2Json(vlinkConn.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vlinkConn.getInfo(), false))
 				.add(vlinkConn.getStatus().getValue())
 				.add(id);
 		execute(ApiSql.UPDATE_VLINKCONN, params, resultHandler);
@@ -733,7 +724,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vconnection.getName())
 				.add(vconnection.getLabel())
 				.add(vconnection.getDescription())
-				.add(JSONUtils.pojo2Json(vconnection.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vconnection.getInfo(), false))
 				.add(vconnection.getStatus().getValue())
 				.add(vconnection.getSrcVctpId())
 				.add(vconnection.getDestVctpId());
@@ -744,7 +735,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getVconnection(String vconnectionId, Handler<AsyncResult<Vconnection>> resultHandler) {
 		findOne(ApiSql.FETCH_VCONNECTION_BY_ID, new JsonArray().add(vconnectionId)).map(json -> {
-			return JSONUtils.json2Pojo(json.encode(), Vconnection.class);
+			return JsonUtils.json2Pojo(json.encode(), Vconnection.class);
 		}).onComplete(resultHandler);
 		return this;
 	}
@@ -752,7 +743,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getAllVconnections(Handler<AsyncResult<List<Vconnection>>> resultHandler) {
 		find(ApiSql.FETCH_ALL_VCONNECTIONS).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vconnection.class);
+			return JsonUtils.json2Pojo(row.encode(), Vconnection.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -761,7 +752,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getVconnectionsByType(ConnTypeEnum type, Handler<AsyncResult<List<Vconnection>>> resultHandler) {
 		JsonArray params = new JsonArray().add(type.getValue());
 		find(ApiSql.FETCH_VCONNECTIONS_BY_TYPE, params).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vconnection.class);
+			return JsonUtils.json2Pojo(row.encode(), Vconnection.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -770,7 +761,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getVconnectionsByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vconnection>>> resultHandler) {
 		JsonArray params = new JsonArray().add(vsubnetId);
 		find(ApiSql.FETCH_VCONNECTIONS_BY_VSUBNET, params).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), Vconnection.class);
+			return JsonUtils.json2Pojo(row.encode(), Vconnection.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -786,7 +777,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		JsonArray params = new JsonArray()
 				.add(vconnection.getLabel())
 				.add(vconnection.getDescription())
-				.add(JSONUtils.pojo2Json(vconnection.getInfo(), false))
+				.add(JsonUtils.pojo2Json(vconnection.getInfo(), false))
 				.add(vconnection.getStatus().getValue())
 				.add(id);
 		execute(ApiSql.UPDATE_VCONNECTION, params, resultHandler);
@@ -881,7 +872,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getCrossConnectById(String crossConnectId, Handler<AsyncResult<CrossConnect>> resultHandler) {
 		findOne(ApiSql.FETCH_CROSS_CONNECT_BY_ID, new JsonArray().add(crossConnectId)).map(json -> {
-			return JSONUtils.json2Pojo(json.encode(), CrossConnect.class);
+			return JsonUtils.json2Pojo(json.encode(), CrossConnect.class);
 		}).onComplete(resultHandler);
 		return this;
 	}
@@ -890,7 +881,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getCrossConnectsByNode(String nodeId, Handler<AsyncResult<List<CrossConnect>>> resultHandler) {
 		JsonArray params = new JsonArray().add(nodeId);
 		find(ApiSql.FETCH_CROSS_CONNECTS_BY_NODE, params).map(rawList -> rawList.stream().map(row -> {
-			return JSONUtils.json2Pojo(row.encode(), CrossConnect.class);
+			return JsonUtils.json2Pojo(row.encode(), CrossConnect.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
@@ -924,7 +915,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 								List<Future> futures = new ArrayList<>();
 
 								// Update LTPs status
-								Vltp[] ltps = JSONUtils.json2Pojo(new JsonArray(ar.result()).encode(), Vltp[].class);
+								Vltp[] ltps = JsonUtils.json2Pojo(new JsonArray(ar.result()).encode(), Vltp[].class);
 								for (Vltp ltp : ltps) {
 									Promise<Void> p = Promise.promise();
 									futures.add(p.future());
@@ -962,7 +953,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 
 	@Override
 	public TopologyService updateLtpStatus(int id, StatusEnum status, String op, Handler<AsyncResult<Void>> resultHandler) {
-		UUID opp[] = { getUUID(op) };
+		UUID opp[] = { Functional.getUUID(op) };
 		beginTransaction(Entity.LTP, opp[0], InternalSql.LOCK_TABLES).onComplete(tx -> {
 			if (tx.succeeded()) {
 				JsonArray params = new JsonArray().add(status.getValue()).add(id);
@@ -977,7 +968,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 						transactionFind(InternalSql.FETCH_LINK_BY_LTP, params).onComplete(ar -> {
 							if (ar.succeeded()) {
 								if (!ar.result().isEmpty()) {
-									Vlink vlink = JSONUtils.json2Pojo(ar.result().get(0).encode(), Vlink.class);
+									Vlink vlink = JsonUtils.json2Pojo(ar.result().get(0).encode(), Vlink.class);
 									updateLinkStatus(vlink.getId(), status, opp[0].toString(), pUpdateLink);
 								} else {
 									pUpdateLink.complete();
@@ -993,7 +984,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 						transactionFind(ApiSql.FETCH_VCTPS_BY_VLTP, params).onComplete(ar -> {
 							if (ar.succeeded()) {
 								List<Future> fCtpStatus = new ArrayList<>();
-								Vctp[] vctps = JSONUtils.json2Pojo(new JsonArray(ar.result()).encode(), Vctp[].class);
+								Vctp[] vctps = JsonUtils.json2Pojo(new JsonArray(ar.result()).encode(), Vctp[].class);
 								for (Vctp vctp : vctps) {
 									Promise<Void> p = Promise.promise();
 									fCtpStatus.add(p.future());
@@ -1026,7 +1017,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 
 	@Override
 	public TopologyService updateCtpStatus(int id, ConnTypeEnum type, StatusEnum status, String op, Handler<AsyncResult<Void>> resultHandler) {
-		UUID opp[] = { getUUID(op) };
+		UUID opp[] = { Functional.getUUID(op) };
 		beginTransaction(Entity.CTP, opp[0], InternalSql.LOCK_TABLES).onComplete(tx -> {
 			if (tx.succeeded()) {
 				Promise<ConnTypeEnum> pGetCtpType = Promise.promise();
@@ -1039,7 +1030,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 						if (json.getInteger("vctpId") == null) {
 							json.remove("vctpId");
 						}
-						return JSONUtils.json2Pojo(json.encode(), Vctp.class);
+						return JsonUtils.json2Pojo(json.encode(), Vctp.class);
 					}).onComplete(ctp -> {
 						if (ctp.succeeded()) {
 							pGetCtpType.complete(ctp.result().getConnType());
@@ -1066,7 +1057,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 									transactionFind(InternalSql.FETCH_LC_BY_CTP, params).onComplete(ar -> {
 										if (ar.succeeded()) {
 											if (!ar.result().isEmpty()) {
-												VlinkConn vlc = JSONUtils.json2Pojo(ar.result().get(0).encode(), VlinkConn.class);
+												VlinkConn vlc = JsonUtils.json2Pojo(ar.result().get(0).encode(), VlinkConn.class);
 												updateLcStatus(vlc.getId(), status, opp[0].toString(), pUpdate);
 											} else {
 												pUpdate.complete();
@@ -1079,7 +1070,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 									transactionFind(InternalSql.FETCH_CONNECTION_BY_CTP, params).onComplete(ar -> {
 										if (ar.succeeded()) {
 											if (!ar.result().isEmpty()) {
-												Vconnection vcon = JSONUtils.json2Pojo(ar.result().get(0).encode(), Vconnection.class);
+												Vconnection vcon = JsonUtils.json2Pojo(ar.result().get(0).encode(), Vconnection.class);
 												updateConnectionStatus(vcon.getId(), status, opp[0].toString(), pUpdate);
 											} else {
 												pUpdate.complete();
@@ -1096,7 +1087,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 								transactionFind(ApiSql.FETCH_VCTPS_BY_VCTP, params).onComplete(ar -> {
 									if (ar.succeeded()) {
 										List<Future> fCtpStatus = new ArrayList<>();
-										Vctp[] vctps = JSONUtils.json2Pojo(new JsonArray(ar.result()).encode(), Vctp[].class);
+										Vctp[] vctps = JsonUtils.json2Pojo(new JsonArray(ar.result()).encode(), Vctp[].class);
 										for (Vctp vctp : vctps) {
 											Promise<Void> p = Promise.promise();
 											fCtpStatus.add(p.future());
@@ -1132,7 +1123,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	}
 
 	public TopologyService updateLinkStatus(int id, StatusEnum status, String op, Handler<AsyncResult<Void>> resultHandler) {
-		UUID opp[] = { getUUID(op) };
+		UUID opp[] = { Functional.getUUID(op) };
 		beginTransaction(Entity.LINK, opp[0], InternalSql.LOCK_TABLES).onComplete(tx -> {
 			if (tx.succeeded()) {
 				Promise<String> linkStatus = Promise.promise();
@@ -1178,7 +1169,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	}
 
 	public TopologyService updateLcStatus(int id, StatusEnum status, String op, Handler<AsyncResult<Void>> resultHandler) {
-		UUID opp[] = { getUUID(op) };
+		UUID opp[] = { Functional.getUUID(op) };
 		beginTransaction(Entity.LC, opp[0], InternalSql.LOCK_TABLES).onComplete(tx -> {
 			if (tx.succeeded()) {
 				Promise<String> lcStatus = Promise.promise();
@@ -1224,7 +1215,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	}
 
 	public TopologyService updateConnectionStatus(int id, StatusEnum status, String op, Handler<AsyncResult<Void>> resultHandler) {
-		UUID opp[] = { getUUID(op) };
+		UUID opp[] = { Functional.getUUID(op) };
 		beginTransaction(Entity.CONNECTION, opp[0], InternalSql.LOCK_TABLES).onComplete(tx -> {
 			if (tx.succeeded()) {
 				Promise<String> conStatus = Promise.promise();
@@ -1267,47 +1258,5 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			}
 		});
 		return this;
-	}
-
-	/* Helper methods */
-	private UUID getUUID(String op) {
-		if (op == null) {
-			return UUID.randomUUID();
-		}
-		try {
-			return UUID.fromString(op);
-		} catch (IllegalArgumentException e) {
-			return UUID.randomUUID();
-		}
-	}
-
-	private String validateAndConvertMAC(String str) {
-		if (str == null) {
-			return "";
-		}
-		// String regex = "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$";
-		String regex = "^([0-9A-Fa-f]{2}[:-])"
-                       + "{5}([0-9A-Fa-f]{2})|"
-                       + "([0-9a-fA-F]{4}\\."
-                       + "[0-9a-fA-F]{4}\\."
-                       + "[0-9a-fA-F]{4})$";
-		Pattern p = Pattern.compile(regex);
-		Matcher m = p.matcher(str);
-		if (m.matches()){
-			String norm = str.replaceAll("[^a-fA-F0-9]", "");
-			return norm.replaceAll("(.{2})", "$1"+":").substring(0,17);
-		} else {
-			return "";
-		}
-	}
-
-	private boolean checkCidrIp(String str) {
-		if (str == null) {
-			return false;
-		}
-		String regex = "^([0-9]{1,3}\\.){3}[0-9]{1,3}(\\/([0-9]|[1-2][0-9]|3[0-2]))$";
-		Pattern p = Pattern.compile(regex);
-		Matcher m = p.matcher(str);
-		return m.matches();
 	}
 }

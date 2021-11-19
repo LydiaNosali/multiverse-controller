@@ -9,11 +9,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.json.JsonObject;
 
 /**
- * Functional helper class.
+ * Json helper class.
  *
  * @author Amar Abane
  */
-public final class JSONUtils {
+public final class JsonUtils {
 
 	private static final ObjectMapper objectMapper;
 
@@ -21,7 +21,7 @@ public final class JSONUtils {
     	objectMapper = new ObjectMapper();
   	}
 
-  	public JSONUtils() {
+  	public JsonUtils() {
   	}
 
   	public static ObjectMapper getObjectMapper() {
