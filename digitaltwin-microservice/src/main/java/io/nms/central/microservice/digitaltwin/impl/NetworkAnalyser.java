@@ -4,7 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.nms.central.microservice.digitaltwin.model.dt.Report;
+import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.ReportMessage;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
@@ -31,7 +31,7 @@ public class NetworkAnalyser {
 		this.neo4j = neo4j;
 	}
 	
-	public void verifyNetwork(String networkId, Handler<AsyncResult<Report>> resultHandler) {
+	public void verifyNetwork(String networkId, Handler<AsyncResult<VerificationReport>> resultHandler) {
 		Promise<ReportMessage> pDupHost = Promise.promise();
 		Promise<ReportMessage> pDupMac = Promise.promise();
 		Promise<ReportMessage> pDupIp = Promise.promise();
@@ -47,7 +47,7 @@ public class NetworkAnalyser {
 		CompositeFuture.all(pDupHost.future(), pDupMac.future(), pDupIp.future(), pDupVlan.future(), pBadBgp.future())
 				.onComplete(done -> {
 			if (done.succeeded()) {
-				Report report = new Report();
+				VerificationReport report = new VerificationReport();
 				report.setTimestamp(OffsetDateTime.now().toLocalDateTime().toString());
 				report.setNetId(networkId);
 				

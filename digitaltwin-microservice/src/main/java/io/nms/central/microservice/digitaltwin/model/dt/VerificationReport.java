@@ -11,16 +11,16 @@ import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
-public class Report {
+public class VerificationReport {
 
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
 	private String timestamp;
 	private String netId;
 	private List<ReportMessage> reports;
 
-	public Report() {}
-	public Report(JsonObject json) {
-		JSONUtils.fromJson(json, this, Report.class);
+	public VerificationReport() {}
+	public VerificationReport(JsonObject json) {
+		JSONUtils.fromJson(json, this, VerificationReport.class);
 	}
 	public JsonObject toJson() {
 		return new JsonObject(JSONUtils.pojo2Json(this, false));
@@ -31,7 +31,7 @@ public class Report {
 	}
 	@Override
 	public boolean equals(Object obj) {
-		return Objects.equals(toString(), ((Report) obj).toString());
+		return Objects.equals(toString(), ((VerificationReport) obj).toString());
 	}
 	@Override
 	public int hashCode() {

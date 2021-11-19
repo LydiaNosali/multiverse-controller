@@ -34,7 +34,7 @@
 [frame="topbot"]
 |===
 ^|Name | Type ^| Description
-|[[verifyReport]]`@verifyReport`|`link:dataobjects.html#Report[Report]`|-
+|[[verifyReport]]`@verifyReport`|`link:dataobjects.html#VerificationReport[VerificationReport]`|-
 |[[viewId]]`@viewId`|`String`|-
 |[[viewUpdated]]`@viewUpdated`|`String`|-
 |===

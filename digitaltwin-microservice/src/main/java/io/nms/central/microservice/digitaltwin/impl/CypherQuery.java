@@ -1,11 +1,10 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class CypherQuery {
-	public static final String CLEAR_DB = "MATCH (n) DETACH DELETE n;";
+	public static final String CLEAR_DB = "MATCH (n) DETACH DELETE n";
 	
 	
 	public static class Graph {

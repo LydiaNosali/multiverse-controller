@@ -3,23 +3,12 @@ package io.nms.central.microservice.digitaltwin.model.ipnetApi;
 import java.util.Objects;
 
 import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.digitaltwin.model.graph.BgpState;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
 public class Bgp extends Configurable {
-		
-	public enum BgpState {
-		Idle("Idle"),
-		Connect("Connect"),
-		Active("Active"),
-		OpenSent("OpenSent"),
-		OpenConfirm("OpenConfirm"),
-		Established("Established");
-		private String value;
-		private BgpState(String value) { this.value = value; }
-		public String getValue() { return this.value; }
-	};
 
 	private String localAddr;
 	private String remoteAddr;

@@ -2,6 +2,8 @@ package io.nms.central.microservice.digitaltwin.model.graph;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -9,8 +11,13 @@ import io.vertx.core.json.JsonObject;
 @DataObject(generateConverter = true)
 public class Lldp {
 
+	@JsonProperty("LOCALPORT")
 	private String localPort;
+	
+	@JsonProperty("REMOTEDEVICE")
 	private String remoteDevice;
+	
+	@JsonProperty("REMOTEPORT")
 	private String remotePort;
 	
 	/*-----------------------------------------------*/

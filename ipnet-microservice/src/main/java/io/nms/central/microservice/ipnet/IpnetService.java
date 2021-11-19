@@ -2,7 +2,7 @@ package io.nms.central.microservice.ipnet;
 
 import java.util.List;
 
-import io.nms.central.microservice.digitaltwin.model.dt.Report;
+import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
@@ -41,7 +41,7 @@ public interface IpnetService {
 	void initializePersistence(Handler<AsyncResult<List<Integer>>> resultHandler);
 	
 	/* API */
-	void runningVerify(Handler<AsyncResult<Report>> resultHandler);
+	void runningVerify(Handler<AsyncResult<VerificationReport>> resultHandler);
 	void runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
 	void runningGetDeviceInterfaces(String deviceName, Handler<AsyncResult<List<NetInterface>>> resultHandler);
 	void runningGetDeviceBgps(String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
@@ -55,7 +55,7 @@ public interface IpnetService {
 	void configUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	void configDeleteBgp(String viewId, String deviceName, String itfAddr, Handler<AsyncResult<Void>> resultHandler);
 
-	void configVerify(String viewId, Handler<AsyncResult<Report>> resultHandler);
+	void configVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler);
 	void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler);
 
 	void getAllConfigChanges(String viewId, Handler<AsyncResult<List<ConfigChange>>> resultHandler);

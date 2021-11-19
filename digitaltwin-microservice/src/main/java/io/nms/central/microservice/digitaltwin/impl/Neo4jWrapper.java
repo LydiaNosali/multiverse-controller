@@ -2,6 +2,7 @@ package io.nms.central.microservice.digitaltwin.impl;
 
 import static org.neo4j.driver.internal.summary.InternalSummaryCounters.EMPTY_STATS;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -41,7 +42,7 @@ public class Neo4jWrapper {
 	private static final Logger logger = LoggerFactory.getLogger(Neo4jWrapper.class);
 
 	private Driver driver;
-	private final Vertx vertx;
+	protected final Vertx vertx;
 	
 	protected final String dbUser;
 	protected final String dbPassword;
@@ -103,7 +104,8 @@ public class Neo4jWrapper {
 	protected void delete(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
 		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
 		Context context = vertx.getOrCreateContext();
-		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::consumeAsync))
+		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap())
+				.thenCompose(ResultCursor::consumeAsync).thenApply(ResultSummary::counters))
 			    .whenComplete(wrapCallbackSummary(context, resultHandler))
 				.thenCompose(ignore -> session.closeAsync());
 	}
@@ -131,7 +133,6 @@ public class Neo4jWrapper {
         		.thenCompose(ResultCursor::consumeAsync)
         		.whenComplete(wrapCallbackSummary(context, resultHandler));
     }
-	
 	protected void transactionFind(String query, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
         transactionFind(query, new JsonObject(), resultHandler);
     }
@@ -164,6 +165,47 @@ public class Neo4jWrapper {
 				.thenCompose(ignore -> txSession.closeAsync());
 	}
 	
+	protected void createGraph(String db, List<String> queries, 
+			Handler<AsyncResult<List<String>>> resultHandler) {
+		beginTransaction(db, res -> {
+			if (res.succeeded()) {
+				CompletionStage<List<String>> stage = CompletableFuture.completedFuture(new ArrayList<String>());
+	            for (String query : queries) {
+	                stage = stage.thenCompose(current -> tx.runAsync(query)
+	                        .thenCompose(ResultCursor::consumeAsync)
+	                        .thenApply(ResultSummary::counters)
+	                        .thenApply(counters -> aggregateResults(query, current, counters)));
+	            }
+	            stage.whenComplete((result, error) -> {
+	            	if (error != null) {
+	            		resultHandler.handle(Future.failedFuture(error.getMessage()));
+	            		rollback(ignore -> {});
+	                } else {
+	                	commit(done -> {
+	                		if (done.succeeded()) {
+	                			resultHandler.handle(Future.succeededFuture(result));
+	                		} else {
+	                			resultHandler.handle(Future.failedFuture(done.cause()));
+	                		}
+	                	});
+	                }
+	            });
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	
+	private List<String> aggregateResults(String query, List<String> current, SummaryCounters counters) {
+		if (counters.nodesCreated() == 0 
+				&& counters.relationshipsCreated() == 0
+				&& counters.propertiesSet() == 0
+				&& counters.nodesDeleted() == 0) {
+			current.add("Warning: no change after query <"+query+">");
+		}
+		return current;
+	}
+	
 	/* Bulk queries */
 	 protected void bulkExecute(String db, List<String> queries, Handler<AsyncResult<JsonObject>> resultHandler) {
 	        AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
@@ -180,7 +222,7 @@ public class Neo4jWrapper {
 	        })
 	        .whenComplete(wrapCallbackSummary(context, resultHandler))
 	        .thenCompose(ignore -> session.closeAsync());
-	    }
+	 }
 	 
 	 private final BinaryOperator<SummaryCounters> AGGREGATE_COUNTERS = (summaryCounters, summaryCounters2) -> new InternalSummaryCounters(
 			 summaryCounters.nodesCreated() + summaryCounters2.nodesCreated(),

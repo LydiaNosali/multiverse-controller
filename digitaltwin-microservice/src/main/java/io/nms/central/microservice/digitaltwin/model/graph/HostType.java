@@ -6,7 +6,8 @@ public enum HostType {
 	LeafRouter("LeafRouter"),
 	BorderRouter("BorderRouter"),
 	Firewall("Firewall"),
-	server("server");
+	server("server"),
+	Switch("Switch");
 
 	private String value;
 	private HostType(String value) { this.value = value; }

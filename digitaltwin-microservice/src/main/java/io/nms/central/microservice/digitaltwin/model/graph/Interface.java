@@ -2,6 +2,8 @@ package io.nms.central.microservice.digitaltwin.model.graph;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -10,29 +12,44 @@ import io.vertx.core.json.JsonObject;
 public class Interface {
 	
 	public enum InterfaceType {
-		BRIDGE("Bridge"),
-		VLAN("Vlan"),
-		OTHER("Other");
+		Bridge("Bridge"),
+		Vlan("Vlan"),
+		Other("Other");
 		private String value;
 		private InterfaceType(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 	};
 	
 	public enum InterfaceStatus {
-		UP("up"),
-		DOWN("down");
+		up("up"),
+		down("down");
 		private String value;
 		private InterfaceStatus(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 	};
 
+	@JsonProperty("NAME")
 	private String name;
+	
+	@JsonProperty("ADMIN_STATUS")
 	private InterfaceStatus adminStatus;
+	
+	@JsonProperty("INDEX")
 	private String index;
+	
+	@JsonProperty("MTU")
 	private String mtu;
+	
+	@JsonProperty("SPEED")
 	private String speed;
+	
+	@JsonProperty("MACADDR")
 	private String macAddr;
+	
+	@JsonProperty("IPADDR")
 	private String ipAddr;
+	
+	@JsonProperty("TYPE")
 	private InterfaceType type;
 	
 	/*-----------------------------------------------*/

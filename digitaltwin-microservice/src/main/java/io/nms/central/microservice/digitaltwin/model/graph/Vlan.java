@@ -2,17 +2,34 @@ package io.nms.central.microservice.digitaltwin.model.graph;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
 public class Vlan {
+	
+	public enum VlanModeEnum {
+		tagged("tagged"),
+		untagged("untagged");
+		private String value;
+		private VlanModeEnum(String value) { this.value = value; }
+		public String getValue() { return this.value; }
+}
 
+	@JsonProperty("NAME")
 	private String name;
+	
+	@JsonProperty("VID")
 	private String vid;
+	
+	@JsonProperty("MEMBER")
 	private String member;
-	private String mode; // enum: [untagged, tagged]
+	
+	@JsonProperty("MODE")
+	private VlanModeEnum mode;
 	
 	/*-----------------------------------------------*/
 
@@ -56,10 +73,10 @@ public class Vlan {
 	public void setMember(String member) {
 		this.member = member;
 	}
-	public String getMode() {
+	public VlanModeEnum getMode() {
 		return mode;
 	}
-	public void setMode(String mode) {
+	public void setMode(VlanModeEnum mode) {
 		this.mode = mode;
 	}
 

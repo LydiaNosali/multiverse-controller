@@ -1,7 +1,6 @@
 package io.nms.central.microservice.common.functional;
 
 import java.lang.reflect.Field;
-import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -50,19 +49,18 @@ public final class JSONUtils {
 			return null;
 		}
 	}
-
-	/* public static <T> List<T> json2PojoList(String x, Class<T> clazz) {
+    public static <T> T json2Pojo(String x, TypeReference<T> typeRef) {
         if (x == null || x.equals("")) {
             return null;
 		}
 		String cleaned = x.replaceAll("\\\\", "").replaceAll("\"\\{", "{").replaceAll("\\}\"", "}");
         try {
-			return objectMapper.readValue(cleaned, new TypeReference<List<T>>(){});
+			return objectMapper.readValue(cleaned, typeRef);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 			return null;
 		}
-	} */
+	}
 
 	public static <T> void fromJson(JsonObject json, T obj, Class<T> clazz) {
 		try {

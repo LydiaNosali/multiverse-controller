@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
-import io.nms.central.microservice.digitaltwin.model.dt.Report;
+import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Configurable;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
@@ -58,7 +58,7 @@ public class IpnetServiceImpl implements IpnetService {
 	
 	/* Read running state */
 	@Override
-	public void runningVerify(Handler<AsyncResult<Report>> resultHandler) {
+	public void runningVerify(Handler<AsyncResult<VerificationReport>> resultHandler) {
 		digitalTwinSvcProxy().runningVerifyNetwork(resultHandler);
 	}
 	@Override
@@ -340,7 +340,7 @@ public class IpnetServiceImpl implements IpnetService {
 
 	/* Verify and Apply */
 	@Override
-	public void configVerify(String viewId, Handler<AsyncResult<Report>> resultHandler) {
+	public void configVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler) {
 		findConfigProfile(viewId, res -> {
 			if (res.succeeded()) {
 				ConfigProfile cp = res.result();

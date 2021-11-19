@@ -221,7 +221,7 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 						}
 						ServiceDiscovery.releaseServiceObject(discovery, client);
 					});
-				});
+				}).setTimeout(60000);
 		// set headers
 		context.request().headers().forEach(header -> {
 			toReq.putHeader(header.getKey(), header.getValue());

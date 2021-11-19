@@ -3,6 +3,8 @@ package io.nms.central.microservice.digitaltwin.model.graph;
 import java.util.List;
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -11,7 +13,10 @@ import io.vertx.core.json.JsonObject;
 public class DeviceConfigCollection {
 
 	private Metadata metadata;
+	
+	@JsonProperty("interface")
 	private List<Interface> netInterface;
+	
 	private List<Arp> arp;
 	private List<Lldp> lldp;
 	private List<Bgp> bgp;

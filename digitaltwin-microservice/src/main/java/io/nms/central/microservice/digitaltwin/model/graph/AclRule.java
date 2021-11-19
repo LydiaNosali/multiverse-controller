@@ -2,6 +2,8 @@ package io.nms.central.microservice.digitaltwin.model.graph;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -9,10 +11,19 @@ import io.vertx.core.json.JsonObject;
 @DataObject(generateConverter = true)
 public class AclRule {
 
-	private String table;
-	private String rule;
-	private int priority;
+	@JsonProperty("TABLE")
+	private String tableName;
+	
+	@JsonProperty("RULE")
+	private String ruleName;
+	
+	@JsonProperty("PRIORITY")
+	private String priority;
+	
+	@JsonProperty("ACTION")
 	private String action;
+	
+	@JsonProperty("MATCH")
 	private String match;
 	
 	/*-----------------------------------------------*/
@@ -37,24 +48,24 @@ public class AclRule {
 	}
 	@Override
 	public int hashCode() {
-		return Objects.hash(table+rule);
+		return Objects.hash(tableName+ruleName);
 	}
-	public String getTable() {
-		return table;
+	public String getTableName() {
+		return tableName;
 	}
-	public void setTable(String table) {
-		this.table = table;
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
 	}
-	public String getRule() {
-		return rule;
+	public String getRuleName() {
+		return ruleName;
 	}
-	public void setRule(String rule) {
-		this.rule = rule;
+	public void setRuleName(String ruleName) {
+		this.ruleName = ruleName;
 	}
-	public int getPriority() {
+	public String getPriority() {
 		return priority;
 	}
-	public void setPriority(int priority) {
+	public void setPriority(String priority) {
 		this.priority = priority;
 	}
 	public String getAction() {

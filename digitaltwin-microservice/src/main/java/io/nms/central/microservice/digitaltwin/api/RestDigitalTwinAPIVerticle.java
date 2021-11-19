@@ -1,8 +1,14 @@
 package io.nms.central.microservice.digitaltwin.api;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import io.nms.central.microservice.common.RestAPIVerticle;
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
+import io.nms.central.microservice.digitaltwin.model.graph.DeviceConfigCollection;
 import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
@@ -29,7 +35,6 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	
 	private static final String API_RUNNING = "/running";
 	private static final String API_RUNNING_VERIFY = "/running/verify";
-	// private static final String API_RUNNING_QUERY = "/running/query";
 	private static final String API_RUNNING_NETWORK = "/running/network";
 	private static final String API_RUNNING_ONE_DEVICE = "/running/device/:deviceName";
 	private static final String API_RUNNING_INTERFACES = "/running/device/:deviceName/interfaces";
@@ -68,7 +73,6 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		/* Operations on running network */
 		router.post(API_RUNNING).handler(this::checkAdminRole).handler(this::apiRunningProcessNetworkConfig);
 		router.get(API_RUNNING_VERIFY).handler(this::checkAdminRole).handler(this::apiRunningVerifyNetwork);
-		// router.post(API_RUNNING_QUERY).handler(this::checkAdminRole).handler(this::apiRunningQueryNetwork);
 		router.get(API_RUNNING_NETWORK).handler(this::checkAdminRole).handler(this::apiRunningGetNetwork);
 		router.get(API_RUNNING_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiRunningGetDevice);
 		router.get(API_RUNNING_INTERFACES).handler(this::checkAdminRole).handler(this::apiRunningGetDeviceInterfaces);
@@ -111,8 +115,12 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	/* Operations on running network */
 	private void apiRunningProcessNetworkConfig(RoutingContext context) {
 		try {
-			final NetConfigCollection netConfig 
-					= JSONUtils.json2PojoE(context.getBodyAsString(), NetConfigCollection.class);
+			TypeReference<HashMap<String,DeviceConfigCollection>> typeRef 
+            		= new TypeReference<HashMap<String,DeviceConfigCollection>>() {};
+			final Map<String, DeviceConfigCollection> configs 
+					= JSONUtils.json2Pojo(context.getBodyAsString(), typeRef);
+			final NetConfigCollection netConfig = new NetConfigCollection();
+			netConfig.setConfigs(configs);
 			service.runningProcessNetworkConfig(netConfig, resultHandlerNonEmpty(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
@@ -147,18 +155,6 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		service.runningGetBgp(deviceName, itfAddr, resultHandlerNonEmpty(context));
 	}
-	/* private void apiRunningQueryNetwork(RoutingContext context) {
-	try {
-		final DtQuery query 
-				= JSONUtils.json2PojoE(context.getBodyAsString(), DtQuery.class);
-		service.runningQueryNetwork(query, resultHandlerNonEmpty(context));
-	} catch (Exception e) {
-		logger.info("API input argument exception: " + e.getMessage());
-		badRequest(context, e);
-	}
-    } */
-	
-	/* Operations on view network */
 	// view
 	private void apiCreateView(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");

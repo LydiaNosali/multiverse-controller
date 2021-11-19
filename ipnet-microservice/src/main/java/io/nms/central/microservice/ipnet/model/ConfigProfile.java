@@ -3,7 +3,7 @@ package io.nms.central.microservice.ipnet.model;
 import java.util.Objects;
 
 import io.nms.central.microservice.common.functional.JSONUtils;
-import io.nms.central.microservice.digitaltwin.model.dt.Report;
+import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
@@ -12,7 +12,7 @@ public class ConfigProfile {
 	
 	private String viewId;
 	private String viewUpdated;
-	private Report verifyReport;
+	private VerificationReport verifyReport;
 	
 	public ConfigProfile() {}
 	public ConfigProfile(JsonObject json) {
@@ -46,10 +46,10 @@ public class ConfigProfile {
 	public void setViewUpdated(String viewUpdated) {
 		this.viewUpdated = viewUpdated;
 	}
-	public Report getVerifyReport() {
+	public VerificationReport getVerifyReport() {
 		return verifyReport;
 	}
-	public void setVerifyReport(Report verifyReport) {
+	public void setVerifyReport(VerificationReport verifyReport) {
 		this.verifyReport = verifyReport;
 	}
 }

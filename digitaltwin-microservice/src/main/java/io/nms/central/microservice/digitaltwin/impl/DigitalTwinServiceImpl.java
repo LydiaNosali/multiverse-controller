@@ -1,5 +1,8 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -9,9 +12,8 @@ import org.apache.commons.net.util.SubnetUtils;
 
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
-import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
-import io.nms.central.microservice.digitaltwin.model.dt.DtQueryResult;
-import io.nms.central.microservice.digitaltwin.model.dt.Report;
+import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
+import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
@@ -20,6 +22,7 @@ import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -47,9 +50,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		List<String> constraints = new ArrayList<String>();
 		// constraints.add(CypherQuery.CLEAR_DB);
 		constraints.add(CypherQuery.Constraints.UNIQUE_HOST);
-		constraints.add(CypherQuery.Constraints.UNIQUE_HOSTNAME);
-		constraints.add(CypherQuery.Constraints.UNIQUE_IP4CTP);
-		constraints.add(CypherQuery.Constraints.UNIQUE_BGP);
 		bulkExecute(MAIN_DB, constraints, res -> {
 			if (res.succeeded()) {
 				logger.info("Neo4j DB initialized");
@@ -64,13 +64,13 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 
 	@Override
 	public DigitalTwinService runningProcessNetworkConfig(NetConfigCollection config,
-			Handler<AsyncResult<Report>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+			Handler<AsyncResult<CreationReport>> resultHandler) {
+		processNetConfigCollection(config, resultHandler);
+		return this;
 	}
 
 	@Override
-	public DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<Report>> resultHandler) {
+	public DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<VerificationReport>> resultHandler) {
 		na.verifyNetwork(MAIN_DB, resultHandler);
 		return this;
 	}
@@ -113,13 +113,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		getBgp(MAIN_DB, deviceName, itfAddr, resultHandler);
 		return this;
 	}
-	
-	/* Query running network */
-	@Override
-	public DigitalTwinService runningQueryNetwork(DtQuery query, Handler<AsyncResult<DtQueryResult>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	/* Operations on view */
 	@Override
@@ -134,7 +127,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 							if (init2.succeeded()) {
 								logger.info("View initialized");
 								String eq = CypherQuery.View.getExtractionQuery(MAIN_DB, dbUser, dbPassword);
-									findOne(viewId, eq, done -> {
+									execute(viewId, eq, done -> {
 										if (done.succeeded()) {
 											logger.info("View creation done");
 											resultHandler.handle(Future.succeededFuture());
@@ -328,7 +321,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	}
 	
 	@Override
-	public DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<Report>> resultHandler) {
+	public DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler) {
 		na.verifyNetwork(viewId, resultHandler);
 		return this;
 	}
@@ -338,7 +331,50 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
+	/* Processing functions */
+	private void processNetConfigCollection(NetConfigCollection netConfig, 
+			Handler<AsyncResult<CreationReport>> resultHandler) {
+		CreationReport report = new CreationReport();
+		report.setTimestamp(OffsetDateTime.now().toLocalDateTime().toString());
+		
+		ConfigProcessor cp = new ConfigProcessor(netConfig);
+		if (!cp.process()) {
+			resultHandler.handle(Future.failedFuture("Failed to process config"));
+			return;
+		}
+		report.setConfigProcessor(cp.getReport());
+		
+		GraphCreator gc = new GraphCreator(cp.getOutput());
+		if (!gc.process()) {
+			resultHandler.handle(Future.failedFuture("Failed to create graph queries"));
+			return;
+		}
+		report.setQueriesGenerator(gc.getReport());
+
+		List<String> queries = new ArrayList<String>();
+		queries.add(CypherQuery.CLEAR_DB);
+		queries.addAll(gc.getOutput().stream().map(s -> s.split("@")[1]).collect(Collectors.toList()));
+		
+		Context context = vertx.getOrCreateContext();
+		
+		Instant start = Instant.now();
+		createGraph(MAIN_DB, queries, res -> {
+			Instant end = Instant.now();
+			context.runOnContext(v -> {
+			if (res.succeeded()) {
+				Duration timeElapsed = Duration.between(start, end);
+				logger.info("Graph creation time: " + timeElapsed.getNano() / 1000000 + " ms");
+				logger.info("Queries: " + queries.size());
+				report.setGraphCreator(res.result());
+				resultHandler.handle(Future.succeededFuture(report));	
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));	
+			}
+			});
+		});
+	}
+
 	private void getNetwork(String db, Handler<AsyncResult<Network>> resultHandler) {
 		Network network = new Network();
 		find(db, CypherQuery.Api.GET_NETWORK_HOSTS, hs -> {

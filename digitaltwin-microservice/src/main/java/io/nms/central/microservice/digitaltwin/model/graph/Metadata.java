@@ -2,21 +2,44 @@ package io.nms.central.microservice.digitaltwin.model.graph;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
 public class Metadata {
-
-	private String hostname;
-	private String mac;
-	private String platform;
-	private HostType type;
-	private String bgpAsn;
-	private String BgpStatus;
-	private String hwsku;
 	
+	public enum BgpStatus {
+		up("up"),
+		down("down");
+		private String value;
+		private BgpStatus(String value) { this.value = value; }
+		public String getValue() { return this.value; }
+}
+
+	@JsonProperty("HOSTNAME")
+	private String hostname;
+	
+	@JsonProperty("MAC")
+	private String mac;
+	
+	@JsonProperty("PLATFORM")
+	private String platform;
+	
+	@JsonProperty("TYPE")
+	private HostType type;
+	
+	@JsonProperty("BGP_ASN")
+	private String bgpAsn;
+	
+	@JsonProperty("BGP_STATUS")
+	private BgpStatus bgpStatus;
+	
+	@JsonProperty("HWSKU")
+	private String hwsku;
+
 	/*-----------------------------------------------*/
 	
 	public Metadata() {}
@@ -53,23 +76,24 @@ public class Metadata {
 	public void setBgpAsn(String bgpAsn) {
 		this.bgpAsn = bgpAsn;
 	}
-	public String getBgpStatus() {
-		return BgpStatus;
-	}
-	public void setBgpStatus(String bgpStatus) {
-		BgpStatus = bgpStatus;
-	}
+	
 	public String getHwsku() {
 		return hwsku;
 	}
 	public void setHwsku(String hwsku) {
 		this.hwsku = hwsku;
 	}
-
+	
 	/*-----------------------------------------------*/
 
 	public JsonObject toJson() {
 		return new JsonObject(JSONUtils.pojo2Json(this, false));
+	}
+	public BgpStatus getBgpStatus() {
+		return bgpStatus;
+	}
+	public void setBgpStatus(BgpStatus bgpStatus) {
+		this.bgpStatus = bgpStatus;
 	}
 	@Override
 	public String toString() {

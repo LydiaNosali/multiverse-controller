@@ -10,9 +10,9 @@
 ^|Name | Type ^| Description
 |[[action]]`@action`|`String`|-
 |[[match]]`@match`|`String`|-
-|[[priority]]`@priority`|`Number (int)`|-
-|[[rule]]`@rule`|`String`|-
-|[[table]]`@table`|`String`|-
+|[[priority]]`@priority`|`String`|-
+|[[ruleName]]`@ruleName`|`String`|-
+|[[tableName]]`@tableName`|`String`|-
 |===
 
 [[AclTable]]
@@ -26,8 +26,8 @@
 |[[binding]]`@binding`|`String`|-
 |[[description]]`@description`|`String`|-
 |[[name]]`@name`|`String`|-
-|[[stage]]`@stage`|`String`|-
-|[[type]]`@type`|`String`|-
+|[[stage]]`@stage`|`link:enums.html#AclStageEnum[AclStageEnum]`|-
+|[[type]]`@type`|`link:enums.html#AclTypeEnum[AclTypeEnum]`|-
 |===
 
 [[Arp]]
@@ -80,6 +80,20 @@
 |[[neighborAddress]]`@neighborAddress`|`String`|-
 |[[remoteAs]]`@remoteAs`|`String`|-
 |[[remoteRouterId]]`@remoteRouterId`|`String`|-
+|===
+
+[[CreationReport]]
+== CreationReport
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[configProcessor]]`@configProcessor`|`Array of String`|-
+|[[graphCreator]]`@graphCreator`|`Array of String`|-
+|[[queriesGenerator]]`@queriesGenerator`|`Array of String`|-
+|[[timestamp]]`@timestamp`|`String`|-
 |===
 
 [[Device]]
@@ -169,7 +183,7 @@
 ^|Name | Type ^| Description
 |[[netInterface]]`@netInterface`|`String`|-
 |[[to]]`@to`|`String`|-
-|[[type]]`@type`|`link:enums.html#RouteType[RouteType]`|-
+|[[type]]`@type`|`String`|-
 |[[via]]`@via`|`String`|-
 |===
 
@@ -221,7 +235,7 @@
 |===
 ^|Name | Type ^| Description
 |[[bgpAsn]]`@bgpAsn`|`String`|-
-|[[bgpStatus]]`@bgpStatus`|`String`|-
+|[[bgpStatus]]`@bgpStatus`|`link:enums.html#BgpStatus[BgpStatus]`|-
 |[[hostname]]`@hostname`|`String`|-
 |[[hwsku]]`@hwsku`|`String`|-
 |[[mac]]`@mac`|`String`|-
@@ -275,8 +289,8 @@
 |[[subnets]]`@subnets`|`Array of link:dataobjects.html#IpSubnet[IpSubnet]`|-
 |===
 
-[[Report]]
-== Report
+[[VerificationReport]]
+== VerificationReport
 
 
 [cols=">25%,25%,50%"]
@@ -296,7 +310,7 @@
 |===
 ^|Name | Type ^| Description
 |[[member]]`@member`|`String`|-
-|[[mode]]`@mode`|`String`|-
+|[[mode]]`@mode`|`link:enums.html#VlanModeEnum[VlanModeEnum]`|-
 |[[name]]`@name`|`String`|-
 |[[vid]]`@vid`|`String`|-
 |===

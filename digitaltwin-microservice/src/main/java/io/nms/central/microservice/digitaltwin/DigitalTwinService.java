@@ -2,9 +2,10 @@ package io.nms.central.microservice.digitaltwin;
 
 import java.util.List;
 import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
+import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQueryResult;
-import io.nms.central.microservice.digitaltwin.model.dt.Report;
+import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
@@ -42,11 +43,9 @@ public interface DigitalTwinService {
 	
 	/* Operations on running network */
 	@Fluent	
-	DigitalTwinService runningProcessNetworkConfig(NetConfigCollection config, Handler<AsyncResult<Report>> resultHandler);
+	DigitalTwinService runningProcessNetworkConfig(NetConfigCollection config, Handler<AsyncResult<CreationReport>> resultHandler);
 	@Fluent	
-	DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<Report>> resultHandler);
-	@Fluent	
-	DigitalTwinService runningQueryNetwork(DtQuery query, Handler<AsyncResult<DtQueryResult>> resultHandler);
+	DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<VerificationReport>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
 	
@@ -69,7 +68,7 @@ public interface DigitalTwinService {
 	DigitalTwinService deleteView(String viewId, Handler<AsyncResult<Void>> resultHandler);
 	// view config
 	@Fluent	
-	DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<Report>> resultHandler);
+	DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler);
 	@Fluent	 // TODO: replace JsonObject with NetworkConfig object
 	DigitalTwinService viewGenerateNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
 	

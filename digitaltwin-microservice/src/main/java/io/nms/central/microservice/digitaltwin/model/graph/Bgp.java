@@ -2,33 +2,40 @@ package io.nms.central.microservice.digitaltwin.model.graph;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
 public class Bgp {
-		
-	public enum BgpState {
-		IDLE("Idle"),
-		CONNECT("Connect"),
-		ACTIVE("Active"),
-		OPENSENT("OpenSent"),
-		OPENCONFIRM("OpenConfirm"),
-		ESTABLISHED("Established");
-		private String value;
-		private BgpState(String value) { this.value = value; }
-		public String getValue() { return this.value; }
-	};
 
+	@JsonProperty("LOCALADDRESS")
 	private String localAddress;
+	
+	@JsonProperty("NEIGHBORADDRESS")
 	private String neighborAddress;
+	
+	@JsonProperty("LOCALAS")
 	private String localAs;
+	
+	@JsonProperty("REMOTEAS")
 	private String remoteAs;
+	
+	@JsonProperty("LOCALROUTERID")
 	private String localRouterId;
+	
+	@JsonProperty("REMOTEROUTERID")
 	private String remoteRouterId;
+	
+	@JsonProperty("HOLDTIME")
 	private String holdTime;
+	
+	@JsonProperty("KEEPALIVE")
 	private String keepAlive;
+	
+	@JsonProperty("BGPSTATE")
 	private BgpState bgpState;
 	
 	/*-----------------------------------------------*/

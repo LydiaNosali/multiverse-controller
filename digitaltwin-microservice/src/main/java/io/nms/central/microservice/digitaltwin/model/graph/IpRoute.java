@@ -2,28 +2,26 @@ package io.nms.central.microservice.digitaltwin.model.graph;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.nms.central.microservice.common.functional.JSONUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
 public class IpRoute {
-	
-	public enum RouteType {
-		K("K>*"),
-		B("B>*"),
-		C("C>*");
-		private String value;
-		private RouteType(String value) { this.value = value; }
-		public String getValue() { return this.value; }
-	};
 
-	/*-----------------------------------------------*/
-	
+	@JsonProperty("INTERFACE")
 	private String netInterface;
+	
+	@JsonProperty("VIA")
 	private String via;
+	
+	@JsonProperty("TO")
 	private String to;
-	private RouteType type;
+	
+	@JsonProperty("TYPE")
+	private String type;
 	
 	public String getNetInterface() {
 		return netInterface;
@@ -43,10 +41,10 @@ public class IpRoute {
 	public void setTo(String to) {
 		this.to = to;
 	}
-	public RouteType getType() {
+	public String getType() {
 		return type;
 	}
-	public void setType(RouteType type) {
+	public void setType(String type) {
 		this.type = type;
 	}
 
