@@ -96,7 +96,7 @@ public class IpnetServiceImpl implements IpnetService {
 				digitalTwinSvcProxy().viewGetDevice(viewId, deviceName, res -> {
 					if (res.succeeded()) {
 						Device deviceBkp = res.result();
-						saveResourceBkp(cc.getId(), deviceBkp, saved -> {
+						saveResourceBkp(viewId, cc.getId(), deviceBkp, saved -> {
 							if (saved.succeeded()) {
 								digitalTwinSvcProxy()
 										.viewUpdateDevice(viewId, deviceName, device, updated -> {
@@ -154,7 +154,7 @@ public class IpnetServiceImpl implements IpnetService {
 				digitalTwinSvcProxy().viewGetInterface(viewId, deviceName, itfName, res -> {
 					if (res.succeeded()) {
 						NetInterface netItfBkp = res.result();
-						saveResourceBkp(cc.getId(), netItfBkp, saved -> {
+						saveResourceBkp(viewId, cc.getId(), netItfBkp, saved -> {
 							if (saved.succeeded()) {
 								digitalTwinSvcProxy()
 										.viewUpdateInterface(viewId, deviceName, itfName, netItf, updated -> {
@@ -247,7 +247,7 @@ public class IpnetServiceImpl implements IpnetService {
 				digitalTwinSvcProxy().viewGetBgp(viewId, deviceName, itfAddr, res -> {
 					if (res.succeeded()) {
 						Bgp bgpBkp = res.result();
-						saveResourceBkp(cc.getId(), bgpBkp, saved -> {
+						saveResourceBkp(viewId, cc.getId(), bgpBkp, saved -> {
 							if (saved.succeeded()) {
 								digitalTwinSvcProxy()
 										.viewUpdateBgp(viewId, deviceName, itfAddr, bgp, updated -> {
@@ -299,7 +299,7 @@ public class IpnetServiceImpl implements IpnetService {
 				digitalTwinSvcProxy().viewGetBgp(viewId, deviceName, itfAddr, res -> {
 					if (res.succeeded()) {
 						Bgp bgpBkp = res.result();
-						saveResourceBkp(cc.getId(), bgpBkp, saved -> {
+						saveResourceBkp(viewId, cc.getId(), bgpBkp, saved -> {
 							if (saved.succeeded()) {
 								digitalTwinSvcProxy()
 										.viewDeleteBgp(viewId, deviceName, itfAddr, deleted -> {
@@ -365,9 +365,22 @@ public class IpnetServiceImpl implements IpnetService {
 	}
 	@Override
 	public void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler) {
-		deleteConfigProfile(viewId, res -> {
-			// TODO: get device configs
-			resultHandler.handle(Future.succeededFuture(new ApplyConfigResult()));
+		digitalTwinSvcProxy().viewGenerateNetworkConfig(viewId, res -> {
+			if (res.succeeded()) {
+				cleanProfile(viewId, done -> {
+					if (done.succeeded()) {
+						digitalTwinSvcProxy().deleteView(viewId, ignore -> {
+							ApplyConfigResult result = new ApplyConfigResult();
+							result.setMessage("OK");
+							resultHandler.handle(Future.succeededFuture(result));
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(done.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
 		});
 	}
 
@@ -568,6 +581,7 @@ public class IpnetServiceImpl implements IpnetService {
 			if (ar.succeeded()) {
 				if (ar.result() != null) {
 					ar.result().remove("_cgId");
+					ar.result().remove("_viewId");
 					ar.result().remove("_id");
 					final T resource = JsonUtils.json2Pojo(ar.result().encode(), clazz);
 					resultHandler.handle(Future.succeededFuture(resource));
@@ -579,9 +593,11 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
-	private void saveResourceBkp(String cgId, Configurable resource, Handler<AsyncResult<Void>> resultHandler) {
+	private void saveResourceBkp(String viewId, String cgId, Configurable resource, 
+			Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject doc = resource.toJson();
 		doc.put("_cgId", cgId);
+		doc.put("_viewId", viewId);
 		client.save(COLL_RESOURCE_BKP, doc, ar -> {
 			if (ar.succeeded()) {
 				resultHandler.handle(Future.succeededFuture());
@@ -666,13 +682,26 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
-	private void deleteConfigProfile(String viewId, Handler<AsyncResult<Void>> resultHandler) {
-		JsonObject query = new JsonObject().put("viewId", viewId);
-		client.removeDocument(COLL_CONFIG_PROFILE, query, ar -> {
-			if (ar.succeeded()) {
-				resultHandler.handle(Future.succeededFuture());
+	private void cleanProfile(String viewId, Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject qViewId = new JsonObject().put("_viewId", viewId);
+		client.removeDocument(COLL_CONFIG_PROFILE, new JsonObject().put("viewId", viewId), 
+				ar1 -> {
+			if (ar1.succeeded()) {
+				client.removeDocuments(COLL_RESOURCE_BKP, qViewId, ar2 -> {
+					if (ar2.succeeded()) {
+						client.removeDocuments(COLL_CONFIG_CHANGE, qViewId, ar3 -> {
+							if (ar3.succeeded()) {
+								resultHandler.handle(Future.succeededFuture());
+							} else {
+								resultHandler.handle(Future.failedFuture(ar3.cause()));
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(ar2.cause()));
+					}
+				});
 			} else {
-				resultHandler.handle(Future.failedFuture(ar.cause()));
+				resultHandler.handle(Future.failedFuture(ar1.cause()));
 			}
 		});
 	}

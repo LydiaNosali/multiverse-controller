@@ -123,7 +123,7 @@ public class GraphCreator {
 
 	private void processEtherCtps(JsonArray ctps) {
 		String q = "T6@MATCH (h:Host {name:'%s'})-[:CONTAINS]->(l:Ltp{name:'%s'}) "
-				+ "CREATE (l)-[:CONTAINS]->(c:EtherCtp {macAddr: '%s', vlan: %s, mode: '%s'});";
+				+ "CREATE (l)-[:CONTAINS]->(c:EtherCtp {macAddr: '%s', vlan: '%s', mode: '%s'});";
 		ctps.forEach(e -> {
 			JsonObject ctp = (JsonObject) e;
 	    	String result = String.format(q, 
@@ -138,7 +138,7 @@ public class GraphCreator {
 	 
 	private void processIp4Ctps(JsonArray ctps) {
 		String q = "T7@MATCH (r:Host {name:'%s'})-[:CONTAINS]->(:Ltp{name:'%s'})-[:CONTAINS]->(c:EtherCtp) "
-				+ "CREATE (c)-[:CONTAINS]->(ipc:Ip4Ctp {ipAddr:'%s', netMask:'%s', netAddr: '%s', svi:'%s'});";
+				+ "CREATE (c)-[:CONTAINS]->(ipc:Ip4Ctp {ipAddr:'%s', netMask:'%s', netAddr: '%s', svi:'%s', vlan:'%s'});";
 		ctps.forEach(e -> {
 			JsonObject ctp = (JsonObject) e;
 	    	String result = String.format(q, 
@@ -147,7 +147,8 @@ public class GraphCreator {
 	    			ctp.getString("ipAddr"),
 	    			ctp.getString("netMask"),
 	    			ctp.getString("netAddr"),
-	    			ctp.getString("svi"));
+	    			ctp.getString("svi"),
+	    			ctp.getString("vlan"));
 	    	output.add(result);
 	    });
 	}

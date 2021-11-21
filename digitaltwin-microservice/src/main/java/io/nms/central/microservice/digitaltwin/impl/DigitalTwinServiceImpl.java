@@ -6,10 +6,11 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.common.functional.Functional;
+import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
@@ -21,10 +22,11 @@ import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -64,7 +66,9 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService runningProcessNetworkConfig(NetConfigCollection config,
 			Handler<AsyncResult<CreationReport>> resultHandler) {
-		processNetConfigCollection(config, resultHandler);
+		vertx.runOnContext(v -> {
+			processNetConfigCollection(config, resultHandler);
+		});
 		return this;
 	}
 
@@ -101,7 +105,8 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	}
 
 	@Override
-	public DigitalTwinService runningGetDeviceBgps(String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler) {
+	public DigitalTwinService runningGetDeviceBgps(String deviceName, 
+			Handler<AsyncResult<List<Bgp>>> resultHandler) {
 		getDeviceBgps(MAIN_DB, deviceName, resultHandler);
 		return this;
 	}
@@ -117,44 +122,44 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService createView(String viewId, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject params = new JsonObject().put("viewId", viewId);
-		execute(MAIN_DB, CypherQuery.View.CREATE_VIEW, params, created -> {
-			if (created.succeeded()) {
-				logger.info("View created");
-				execute(viewId, CypherQuery.View.INIT_VIEW.get(0), init1 -> {
-					if (init1.succeeded()) {
-						execute(viewId, CypherQuery.View.INIT_VIEW.get(1), init2 -> {
-							if (init2.succeeded()) {
-								logger.info("View initialized");
-								String eq = CypherQuery.View.getExtractionQuery(MAIN_DB, dbUser, dbPassword);
-									execute(viewId, eq, done -> {
-										if (done.succeeded()) {
-											logger.info("View creation done");
-											resultHandler.handle(Future.succeededFuture());
-										} else {
-											deleteView(viewId, res -> {
-												logger.info("Delete view after initialization failed");
-											});
-											resultHandler.handle(Future.failedFuture(done.cause()));
-										}
+			execute(MAIN_DB, CypherQuery.View.CREATE_VIEW, params, created -> {
+				if (created.succeeded()) {
+					logger.info("View created");
+					execute(viewId, CypherQuery.View.INIT_VIEW.get(0), init1 -> {
+						if (init1.succeeded()) {
+							execute(viewId, CypherQuery.View.INIT_VIEW.get(1), init2 -> {
+								if (init2.succeeded()) {
+									logger.info("View initialized");
+									String eq = CypherQuery.View.getExtractionQuery(MAIN_DB, dbUser, dbPassword);
+										execute(viewId, eq, done -> {
+											if (done.succeeded()) {
+												logger.info("View creation done");
+												resultHandler.handle(Future.succeededFuture());
+											} else {
+												deleteView(viewId, res -> {
+													logger.info("Delete view after initialization failed");
+												});
+												resultHandler.handle(Future.failedFuture(done.cause()));
+											}
+										});
+								} else {
+									deleteView(viewId, res -> {
+										logger.info("Delete view after initialization failed");
 									});
-							} else {
-								deleteView(viewId, res -> {
-									logger.info("Delete view after initialization failed");
-								});
-								resultHandler.handle(Future.failedFuture(init2.cause()));
-							}
-						});
-					} else {
-						deleteView(viewId, res -> {
-							logger.info("Delete view after initialization failed");
-						});
-						resultHandler.handle(Future.failedFuture(init1.cause()));
-					}
-				});
-			} else {
-				resultHandler.handle(Future.failedFuture(created.cause()));
-			}
-		});
+									resultHandler.handle(Future.failedFuture(init2.cause()));
+								}
+							});
+						} else {
+							deleteView(viewId, res -> {
+								logger.info("Delete view after initialization failed");
+							});
+							resultHandler.handle(Future.failedFuture(init1.cause()));
+						}
+					});
+				} else {
+					resultHandler.handle(Future.failedFuture(created.cause()));
+				}
+			});
 		return this;
 	}
 
@@ -239,7 +244,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 					.put("netAddr", subnetAddr).put("svi", netItf.getSvi());
 			updateQuery = CypherQuery.Api.UPDATE_INTERFACE_IP;
 		}
-		
 		execute(viewId, updateQuery, params, res -> {
 			if (res.succeeded()) {
 				resultHandler.handle(Future.succeededFuture());
@@ -320,18 +324,83 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	}
 	
 	@Override
-	public DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler) {
+	public DigitalTwinService viewVerify(String viewId, 
+			Handler<AsyncResult<VerificationReport>> resultHandler) {
 		na.verifyNetwork(viewId, resultHandler);
 		return this;
 	}
 	
 	@Override
-	public DigitalTwinService viewGenerateNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler) {
-		// TODO Auto-generated method stub
-		return null;
+	public DigitalTwinService viewGenerateNetworkConfig(String viewId, 
+			Handler<AsyncResult<JsonObject>> resultHandler) {
+		ConfigGenerator cg = new ConfigGenerator();
+		find(viewId, CypherQuery.ConfigGen.GET_DEVICES, res -> {
+			if (res.succeeded()) {
+				List<String> devices = res.result().stream()
+						.map(d -> d.getString("device"))
+						.collect(Collectors.toList());
+				List<Future<JsonObject>> futures = new ArrayList<Future<JsonObject>>();
+				for (String device: devices) {
+					Promise<JsonObject> p = Promise.promise();
+					futures.add(p.future());
+					retrieveDeviceConfig(viewId, device, p);
+				}
+				Functional.allOfFutures(futures).onComplete(done -> {
+					vertx.runOnContext(v -> {
+						if (done.succeeded()) {
+							JsonObject finalRes = cg.processNetConfig(done.result());
+							resultHandler.handle(Future.succeededFuture(finalRes));
+						} else {
+							resultHandler.handle(Future.failedFuture(done.cause()));
+						}
+					});	
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
+	}
+	
+	/* Processing functions */
+	private void retrieveDeviceConfig(String db, String deviceName, 
+			Handler<AsyncResult<JsonObject>> resultHandler) {
+
+		Map<String,String> queries = CypherQuery.ConfigGen.queryMap(deviceName);
+		List<Future<JsonObject>> futures = new ArrayList<Future<JsonObject>>();
+
+		for (Map.Entry<String,String> entry : queries.entrySet()) {
+			Promise<JsonObject> p = Promise.promise();
+			futures.add(p.future());
+            find(db, entry.getValue(), res -> {
+            	if (res.succeeded()) {
+            		JsonObject json = new JsonObject()
+            				.put("type", entry.getKey())
+            				.put("value", new JsonArray(res.result()));
+            		p.complete(json);
+            	} else {
+            		p.fail(res.cause());
+            	}
+            });
+        }
+		Functional.allOfFutures(futures).onComplete(done -> {
+			vertx.runOnContext(v -> {
+				if (done.succeeded()) {
+					JsonObject configs = new JsonObject();
+					for (JsonObject stage : done.result()) {
+						configs.put(stage.getString("type"), stage.getJsonArray("value"));
+					}
+					JsonObject deviceConfig = new JsonObject()
+        					.put("device", deviceName)
+        					.put("config", configs);
+					resultHandler.handle(Future.succeededFuture(deviceConfig));
+				} else {
+					resultHandler.handle(Future.failedFuture(done.cause()));
+				}
+			});	
+		});
 	}
 
-	/* Processing functions */
 	private void processNetConfigCollection(NetConfigCollection netConfig, 
 			Handler<AsyncResult<CreationReport>> resultHandler) {
 		CreationReport report = new CreationReport();
@@ -343,7 +412,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 			return;
 		}
 		report.setConfigProcessor(cp.getReport());
-		
+			
 		GraphCreator gc = new GraphCreator(cp.getOutput());
 		if (!gc.process()) {
 			resultHandler.handle(Future.failedFuture("Failed to create graph queries"));
@@ -355,12 +424,9 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		queries.add(CypherQuery.CLEAR_DB);
 		queries.addAll(gc.getOutput().stream().map(s -> s.split("@")[1]).collect(Collectors.toList()));
 		
-		Context context = vertx.getOrCreateContext();
-		
 		Instant start = Instant.now();
 		createGraph(MAIN_DB, queries, res -> {
 			Instant end = Instant.now();
-			context.runOnContext(v -> {
 			if (res.succeeded()) {
 				Duration timeElapsed = Duration.between(start, end);
 				logger.info("Graph creation time: " + timeElapsed.getNano() / 1000000 + " ms");
@@ -370,7 +436,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));	
 			}
-			});
 		});
 	}
 

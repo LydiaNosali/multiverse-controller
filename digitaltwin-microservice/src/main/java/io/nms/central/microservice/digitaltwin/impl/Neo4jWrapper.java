@@ -65,10 +65,10 @@ public class Neo4jWrapper {
         });
 	}
 
-	public void findOne(String db, String query, Handler<AsyncResult<JsonObject>> resultHandler) {
+	protected void findOne(String db, String query, Handler<AsyncResult<JsonObject>> resultHandler) {
 		findOne(db, query, new JsonObject(), resultHandler);
     }
-	public void findOne(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
+	protected void findOne(String db, String query, JsonObject params, Handler<AsyncResult<JsonObject>> resultHandler) {
 		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
 		Context context = vertx.getOrCreateContext();
 		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::singleAsync))
@@ -76,10 +76,10 @@ public class Neo4jWrapper {
 				.thenCompose(ignore -> session.closeAsync());
     }
 	
-	public void find(String db, String query, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+	protected void find(String db, String query, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
 		find(db, query, new JsonObject(), resultHandler);
     }
-	public void find(String db, String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+	protected void find(String db, String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
 		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.READ));
 		Context context = vertx.getOrCreateContext();
 		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::listAsync))
@@ -207,7 +207,7 @@ public class Neo4jWrapper {
 	}
 	
 	/* Bulk queries */
-	 protected void bulkExecute(String db, List<String> queries, Handler<AsyncResult<JsonObject>> resultHandler) {
+	protected void bulkExecute(String db, List<String> queries, Handler<AsyncResult<JsonObject>> resultHandler) {
 	        AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.WRITE));
 	        Context context = vertx.getOrCreateContext();
 	        session.writeTransactionAsync(tx -> {

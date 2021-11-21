@@ -355,7 +355,7 @@ public class ConfigProcessor {
 		    		String netAddr = getSubnetAddr(ipAddr);
 		    		if (!netAddr.isEmpty()) {
 		    			String[] ip = ipAddr.split("/");
-		    			String vid = e.getName().substring(4);
+		    			String vid = e.getName().substring(4);		// SONiC-dependent
 		    			JsonObject sviCtp = new JsonObject();
 		    			sviCtp.put("host", deviceName);
 		    			sviCtp.put("interface", sviItf);

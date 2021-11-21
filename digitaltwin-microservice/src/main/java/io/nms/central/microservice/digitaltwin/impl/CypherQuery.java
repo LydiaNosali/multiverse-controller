@@ -1,7 +1,9 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CypherQuery {
 	public static final String CLEAR_DB = "MATCH (n) DETACH DELETE n";
@@ -160,5 +162,59 @@ public class CypherQuery {
 				+ "MATCH (h:Host)-[:CONTAINS*3]-(:Ip4Ctp)-[:TO_ROUTE]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp)-[:IP_CONN]->(x:Ip4Ctp) "
 				+ "WHERE e.netAddr <> x.netAddr "
 				+ "RETURN DISTINCT h.name as deviceName, e.ipAddr as misconfGateway";
+	}
+	
+	public static class ConfigGen {
+		public static final String GET_DEVICES = "MATCH (h:Host) WHERE h.type = 'SpineRouter' OR h.type = 'LeafRouter' "
+				+ "OR h.type = 'BorderRouter' OR h.type = 'Firewall' "
+				+ "RETURN h.name as device";
+
+		public static final String GET_METADATA = "MATCH (h:Host{name:'%s'}) RETURN h.hostname as hostname, h.type as type, h.platform as platform, "
+				+ "h.hwsku as hwsku, h.bgpAsn as bgpAsn, h.bgpStatus as bgpStatus, h.mac as mac";
+
+		public static final String GET_INTERFACES = "MATCH ({name:'%s'})-[:CONTAINS]->(l:Ltp)\r\n"
+				+ "WHERE NOT l.name STARTS WITH 'Bridge' AND NOT l.name STARTS WITH 'Loopback' AND NOT l.name STARTS WITH 'eth'\r\n"
+				+ "OPTIONAL MATCH (l)-[:CONTAINS*2]->(i:Ip4Ctp) \r\n"
+				+ "RETURN l.name as interface, i.ipAddr+i.netMask as ipAddress";
+
+		public static final String GET_LOOPBACK_ITFS = "MATCH ({name:'%s'})-[:CONTAINS]->(l:Ltp)-[:CONTAINS*2]->(i:Ip4Ctp) \r\n"
+				+ "WHERE l.name STARTS WITH 'Loopback'\r\n"
+				+ "RETURN l.name as interface, i.ipAddr+i.netMask as ipAddress";
+		
+		public static final String GET_PORTS = "MATCH (h:Host{name:'%s'})-[:CONTAINS]->(l:Ltp) \r\n"
+				+ "WHERE NOT l.name STARTS WITH 'Loopback' AND NOT l.name STARTS WITH 'Bridge' \r\n"
+				+ "AND NOT l.name STARTS WITH 'eth'\r\n"	// temporary in emulation network
+				+ "RETURN l.name as name, l.adminStatus as adminStatus, l.index as index, l.mtu as mtu, l.speed as speed";
+
+		public static final String GET_VLANS = "MATCH (h {name:'%s'})-[:CONTAINS*3]->(v:Ip4Ctp) WHERE v.svi <> '-'\r\n"
+				+ "OPTIONAL MATCH (h)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(m:EtherCtp) WHERE m.vlan = v.vlan\r\n"
+				+ "RETURN v.svi as name, v.vlan as vlanid, v.ipAddr+v.netMask as vlanaddr, collect(l.name) as members";
+		
+		public static final String GET_VLAN_MEMBERS = "MATCH (h {name:'%s'})-[:CONTAINS*3]->(v:Ip4Ctp) WHERE v.svi <> '-'\r\n"
+				+ "OPTIONAL MATCH (h)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(m:EtherCtp) WHERE m.vlan = v.vlan\r\n"
+				+ "RETURN l.name as member, m.mode as mode, v.svi as name";
+		
+		public static final String GET_BGP_NEIGHBORS = "MATCH (lh {name:'%s'})-[:CONTAINS*3]->(lc:Ip4Ctp)-[:HAS_CONFIG]->(lb:Bgp)-[:BGP_PEER]->(rb:Bgp)<-[:HAS_CONFIG]-(rc:Ip4Ctp)<-[:CONTAINS*3]-(rh)\r\n"
+				+ "RETURN rc.ipAddr as remote_addr, lc.ipAddr as local_addr, rb.lAsn as asn, rh.name as name";
+		
+		public static final String GET_ACLTABLES = "MATCH ({name:'%s'})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(acl:Acl)\r\n"
+				+ "RETURN DISTINCT acl.name as name, acl.binding as services, acl.stage as stage, acl.type as type, acl.description as description";
+		
+		public static final String GET_ACLRULES = "MATCH ({name:'%s'})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(t:Acl{name:'BLK_SSH'})\r\n"
+				+ "OPTIONAL MATCH (r:AclRule)-[:NEXT_RULE*]-(t) \r\n"
+				+ "RETURN DISTINCT r.name as name, r.action as action, r.priority as priority, r.matching as matching, t.name as table";
+		public static final Map<String,String> queryMap(String device) {
+			Map<String,String> map = new HashMap<String,String>();
+			map.put("metadata", String.format(GET_METADATA, device));
+			map.put("interface", String.format(GET_INTERFACES, device));
+			map.put("loopbackInterface", String.format(GET_LOOPBACK_ITFS, device));
+			map.put("port", String.format(GET_PORTS, device));
+			map.put("vlan", String.format(GET_VLANS, device));
+			map.put("vlanMember", String.format(GET_VLAN_MEMBERS, device));
+			map.put("bgpNeighbor", String.format(GET_BGP_NEIGHBORS, device));
+			map.put("aclTable", String.format(GET_ACLTABLES, device));
+			map.put("aclRule", String.format(GET_ACLRULES, device));
+			return map;
+		}
 	}
 }

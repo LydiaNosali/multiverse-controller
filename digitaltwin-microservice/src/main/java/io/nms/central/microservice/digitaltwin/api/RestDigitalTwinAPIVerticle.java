@@ -171,6 +171,8 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		service.viewVerify(viewId, (resultHandlerNonEmpty(context)));
 	}
 	private void apiViewGenerateNetworkConfig(RoutingContext context) {
+		String viewId = context.request().getParam("viewId");
+		service.viewGenerateNetworkConfig(viewId, resultHandler(context, Json::encodePrettily));
 	}
 	
 	// view network
