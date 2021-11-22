@@ -1,19 +1,27 @@
 package io.nms.central.microservice.digitaltwin.impl;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
+import io.nms.central.microservice.digitaltwin.model.graph.DeviceConfigCollection;
 import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
@@ -54,7 +62,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		bulkExecute(MAIN_DB, constraints, res -> {
 			if (res.succeeded()) {
 				logger.info("Neo4j DB initialized");
-				resultHandler.handle(Future.succeededFuture());
+				loadExampleNetwork(resultHandler);
 			} else {
 				logger.error(res.cause());
 				resultHandler.handle(Future.failedFuture(res.cause()));
@@ -542,6 +550,41 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				resultHandler.handle(Future.succeededFuture(bgp));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	
+	private void loadExampleNetwork(Handler<AsyncResult<Void>> resultHandler) {
+		InputStream is = getClass().getResourceAsStream("/config-collection.json"); 
+		InputStreamReader isr = new InputStreamReader(is);
+		BufferedReader br = new BufferedReader(isr);
+		StringBuffer sb = new StringBuffer();
+		String line;
+		try {
+			while ((line = br.readLine()) != null) 
+			{
+				sb.append(line);
+			}
+			br.close();
+			isr.close();
+			is.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			resultHandler.handle(Future.failedFuture(e.getMessage()));
+			return;
+		}
+		final TypeReference<HashMap<String,DeviceConfigCollection>> typeRef 
+				= new TypeReference<HashMap<String,DeviceConfigCollection>>() {};
+		final Map<String, DeviceConfigCollection> configs 
+				= JsonUtils.json2Pojo(sb.toString(), typeRef);
+		final NetConfigCollection netConfig = new NetConfigCollection();
+		netConfig.setConfigs(configs);
+		runningProcessNetworkConfig(netConfig, done -> {
+			resultHandler.handle(Future.succeededFuture());
+			if (done.succeeded()) {
+				logger.info("Example network loaded");
+			} else {
+				logger.info("Failed to load example network: " + done.cause().getMessage());
 			}
 		});
 	}

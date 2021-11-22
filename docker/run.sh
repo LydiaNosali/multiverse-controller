@@ -18,7 +18,7 @@ docker-compose -f $DIR/docker-compose.yml stop
 
 # Start persistence containers
 docker-compose -f $DIR/docker-compose.yml up -d mysql mongo activemq neo4j
-sleep 10
+sleep 60
 
 # account
 docker-compose -f $DIR/docker-compose.yml up -d account-microservice

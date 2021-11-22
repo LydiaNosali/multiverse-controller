@@ -157,9 +157,9 @@ public class ConfigProcessor {
 		    			DeviceConfigCollection remoteHostConfig = deviceConfigs.get(destHost);
 		    			destInterface =
 		    				findItfNameByMacAddr(remoteHostConfig.getNetInterface(), destInterface);
-		    			logger.info("On device ["+deviceName+"] at LLDP stage: ");
-		    			logger.info("\tFound MAC address instead of interface name to device "+destHost);
-		    			logger.info("\tReplace with: " + destInterface);
+		    			// logger.info("On device ["+deviceName+"] at LLDP stage: ");
+		    			// logger.info("\tFound MAC address instead of interface name to device "+destHost);
+		    			// logger.info("\tReplace with: " + destInterface);
 		    		}
 		    		
 		    		// check if device is included in DT?
@@ -176,7 +176,7 @@ public class ConfigProcessor {
 		    			String msg = "On device ["+deviceName+"] LLDP at stage: device <"+destHost+"> "
 		    					+ "not included in collected config";
 		    			report.add("WARN: "+msg);
-		    			logger.info(msg);
+		    			// logger.info(msg);
 		    		}
 		    	});
 		    }
@@ -192,7 +192,7 @@ public class ConfigProcessor {
 		    			String msg = "On device <"+deviceName+"> at ARP stage: IP <" + e.getIpAddr() + "> "
 		    					+ "not found in collected config";
 		    			report.add("WARN: "+msg);
-		    			logger.info(msg);
+		    			// logger.info(msg);
 		    			return;
 		    		}
 
@@ -288,7 +288,7 @@ public class ConfigProcessor {
 		}
 		Instant end = Instant.now();
 		Duration timeElapsed = Duration.between(start, end);
-		logger.info("Config processing: " + timeElapsed.getNano() / 1000000 + " ms.");
+		// logger.info("Config processing: " + timeElapsed.getNano() / 1000000 + " ms.");
 
 		return true;
 	}
@@ -343,7 +343,7 @@ public class ConfigProcessor {
 		    		} else {
 		    			String msg = "Interface <"+itfName+"> on device <"+deviceName+"> has incorrect IP format <"+ipAddr+">";
 		    			report.add("WARN: "+msg);
-		    			logger.info(msg);
+		    			// logger.info(msg);
 		    		}
 			    }
 		    } else { // SVI
@@ -368,7 +368,7 @@ public class ConfigProcessor {
 		    		} else {
 		    			String msg = "Interface <"+itfName+"> on device <"+deviceName+"> has incorrect IP format <"+ipAddr+">";
 		    			report.add("WARN: "+msg);
-		    			logger.info(msg);
+		    			// logger.info(msg);
 		    		}
 		    	}
 		    }
@@ -425,7 +425,7 @@ public class ConfigProcessor {
 		    	} else {
 	    			String msg = "Interface <"+itfName+"> on device <"+deviceName+"> has unexpected IP <"+ipAddr+">";
 	    			report.add("WARN: "+msg);
-	    			logger.info(msg);
+	    			// logger.info(msg);
 	    		}
 		   	}
 	    });

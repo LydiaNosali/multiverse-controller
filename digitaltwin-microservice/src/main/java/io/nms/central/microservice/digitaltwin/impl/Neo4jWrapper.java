@@ -55,13 +55,9 @@ public class Neo4jWrapper {
 		this.dbUser = config.getString("user");
 		this.dbPassword = config.getString("password");
 		this.driver = GraphDatabase.driver(config.getString("url"), AuthTokens.basic(dbUser, dbPassword));
-		driver.verifyConnectivityAsync().thenAcceptAsync(r -> {
+		driver.verifyConnectivityAsync().thenAccept(r -> {
         	logger.info("Connected to neo4j");
         	return;
-        }).exceptionally(e -> {
-            logger.info(e.getMessage());
-            driver.closeAsync();
-            return null;
         });
 	}
 
@@ -80,6 +76,7 @@ public class Neo4jWrapper {
 		find(db, query, new JsonObject(), resultHandler);
     }
 	protected void find(String db, String query, JsonObject params, Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+		// TODO: check driver state
 		AsyncSession session = driver.asyncSession(configBuilder(db, AccessMode.READ));
 		Context context = vertx.getOrCreateContext();
 		session.writeTransactionAsync(tx -> tx.runAsync(query, params.getMap()).thenCompose(ResultCursor::listAsync))
