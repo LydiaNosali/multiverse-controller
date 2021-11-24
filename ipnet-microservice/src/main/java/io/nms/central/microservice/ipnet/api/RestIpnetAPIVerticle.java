@@ -46,6 +46,9 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 	private static final String API_CONFIG_VERIFY = "/config/verify";
 	private static final String API_CONFIG_APPLY = "/config/apply";
 
+	private static final String API_RUNNING_NETCONFIG = "/netconfig/running";
+	private static final String API_INTENDED_NETCONFIG = "/netconfig/intended";
+
 	private final IpnetService service;
 
 	public RestIpnetAPIVerticle(IpnetService service) {
@@ -80,6 +83,10 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 
 		router.get(API_CONFIG_VERIFY).handler(this::checkAdminRole).handler(this::apiConfigVerify);
 		router.get(API_CONFIG_APPLY).handler(this::checkAdminRole).handler(this::apiConfigApply);
+		
+		router.get(API_INTENDED_NETCONFIG).handler(this::checkAdminRole).handler(this::apiGetIntendedNetConfig);
+		router.get(API_RUNNING_NETCONFIG).handler(this::checkAdminRole).handler(this::apiGetRunningNetConfig);
+		router.post(API_RUNNING_NETCONFIG).handler(this::checkAdminRole).handler(this::apiSaveRunningNetConfig);
 		
 		// get HTTP host and port from configuration, or use default value
 		String host = config().getString("ipnet.http.address", "0.0.0.0");
@@ -208,6 +215,22 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String username = principal.getString("username");
 		service.undoConfigChange(username, deleteResultHandler(context));
+	}
+	
+	private void apiGetIntendedNetConfig(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		service.getIntendedNetConfig(username, resultHandler(context, Json::encodePrettily));
+	}
+	private void apiGetRunningNetConfig(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		service.getRunningNetConfig(username, resultHandler(context, Json::encodePrettily));
+	}
+	private void apiSaveRunningNetConfig(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		service.updateRunningNetConfig(username, context.getBodyAsJson(), resultVoidHandler(context, 200));
 	}
 	
 	/* get service version */

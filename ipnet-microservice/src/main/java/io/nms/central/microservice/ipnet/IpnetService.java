@@ -13,6 +13,7 @@ import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonObject;
 
 /**
  * A service interface managing ipnet.
@@ -55,9 +56,13 @@ public interface IpnetService {
 	void configUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	void configDeleteBgp(String viewId, String deviceName, String itfAddr, Handler<AsyncResult<Void>> resultHandler);
 
-	void configVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler);
-	void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler);
-
 	void getAllConfigChanges(String viewId, Handler<AsyncResult<List<ConfigChange>>> resultHandler);
 	void undoConfigChange(String viewId, Handler<AsyncResult<Void>> resultHandler);
+	
+	void configVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler);
+	void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler);
+	
+	void getIntendedNetConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
+	void getRunningNetConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
+	void updateRunningNetConfig(String viewId, JsonObject netConfig, Handler<AsyncResult<Void>> resultHandler);
 }

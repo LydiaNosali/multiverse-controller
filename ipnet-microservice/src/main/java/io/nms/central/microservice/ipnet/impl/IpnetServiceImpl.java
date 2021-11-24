@@ -28,6 +28,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
+import io.vertx.ext.mongo.UpdateOptions;
 import io.vertx.serviceproxy.ServiceProxyBuilder;
 
 /**
@@ -40,6 +41,8 @@ public class IpnetServiceImpl implements IpnetService {
 	private static final String COLL_CONFIG_PROFILE = "config-profile";
 	private static final String COLL_CONFIG_CHANGE = "config-change";
 	private static final String COLL_RESOURCE_BKP = "resource-bkp";
+	private static final String COLL_INTENDED_CONFIG = "intened-config";
+	private static final String COLL_RUNNING_CONFIG = "running-config";
 	
 	private final MongoClient client;
 	private final Vertx vertx;
@@ -56,7 +59,7 @@ public class IpnetServiceImpl implements IpnetService {
 		resultHandler.handle(Future.succeededFuture());
 	}
 	
-	/* Read running state */
+	/* API: Read network running state */
 	@Override
 	public void runningVerify(Handler<AsyncResult<VerificationReport>> resultHandler) {
 		digitalTwinSvcProxy().runningVerifyNetwork(resultHandler);
@@ -76,13 +79,15 @@ public class IpnetServiceImpl implements IpnetService {
 		digitalTwinSvcProxy().runningGetDeviceBgps(deviceName, resultHandler);
 	}
 
-	/* Read/Write View */
+	/* View API: Network */
 	@Override
 	public void configGetNetwork(String viewId, 
 			Handler<AsyncResult<Network>> resultHandler) {
 		digitalTwinSvcProxy().viewGetNetwork(viewId, resultHandler);
 	}
 
+	
+	/* View API: Devices */
 	@Override
 	public void configUpdateDevice(String viewId, String deviceName, Device device, 
 			Handler<AsyncResult<Void>> resultHandler) {
@@ -135,12 +140,13 @@ public class IpnetServiceImpl implements IpnetService {
 		});
 	}
 
+	
+	/* View API: NetInterfaces */
 	@Override
 	public void configGetDeviceInterfaces(String viewId, String deviceName, 
 			Handler<AsyncResult<List<NetInterface>>> resultHandler) {
 		digitalTwinSvcProxy().viewGetDeviceInterfaces(viewId, deviceName, resultHandler);
 	}
-
 	@Override
 	public void configUpdateInterface(String viewId, String deviceName, String itfName, 
 			NetInterface netItf, Handler<AsyncResult<Void>> resultHandler) {
@@ -193,12 +199,13 @@ public class IpnetServiceImpl implements IpnetService {
 		});
 	}
 
+
+	/* View API: BGP peers */
 	@Override
 	public void configGetDeviceBgps(String viewId, String deviceName, 
 			Handler<AsyncResult<List<Bgp>>> resultHandler) {
 		digitalTwinSvcProxy().viewGetDeviceBgps(viewId, deviceName, resultHandler);
 	}
-
 	@Override
 	public void configCreateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, 
 			Handler<AsyncResult<Void>> resultHandler) {
@@ -233,7 +240,6 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		}); 
 	}
-
 	@Override
 	public void configUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, 
 			Handler<AsyncResult<Void>> resultHandler) {
@@ -285,7 +291,6 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		}); 
 	}
-
 	@Override
 	public void configDeleteBgp(String viewId, String deviceName, String itfAddr, 
 			Handler<AsyncResult<Void>> resultHandler) {
@@ -338,7 +343,7 @@ public class IpnetServiceImpl implements IpnetService {
 		}); 
 	}
 
-	/* Verify and Apply */
+	/* API: Verify and Apply config */
 	@Override
 	public void configVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler) {
 		findConfigProfile(viewId, res -> {
@@ -367,15 +372,22 @@ public class IpnetServiceImpl implements IpnetService {
 	public void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler) {
 		digitalTwinSvcProxy().viewGenerateNetworkConfig(viewId, res -> {
 			if (res.succeeded()) {
-				cleanProfile(viewId, done -> {
-					if (done.succeeded()) {
-						digitalTwinSvcProxy().deleteView(viewId, ignore -> {
-							ApplyConfigResult result = new ApplyConfigResult();
-							result.setMessage("OK");
-							resultHandler.handle(Future.succeededFuture(result));
+				JsonObject netConfig = res.result();
+				saveNetConfig(COLL_INTENDED_CONFIG, viewId, netConfig, saved -> {
+					if (saved.succeeded()) {
+						cleanProfile(viewId, done -> {
+							if (done.succeeded()) {
+								digitalTwinSvcProxy().deleteView(viewId, ignore -> {
+									ApplyConfigResult result = new ApplyConfigResult();
+									result.setMessage("OK");
+									resultHandler.handle(Future.succeededFuture(result));
+								});
+							} else {
+								resultHandler.handle(Future.failedFuture(done.cause()));
+							}
 						});
 					} else {
-						resultHandler.handle(Future.failedFuture(done.cause()));
+						resultHandler.handle(Future.failedFuture(saved.cause()));
 					}
 				});
 			} else {
@@ -384,7 +396,7 @@ public class IpnetServiceImpl implements IpnetService {
 		});
 	}
 
-	/* Read/Write Config Changes */
+	/* API: Config Changes */
 	@Override
 	public void getAllConfigChanges(String viewId, Handler<AsyncResult<List<ConfigChange>>> resultHandler) {
 		JsonObject query = new JsonObject().put("_viewId", viewId);
@@ -434,6 +446,21 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
+	
+	/* API: Intended and Running NetConfig */
+	public void getIntendedNetConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler) {
+		findNetConfig(COLL_INTENDED_CONFIG, viewId, resultHandler);
+	}
+	public void getRunningNetConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler) {
+		findNetConfig(COLL_RUNNING_CONFIG, viewId, resultHandler);
+		
+	}
+	public void updateRunningNetConfig(String viewId, JsonObject netConfig, Handler<AsyncResult<Void>> resultHandler) {
+		saveNetConfig(COLL_RUNNING_CONFIG, viewId, netConfig, resultHandler);
+	}
+
+	
+	/* Functional: Config Changes */
 	private void undoDeviceConfig(String viewId, ConfigChange cc, 
 			Handler<AsyncResult<ConfigChange>> resultHandler) {
 		findResourceBkp(cc.getId(), Device.class, res -> {
@@ -574,7 +601,7 @@ public class IpnetServiceImpl implements IpnetService {
 		});
 	}
 	
-	/* Resource config backup */
+	/* Functional: Resources backup */
 	private <T> void findResourceBkp(String cgId, Class<T> clazz, Handler<AsyncResult<T>> resultHandler) {
 		JsonObject query = new JsonObject().put("_cgId", cgId);
 		client.findOne(COLL_RESOURCE_BKP, query, null, ar -> {
@@ -617,7 +644,7 @@ public class IpnetServiceImpl implements IpnetService {
 		});
 	}
 
-	/* ConfigProfile COW */
+	/* Functional: ConfigProfile COW */
 	private void getOrCreateConfigProfile(String viewId, Handler<AsyncResult<ConfigProfile>> resultHandler) {
 		findConfigProfile(viewId, res -> {
 			if (res.succeeded()) {
@@ -643,8 +670,6 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
-	
-	/* ConfigProfile DB operations */
 	private void findConfigProfile(String viewId, Handler<AsyncResult<ConfigProfile>> resultHandler) {
 		JsonObject query = new JsonObject().put("viewId", viewId);
 		client.findOne(COLL_CONFIG_PROFILE, query, null, ar -> {
@@ -702,6 +727,38 @@ public class IpnetServiceImpl implements IpnetService {
 				});
 			} else {
 				resultHandler.handle(Future.failedFuture(ar1.cause()));
+			}
+		});
+	}
+	
+	/* Functional: Network config */
+	private void saveNetConfig(String collection, String viewId, JsonObject netConfig, Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject query = new JsonObject().put("_viewId", viewId);
+		UpdateOptions opts = new UpdateOptions().setUpsert(true);
+		
+		netConfig.put("_viewId", viewId);
+		JsonObject doc = new JsonObject().put("$set", netConfig);
+		client.updateCollectionWithOptions(collection, query, doc, opts, ar -> {
+			if (ar.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
+			}
+		});
+	}
+	private void findNetConfig(String collection, String viewId, Handler<AsyncResult<JsonObject>> resultHandler) {
+		JsonObject query = new JsonObject().put("_viewId", viewId);
+		client.findOne(collection, query, null, ar -> {
+			if (ar.succeeded()) {
+				if (ar.result() != null) {
+					ar.result().remove("_id");
+					ar.result().remove("_viewId");
+					resultHandler.handle(Future.succeededFuture(ar.result()));
+				} else {
+					resultHandler.handle(Future.failedFuture("NOT_FOUND"));
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
 			}
 		});
 	}
