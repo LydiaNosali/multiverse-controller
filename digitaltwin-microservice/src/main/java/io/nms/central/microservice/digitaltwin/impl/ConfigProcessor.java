@@ -14,14 +14,14 @@ import io.nms.central.microservice.digitaltwin.model.graph.AclRule;
 import io.nms.central.microservice.digitaltwin.model.graph.AclTable;
 import io.nms.central.microservice.digitaltwin.model.graph.Arp;
 import io.nms.central.microservice.digitaltwin.model.graph.Bgp;
-import io.nms.central.microservice.digitaltwin.model.graph.DeviceConfigCollection;
-import io.nms.central.microservice.digitaltwin.model.graph.HostType;
+import io.nms.central.microservice.digitaltwin.model.graph.DeviceState;
+import io.nms.central.microservice.digitaltwin.model.graph.HostTypeEnum;
 import io.nms.central.microservice.digitaltwin.model.graph.Interface;
-import io.nms.central.microservice.digitaltwin.model.graph.Interface.InterfaceType;
+import io.nms.central.microservice.digitaltwin.model.graph.Interface.InterfaceTypeEnum;
 import io.nms.central.microservice.digitaltwin.model.graph.IpRoute;
 import io.nms.central.microservice.digitaltwin.model.graph.Lldp;
 import io.nms.central.microservice.digitaltwin.model.graph.Metadata;
-import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
+import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
 import io.nms.central.microservice.digitaltwin.model.graph.Vlan;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -33,7 +33,7 @@ public class ConfigProcessor {
 	private static final Logger logger = LoggerFactory.getLogger(ConfigProcessor.class);
 	
 	// private static FileWriter file;
-	private NetConfigCollection netConfig;
+	private NetworkState netConfig;
 	private JsonObject output;
 	private List<String> report;
 	
@@ -50,7 +50,7 @@ public class ConfigProcessor {
 	private JsonArray aclTables = new JsonArray();
 	private JsonArray aclRules = new JsonArray();
 	
-	public ConfigProcessor(NetConfigCollection netConfig) {
+	public ConfigProcessor(NetworkState netConfig) {
 		this.netConfig = netConfig;
 		output = new JsonObject();
 		output.put("host", hosts);
@@ -85,14 +85,14 @@ public class ConfigProcessor {
 		Instant start = Instant.now();
 		
 		// 1st iteration over device configs
-		Map<String, DeviceConfigCollection> deviceConfigs = netConfig.getConfigs();
-		for (Map.Entry<String,DeviceConfigCollection> device : deviceConfigs.entrySet()) {
+		Map<String, DeviceState> deviceConfigs = netConfig.getConfigs();
+		for (Map.Entry<String,DeviceState> device : deviceConfigs.entrySet()) {
 			String deviceName = device.getKey();
-			DeviceConfigCollection config = device.getValue();
+			DeviceState config = device.getValue();
 		    
 		    // step 0: hosts and metadata
 		    Metadata meta = config.getMetadata();
-		    HostType deviceType = meta.getType();
+		    HostTypeEnum deviceType = meta.getType();
 			
 		    JsonObject newDevice = new JsonObject();
 		    newDevice.put("name", deviceName);
@@ -100,7 +100,7 @@ public class ConfigProcessor {
 		    newDevice.put("hostname", meta.getHostname());
 		    newDevice.put("mac", meta.getMac());
 		    newDevice.put("platform", meta.getPlatform());
-		    if (deviceType.equals(HostType.server)) {
+		    if (deviceType.equals(HostTypeEnum.server)) {
 		    	newDevice.put("bgpAsn", "-");
 		    	newDevice.put("bgpStatus", "-");
 		    	newDevice.put("hwsku", "-");
@@ -114,19 +114,19 @@ public class ConfigProcessor {
 		    // step 1: interfaces
 		    // JSONArray interfaces = (JSONArray) ((JSONObject) host.get("interface")).get("rows");
 		    List<Interface> netItfs = config.getNetInterface();
-		    if (deviceType.equals(HostType.server)) {
+		    if (deviceType.equals(HostTypeEnum.server)) {
 	    		processServerInterfaces(deviceName, deviceType, netItfs);
-	    	} else if (deviceType.equals(HostType.BorderRouter) 
-	    			|| deviceType.equals(HostType.SpineRouter) 
-	    			|| deviceType.equals(HostType.LeafRouter) 
-	    			|| deviceType.equals(HostType.Firewall)) {
+	    	} else if (deviceType.equals(HostTypeEnum.BorderRouter) 
+	    			|| deviceType.equals(HostTypeEnum.SpineRouter) 
+	    			|| deviceType.equals(HostTypeEnum.LeafRouter) 
+	    			|| deviceType.equals(HostTypeEnum.Firewall)) {
 	    		processRouterInterfaces(deviceName, deviceType, netItfs);
 	    	}
 
 		    // step 2: VLAN for Routers
-		    if (deviceType.equals(HostType.BorderRouter) 
-	    			|| deviceType.equals(HostType.SpineRouter) 
-	    			|| deviceType.equals(HostType.LeafRouter)) {
+		    if (deviceType.equals(HostTypeEnum.BorderRouter) 
+	    			|| deviceType.equals(HostTypeEnum.SpineRouter) 
+	    			|| deviceType.equals(HostTypeEnum.LeafRouter)) {
 		    	List<Vlan> vlans = config.getVlan();
 		    	vlans.forEach(v -> {
 		    		findEtherAndSetVlan(deviceName, v);
@@ -135,17 +135,17 @@ public class ConfigProcessor {
 		}
 		
 		// 2nd iteration over device configs
-		for (Map.Entry<String,DeviceConfigCollection> device : deviceConfigs.entrySet()) {
+		for (Map.Entry<String,DeviceState> device : deviceConfigs.entrySet()) {
 		// for(Iterator<String> it1 = input.keySet().iterator(); it1.hasNext();) {
 			String deviceName = device.getKey();
-			DeviceConfigCollection config = device.getValue();
-			HostType deviceType = config.getMetadata().getType();
+			DeviceState config = device.getValue();
+			HostTypeEnum deviceType = config.getMetadata().getType();
 		    
 		    // step 3: LLDP
-			if (deviceType.equals(HostType.BorderRouter) 
-	    			|| deviceType.equals(HostType.SpineRouter) 
-	    			|| deviceType.equals(HostType.LeafRouter) 
-	    			|| deviceType.equals(HostType.Firewall)) {
+			if (deviceType.equals(HostTypeEnum.BorderRouter) 
+	    			|| deviceType.equals(HostTypeEnum.SpineRouter) 
+	    			|| deviceType.equals(HostTypeEnum.LeafRouter) 
+	    			|| deviceType.equals(HostTypeEnum.Firewall)) {
 		    	List<Lldp> lldps = config.getLldp();
 		    	lldps.forEach(e -> {
 		    		String srcHost = deviceName;
@@ -154,7 +154,7 @@ public class ConfigProcessor {
 		    		String destInterface = e.getRemotePort();
 		    		
 		    		if (isMacAddress(destInterface)) {
-		    			DeviceConfigCollection remoteHostConfig = deviceConfigs.get(destHost);
+		    			DeviceState remoteHostConfig = deviceConfigs.get(destHost);
 		    			destInterface =
 		    				findItfNameByMacAddr(remoteHostConfig.getNetInterface(), destInterface);
 		    			// logger.info("On device ["+deviceName+"] at LLDP stage: ");
@@ -185,7 +185,7 @@ public class ConfigProcessor {
 		    // TODO
 		    
 		    // step 5: ARP
-		    if (!deviceType.equals(HostType.Switch)) {
+		    if (!deviceType.equals(HostTypeEnum.Switch)) {
 		    	List<Arp> arps = config.getArp();
 		    	arps.forEach(e -> {
 		    		if (!ipExists(e.getIpAddr())) {
@@ -232,10 +232,10 @@ public class ConfigProcessor {
 		    }
 		    
 		    // step 7: ACL
-		    if (deviceType.equals(HostType.BorderRouter) 
-	    			|| deviceType.equals(HostType.SpineRouter) 
-	    			|| deviceType.equals(HostType.LeafRouter) 
-	    			|| deviceType.equals(HostType.Firewall)) {
+		    if (deviceType.equals(HostTypeEnum.BorderRouter) 
+	    			|| deviceType.equals(HostTypeEnum.SpineRouter) 
+	    			|| deviceType.equals(HostTypeEnum.LeafRouter) 
+	    			|| deviceType.equals(HostTypeEnum.Firewall)) {
 		    	if (config.getAclTable() != null) {
 		    		List<AclTable> acls = config.getAclTable();
 		    		acls.forEach(e -> {
@@ -266,7 +266,7 @@ public class ConfigProcessor {
 		    }
 	    
 		    // step 8: Routes
-		    if (!deviceType.equals(HostType.Switch)) {
+		    if (!deviceType.equals(HostTypeEnum.Switch)) {
 		    	List<IpRoute> routes = config.getIpRoute();
 		    	routes.forEach(e -> {
 		    		if (!itfExists(e.getNetInterface())) {
@@ -293,7 +293,7 @@ public class ConfigProcessor {
 		return true;
 	}
 	
-	private void processRouterInterfaces(String deviceName, HostType hostType, List<Interface> interfaces) {
+	private void processRouterInterfaces(String deviceName, HostTypeEnum hostType, List<Interface> interfaces) {
 		interfaces.forEach(e -> {
 	    	// skip useless interfaces
 	    	String itfName = e.getName();
@@ -303,8 +303,8 @@ public class ConfigProcessor {
 	    		return;
 	    	}
 	    	
-	    	InterfaceType itfType = e.getType(); 
-	    	if ( !itfType.equals(InterfaceType.Vlan) ) {
+	    	InterfaceTypeEnum itfType = e.getType(); 
+	    	if ( !itfType.equals(InterfaceTypeEnum.Vlan) ) {
 	    		// LTP
 	    		JsonObject ltp = new JsonObject();
 	    		ltp.put("host", deviceName);
@@ -375,7 +375,7 @@ public class ConfigProcessor {
 	    });
 	}
 	
-	private void processServerInterfaces(String deviceName, HostType hostType, List<Interface> interfaces) {
+	private void processServerInterfaces(String deviceName, HostTypeEnum hostType, List<Interface> interfaces) {
 		interfaces.forEach(e -> {
 	    	// skip useless interfaces
 	    	String itfName = e.getName();

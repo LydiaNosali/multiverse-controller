@@ -11,20 +11,20 @@ import io.vertx.core.json.JsonObject;
 @DataObject(generateConverter = true)
 public class Interface {
 	
-	public enum InterfaceType {
+	public enum InterfaceTypeEnum {
 		Bridge("Bridge"),
 		Vlan("Vlan"),
 		Other("Other");
 		private String value;
-		private InterfaceType(String value) { this.value = value; }
+		private InterfaceTypeEnum(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 	};
 	
-	public enum InterfaceStatus {
+	public enum InterfaceStatusEnum {
 		up("up"),
 		down("down");
 		private String value;
-		private InterfaceStatus(String value) { this.value = value; }
+		private InterfaceStatusEnum(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 	};
 
@@ -32,7 +32,7 @@ public class Interface {
 	private String name;
 	
 	@JsonProperty("ADMIN_STATUS")
-	private InterfaceStatus adminStatus;
+	private InterfaceStatusEnum adminStatus;
 	
 	@JsonProperty("INDEX")
 	private String index;
@@ -50,7 +50,7 @@ public class Interface {
 	private String ipAddr;
 	
 	@JsonProperty("TYPE")
-	private InterfaceType type;
+	private InterfaceTypeEnum type;
 	
 	/*-----------------------------------------------*/
 
@@ -60,10 +60,10 @@ public class Interface {
 	public void setName(String name) {
 		this.name = name;
 	}
-	public InterfaceStatus getAdminStatus() {
+	public InterfaceStatusEnum getAdminStatus() {
 		return adminStatus;
 	}
-	public void setAdminStatus(InterfaceStatus adminStatus) {
+	public void setAdminStatus(InterfaceStatusEnum adminStatus) {
 		this.adminStatus = adminStatus;
 	}
 	public String getIndex() {
@@ -96,10 +96,10 @@ public class Interface {
 	public void setIpAddr(String ipAddr) {
 		this.ipAddr = ipAddr;
 	}
-	public InterfaceType getType() {
+	public InterfaceTypeEnum getType() {
 		return type;
 	}
-	public void setType(InterfaceType type) {
+	public void setType(InterfaceTypeEnum type) {
 		this.type = type;
 	}
 	public Interface() {}

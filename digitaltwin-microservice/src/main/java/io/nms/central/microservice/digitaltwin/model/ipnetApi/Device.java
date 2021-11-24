@@ -3,7 +3,7 @@ package io.nms.central.microservice.digitaltwin.model.ipnetApi;
 import java.util.Objects;
 
 import io.nms.central.microservice.common.functional.JsonUtils;
-import io.nms.central.microservice.digitaltwin.model.graph.HostType;
+import io.nms.central.microservice.digitaltwin.model.graph.HostTypeEnum;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
@@ -14,7 +14,7 @@ public class Device extends Configurable {
 	private String hostname;
 	private String mac;
 	private String platform;
-	private HostType type;
+	private HostTypeEnum type;
 	private String bgpAsn;
 	private String bgpStatus;
 	private String hwsku;
@@ -43,10 +43,10 @@ public class Device extends Configurable {
 	public void setPlatform(String platform) {
 		this.platform = platform;
 	}
-	public HostType getType() {
+	public HostTypeEnum getType() {
 		return type;
 	}
-	public void setType(HostType type) {
+	public void setType(HostTypeEnum type) {
 		this.type = type;
 	}
 	public String getBgpAsn() {

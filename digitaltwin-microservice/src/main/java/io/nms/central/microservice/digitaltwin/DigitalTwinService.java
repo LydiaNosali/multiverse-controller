@@ -1,7 +1,7 @@
 package io.nms.central.microservice.digitaltwin;
 
 import java.util.List;
-import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
+import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
 import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQueryResult;
@@ -43,7 +43,7 @@ public interface DigitalTwinService {
 	
 	/* Operations on running network */
 	@Fluent	
-	DigitalTwinService runningProcessNetworkConfig(NetConfigCollection config, Handler<AsyncResult<CreationReport>> resultHandler);
+	DigitalTwinService processNetworkRunningState(NetworkState netState, Handler<AsyncResult<CreationReport>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<VerificationReport>> resultHandler);
 	@Fluent	

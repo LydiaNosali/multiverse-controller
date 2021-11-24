@@ -21,8 +21,8 @@ import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
-import io.nms.central.microservice.digitaltwin.model.graph.DeviceConfigCollection;
-import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
+import io.nms.central.microservice.digitaltwin.model.graph.DeviceState;
+import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpSubnet;
@@ -72,10 +72,10 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	}
 
 	@Override
-	public DigitalTwinService runningProcessNetworkConfig(NetConfigCollection config,
+	public DigitalTwinService processNetworkRunningState(NetworkState netState,
 			Handler<AsyncResult<CreationReport>> resultHandler) {
 		vertx.runOnContext(v -> {
-			processNetConfigCollection(config, resultHandler);
+			processNetState(netState, resultHandler);
 		});
 		return this;
 	}
@@ -409,18 +409,18 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		});
 	}
 
-	private void processNetConfigCollection(NetConfigCollection netConfig, 
+	private void processNetState(NetworkState netState, 
 			Handler<AsyncResult<CreationReport>> resultHandler) {
 		CreationReport report = new CreationReport();
 		report.setTimestamp(OffsetDateTime.now().toLocalDateTime().toString());
 		
-		ConfigProcessor cp = new ConfigProcessor(netConfig);
+		ConfigProcessor cp = new ConfigProcessor(netState);
 		if (!cp.process()) {
 			resultHandler.handle(Future.failedFuture("Failed to process config"));
 			return;
 		}
 		report.setConfigProcessor(cp.getReport());
-			
+
 		GraphCreator gc = new GraphCreator(cp.getOutput());
 		if (!gc.process()) {
 			resultHandler.handle(Future.failedFuture("Failed to create graph queries"));
@@ -573,13 +573,13 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 			resultHandler.handle(Future.failedFuture(e.getMessage()));
 			return;
 		}
-		final TypeReference<HashMap<String,DeviceConfigCollection>> typeRef 
-				= new TypeReference<HashMap<String,DeviceConfigCollection>>() {};
-		final Map<String, DeviceConfigCollection> configs 
+		final TypeReference<HashMap<String,DeviceState>> typeRef 
+				= new TypeReference<HashMap<String,DeviceState>>() {};
+		final Map<String, DeviceState> configs 
 				= JsonUtils.json2Pojo(sb.toString(), typeRef);
-		final NetConfigCollection netConfig = new NetConfigCollection();
+		final NetworkState netConfig = new NetworkState();
 		netConfig.setConfigs(configs);
-		runningProcessNetworkConfig(netConfig, done -> {
+		processNetworkRunningState(netConfig, done -> {
 			resultHandler.handle(Future.succeededFuture());
 			if (done.succeeded()) {
 				logger.info("Example network loaded");

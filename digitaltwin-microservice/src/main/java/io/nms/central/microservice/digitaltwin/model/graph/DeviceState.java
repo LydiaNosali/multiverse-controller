@@ -10,7 +10,7 @@ import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
-public class DeviceConfigCollection {
+public class DeviceState {
 
 	private Metadata metadata;
 	
@@ -27,9 +27,9 @@ public class DeviceConfigCollection {
 	
 	/*-----------------------------------------------*/
 
-	public DeviceConfigCollection() {}
-	public DeviceConfigCollection(JsonObject json) {
-		JsonUtils.fromJson(json, this, DeviceConfigCollection.class);
+	public DeviceState() {}
+	public DeviceState(JsonObject json) {
+		JsonUtils.fromJson(json, this, DeviceState.class);
 	}
 
 	/*-----------------------------------------------*/
@@ -43,7 +43,7 @@ public class DeviceConfigCollection {
 	}
 	@Override
 	public boolean equals(Object obj) {
-		return Objects.equals(toString(), ((DeviceConfigCollection) obj).toString());
+		return Objects.equals(toString(), ((DeviceState) obj).toString());
 	}
 	@Override
 	public int hashCode() {

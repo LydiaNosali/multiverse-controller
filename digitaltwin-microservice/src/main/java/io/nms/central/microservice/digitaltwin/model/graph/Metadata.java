@@ -11,11 +11,11 @@ import io.vertx.core.json.JsonObject;
 @DataObject(generateConverter = true)
 public class Metadata {
 	
-	public enum BgpStatus {
+	public enum BgpStatusEnum {
 		up("up"),
 		down("down");
 		private String value;
-		private BgpStatus(String value) { this.value = value; }
+		private BgpStatusEnum(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 }
 
@@ -29,13 +29,13 @@ public class Metadata {
 	private String platform;
 	
 	@JsonProperty("TYPE")
-	private HostType type;
+	private HostTypeEnum type;
 	
 	@JsonProperty("BGP_ASN")
 	private String bgpAsn;
 	
 	@JsonProperty("BGP_STATUS")
-	private BgpStatus bgpStatus;
+	private BgpStatusEnum bgpStatus;
 	
 	@JsonProperty("HWSKU")
 	private String hwsku;
@@ -64,10 +64,10 @@ public class Metadata {
 	public void setPlatform(String platform) {
 		this.platform = platform;
 	}
-	public HostType getType() {
+	public HostTypeEnum getType() {
 		return type;
 	}
-	public void setType(HostType type) {
+	public void setType(HostTypeEnum type) {
 		this.type = type;
 	}
 	public String getBgpAsn() {
@@ -89,10 +89,10 @@ public class Metadata {
 	public JsonObject toJson() {
 		return new JsonObject(JsonUtils.pojo2Json(this, false));
 	}
-	public BgpStatus getBgpStatus() {
+	public BgpStatusEnum getBgpStatus() {
 		return bgpStatus;
 	}
-	public void setBgpStatus(BgpStatus bgpStatus) {
+	public void setBgpStatus(BgpStatusEnum bgpStatus) {
 		this.bgpStatus = bgpStatus;
 	}
 	@Override

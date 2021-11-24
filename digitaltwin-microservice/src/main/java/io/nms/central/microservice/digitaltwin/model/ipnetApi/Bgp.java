@@ -3,7 +3,7 @@ package io.nms.central.microservice.digitaltwin.model.ipnetApi;
 import java.util.Objects;
 
 import io.nms.central.microservice.common.functional.JsonUtils;
-import io.nms.central.microservice.digitaltwin.model.graph.BgpState;
+import io.nms.central.microservice.digitaltwin.model.graph.BgpStateEnum;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
@@ -18,7 +18,7 @@ public class Bgp extends Configurable {
 	private String remoteId;
 	private String holdTime;
 	private String keepAlive;
-	private BgpState state;
+	private BgpStateEnum state;
 	
 	/*-----------------------------------------------*/
 
@@ -92,10 +92,10 @@ public class Bgp extends Configurable {
 	public void setKeepAlive(String keepAlive) {
 		this.keepAlive = keepAlive;
 	}
-	public BgpState getState() {
+	public BgpStateEnum getState() {
 		return state;
 	}
-	public void setState(BgpState state) {
+	public void setState(BgpStateEnum state) {
 		this.state = state;
 	}
 	

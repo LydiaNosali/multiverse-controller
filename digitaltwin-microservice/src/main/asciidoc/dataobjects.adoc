@@ -60,7 +60,7 @@
 |[[remoteAddr]]`@remoteAddr`|`String`|-
 |[[remoteAsn]]`@remoteAsn`|`String`|-
 |[[remoteId]]`@remoteId`|`String`|-
-|[[state]]`@state`|`link:enums.html#BgpState[BgpState]`|-
+|[[state]]`@state`|`link:enums.html#BgpStateEnum[BgpStateEnum]`|-
 |===
 
 [[Bgp]]
@@ -71,7 +71,7 @@
 [frame="topbot"]
 |===
 ^|Name | Type ^| Description
-|[[bgpState]]`@bgpState`|`link:enums.html#BgpState[BgpState]`|-
+|[[bgpState]]`@bgpState`|`link:enums.html#BgpStateEnum[BgpStateEnum]`|-
 |[[holdTime]]`@holdTime`|`String`|-
 |[[keepAlive]]`@keepAlive`|`String`|-
 |[[localAddress]]`@localAddress`|`String`|-
@@ -111,11 +111,11 @@
 |[[mac]]`@mac`|`String`|-
 |[[name]]`@name`|`String`|-
 |[[platform]]`@platform`|`String`|-
-|[[type]]`@type`|`link:enums.html#HostType[HostType]`|-
+|[[type]]`@type`|`link:enums.html#HostTypeEnum[HostTypeEnum]`|-
 |===
 
-[[DeviceConfigCollection]]
-== DeviceConfigCollection
+[[DeviceState]]
+== DeviceState
 
 
 [cols=">25%,25%,50%"]
@@ -163,14 +163,14 @@
 [frame="topbot"]
 |===
 ^|Name | Type ^| Description
-|[[adminStatus]]`@adminStatus`|`link:enums.html#InterfaceStatus[InterfaceStatus]`|-
+|[[adminStatus]]`@adminStatus`|`link:enums.html#InterfaceStatusEnum[InterfaceStatusEnum]`|-
 |[[index]]`@index`|`String`|-
 |[[ipAddr]]`@ipAddr`|`String`|-
 |[[macAddr]]`@macAddr`|`String`|-
 |[[mtu]]`@mtu`|`String`|-
 |[[name]]`@name`|`String`|-
 |[[speed]]`@speed`|`String`|-
-|[[type]]`@type`|`link:enums.html#InterfaceType[InterfaceType]`|-
+|[[type]]`@type`|`link:enums.html#InterfaceTypeEnum[InterfaceTypeEnum]`|-
 |===
 
 [[IpRoute]]
@@ -235,24 +235,12 @@
 |===
 ^|Name | Type ^| Description
 |[[bgpAsn]]`@bgpAsn`|`String`|-
-|[[bgpStatus]]`@bgpStatus`|`link:enums.html#BgpStatus[BgpStatus]`|-
+|[[bgpStatus]]`@bgpStatus`|`link:enums.html#BgpStatusEnum[BgpStatusEnum]`|-
 |[[hostname]]`@hostname`|`String`|-
 |[[hwsku]]`@hwsku`|`String`|-
 |[[mac]]`@mac`|`String`|-
 |[[platform]]`@platform`|`String`|-
-|[[type]]`@type`|`link:enums.html#HostType[HostType]`|-
-|===
-
-[[NetConfigCollection]]
-== NetConfigCollection
-
-
-[cols=">25%,25%,50%"]
-[frame="topbot"]
-|===
-^|Name | Type ^| Description
-|[[configs]]`@configs`|`link:dataobjects.html#DeviceConfigCollection[DeviceConfigCollection]`|-
-|[[id]]`@id`|`Number (int)`|-
+|[[type]]`@type`|`link:enums.html#HostTypeEnum[HostTypeEnum]`|-
 |===
 
 [[NetInterface]]
@@ -287,6 +275,18 @@
 |[[devices]]`@devices`|`Array of link:dataobjects.html#Device[Device]`|-
 |[[links]]`@links`|`Array of link:dataobjects.html#Link[Link]`|-
 |[[subnets]]`@subnets`|`Array of link:dataobjects.html#IpSubnet[IpSubnet]`|-
+|===
+
+[[NetworkState]]
+== NetworkState
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[configs]]`@configs`|`link:dataobjects.html#DeviceState[DeviceState]`|-
+|[[id]]`@id`|`Number (int)`|-
 |===
 
 [[VerificationReport]]

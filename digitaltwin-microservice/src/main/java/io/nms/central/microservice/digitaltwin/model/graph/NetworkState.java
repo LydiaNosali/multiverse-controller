@@ -9,27 +9,27 @@ import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
-public class NetConfigCollection {
+public class NetworkState {
 
 	private int id = 0;
 	// collectionTime
 	// collectionAgent
-	public Map<String, DeviceConfigCollection> getConfigs() {
+	public Map<String, DeviceState> getConfigs() {
 		return configs;
 	}
-	public void setConfigs(Map<String, DeviceConfigCollection> configs) {
+	public void setConfigs(Map<String, DeviceState> configs) {
 		this.configs = configs;
 	}
-	private Map<String, DeviceConfigCollection> configs = new HashMap<String, DeviceConfigCollection>();
+	private Map<String, DeviceState> configs = new HashMap<String, DeviceState>();
 	
 	/*-----------------------------------------------*/
 
-	public NetConfigCollection() {}
-	public NetConfigCollection(int id) {
+	public NetworkState() {}
+	public NetworkState(int id) {
 		this.id = id;
 	}
-	public NetConfigCollection(JsonObject json) {
-		JsonUtils.fromJson(json, this, NetConfigCollection.class);
+	public NetworkState(JsonObject json) {
+		JsonUtils.fromJson(json, this, NetworkState.class);
 	}
 
 	/*-----------------------------------------------*/
@@ -43,7 +43,7 @@ public class NetConfigCollection {
 	}
 	@Override
 	public boolean equals(Object obj) {
-		return Objects.equals(toString(), ((NetConfigCollection) obj).toString());
+		return Objects.equals(toString(), ((NetworkState) obj).toString());
 	}
 	@Override
 	public int hashCode() {

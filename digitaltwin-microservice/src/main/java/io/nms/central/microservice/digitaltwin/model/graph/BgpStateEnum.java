@@ -1,6 +1,6 @@
 package io.nms.central.microservice.digitaltwin.model.graph;
 
-public enum BgpState {
+public enum BgpStateEnum {
 		Idle("Idle"),
 		Connect("Connect"),
 		Active("Active"),
@@ -8,6 +8,6 @@ public enum BgpState {
 		OpenConfirm("OpenConfirm"),
 		Established("Established");
 		private String value;
-		private BgpState(String value) { this.value = value; }
+		private BgpStateEnum(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 }

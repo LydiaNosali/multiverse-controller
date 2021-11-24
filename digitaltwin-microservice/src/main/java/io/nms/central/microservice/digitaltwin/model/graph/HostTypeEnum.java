@@ -1,6 +1,6 @@
 package io.nms.central.microservice.digitaltwin.model.graph;
 
-public enum HostType {
+public enum HostTypeEnum {
 
 	SpineRouter("SpineRouter"),
 	LeafRouter("LeafRouter"),
@@ -10,6 +10,6 @@ public enum HostType {
 	Switch("Switch");
 
 	private String value;
-	private HostType(String value) { this.value = value; }
+	private HostTypeEnum(String value) { this.value = value; }
 	public String getValue() { return this.value; }
 }

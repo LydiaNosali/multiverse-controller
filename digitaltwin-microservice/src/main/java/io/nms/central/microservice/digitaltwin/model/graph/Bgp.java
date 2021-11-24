@@ -36,7 +36,7 @@ public class Bgp {
 	private String keepAlive;
 	
 	@JsonProperty("BGPSTATE")
-	private BgpState bgpState;
+	private BgpStateEnum bgpState;
 	
 	/*-----------------------------------------------*/
 
@@ -110,10 +110,10 @@ public class Bgp {
 	public void setKeepAlive(String keepAlive) {
 		this.keepAlive = keepAlive;
 	}
-	public BgpState getBgpState() {
+	public BgpStateEnum getBgpState() {
 		return bgpState;
 	}
-	public void setBgpState(BgpState bgpState) {
+	public void setBgpState(BgpStateEnum bgpState) {
 		this.bgpState = bgpState;
 	}
 

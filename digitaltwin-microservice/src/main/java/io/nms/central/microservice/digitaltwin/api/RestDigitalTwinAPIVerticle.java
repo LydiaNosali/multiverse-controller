@@ -8,8 +8,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.nms.central.microservice.common.RestAPIVerticle;
 import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
-import io.nms.central.microservice.digitaltwin.model.graph.DeviceConfigCollection;
-import io.nms.central.microservice.digitaltwin.model.graph.NetConfigCollection;
+import io.nms.central.microservice.digitaltwin.model.graph.DeviceState;
+import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
@@ -71,7 +71,8 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		router.get(API_VERSION).handler(this::apiVersion);
 		
 		/* Operations on running network */
-		router.post(API_RUNNING).handler(this::checkAdminRole).handler(this::apiRunningProcessNetworkConfig);
+		router.post(API_RUNNING).handler(this::checkAdminRole).handler(this::apiProcessNetworkRunningState);
+
 		router.get(API_RUNNING_VERIFY).handler(this::checkAdminRole).handler(this::apiRunningVerifyNetwork);
 		router.get(API_RUNNING_NETWORK).handler(this::checkAdminRole).handler(this::apiRunningGetNetwork);
 		router.get(API_RUNNING_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiRunningGetDevice);
@@ -113,15 +114,15 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	}
 	
 	/* Operations on running network */
-	private void apiRunningProcessNetworkConfig(RoutingContext context) {
+	private void apiProcessNetworkRunningState(RoutingContext context) {
 		try {
-			TypeReference<HashMap<String,DeviceConfigCollection>> typeRef 
-            		= new TypeReference<HashMap<String,DeviceConfigCollection>>() {};
-			final Map<String, DeviceConfigCollection> configs 
+			TypeReference<HashMap<String,DeviceState>> typeRef 
+            		= new TypeReference<HashMap<String,DeviceState>>() {};
+			final Map<String, DeviceState> deviceStates 
 					= JsonUtils.json2Pojo(context.getBodyAsString(), typeRef);
-			final NetConfigCollection netConfig = new NetConfigCollection();
-			netConfig.setConfigs(configs);
-			service.runningProcessNetworkConfig(netConfig, resultHandlerNonEmpty(context));
+			final NetworkState netState = new NetworkState();
+			netState.setConfigs(deviceStates);
+			service.processNetworkRunningState(netState, resultHandlerNonEmpty(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
 			badRequest(context, e);
