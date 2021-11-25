@@ -10,7 +10,7 @@ import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.common.service.JdbcRepositoryWrapper;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.nms.central.microservice.topology.TopologyService;
-import io.nms.central.microservice.topology.model.CrossConnect;
+import io.nms.central.microservice.topology.model.VcrossConnect;
 import io.nms.central.microservice.topology.model.EtherConnInfo;
 import io.nms.central.microservice.topology.model.NdnConnInfo;
 import io.nms.central.microservice.topology.model.Prefix;
@@ -23,6 +23,8 @@ import io.nms.central.microservice.topology.model.Vltp;
 import io.nms.central.microservice.topology.model.Vnode;
 import io.nms.central.microservice.topology.model.Vnode.NodeTypeEnum;
 import io.nms.central.microservice.topology.model.Vsubnet;
+import io.nms.central.microservice.topology.model.Vsubnet.SubnetTypeEnum;
+import io.nms.central.microservice.topology.model.Vtrail;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -55,8 +57,9 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		statements.add(ApiSql.CREATE_TABLE_VLINK);
 		statements.add(ApiSql.CREATE_TABLE_VLINKCONN);
 		statements.add(ApiSql.CREATE_TABLE_VCONNECTION);
+		statements.add(ApiSql.CREATE_TABLE_VTRAIL);
+		statements.add(ApiSql.CREATE_TABLE_VCROSS_CONNECT);
 		statements.add(ApiSql.CREATE_TABLE_PREFIX);
-		statements.add(ApiSql.CREATE_TABLE_CROSS_CONNECTS);
 		client.getConnection(conn -> {
 			if (conn.succeeded()) {
 				conn.result().batch(statements, r -> {
@@ -107,6 +110,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vsubnet.getName())
 				.add(vsubnet.getLabel())
 				.add(vsubnet.getDescription())
+				.add(vsubnet.getType().getValue())
 				.add(JsonUtils.pojo2Json(vsubnet.getInfo(), false));
 		insert(ApiSql.INSERT_VSUBNET, params, resultHandler);
 		return this;
@@ -123,6 +127,15 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	@Override
 	public TopologyService getAllVsubnets(Handler<AsyncResult<List<Vsubnet>>> resultHandler) {
 		this.find(ApiSql.FETCH_ALL_VSUBNETS).map(rawList -> rawList.stream().map(row -> {
+			return JsonUtils.json2Pojo(row.encode(), Vsubnet.class);
+		}).collect(Collectors.toList())).onComplete(resultHandler);
+		return this;
+	}
+	
+	@Override
+	public TopologyService getVsubnetsByType(SubnetTypeEnum type, Handler<AsyncResult<List<Vsubnet>>> resultHandler) {
+		this.find(ApiSql.FETCH_VSUBNETS_BY_TYPE, new JsonArray().add(type.getValue()))
+				.map(rawList -> rawList.stream().map(row -> {
 			return JsonUtils.json2Pojo(row.encode(), Vsubnet.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
@@ -181,14 +194,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		this.findOne(ApiSql.FETCH_VNODE_BY_ID, new JsonArray().add(vnodeId)).map(json -> {
 			return JsonUtils.json2Pojo(json.encode(), Vnode.class);
 		}).onComplete(resultHandler);
-		return this;
-	}
-
-	@Override
-	public TopologyService getAllVnodes(Handler<AsyncResult<List<Vnode>>> resultHandler) {
-		this.find(ApiSql.FETCH_ALL_VNODES).map(rawList -> rawList.stream().map(row -> {
-			return JsonUtils.json2Pojo(row.encode(), Vnode.class);
-		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
 
@@ -303,13 +308,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		return this;
 	}
 
-	@Override
-	public TopologyService getAllVltps(Handler<AsyncResult<List<Vltp>>> resultHandler) {
-		find(ApiSql.FETCH_ALL_VLTPS).map(rawList -> rawList.stream().map(row -> {
-			return JsonUtils.json2Pojo(row.encode(), Vltp.class);
-		}).collect(Collectors.toList())).onComplete(resultHandler);
-		return this;
-	}
 
 	@Override
 	public TopologyService getVltpsByVnode(String vnodeId, Handler<AsyncResult<List<Vltp>>> resultHandler) {
@@ -455,20 +453,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	}
 
 	@Override
-	public TopologyService getAllVctps(Handler<AsyncResult<List<Vctp>>> resultHandler) {
-		find(ApiSql.FETCH_ALL_VCTPS).map(rawList -> rawList.stream().map(row -> {
-			if (row.getInteger("vltpId") == null) {
-				row.remove("vltpId");
-			}
-			if (row.getInteger("vctpId") == null) {
-				row.remove("vctpId");
-			}
-			return JsonUtils.json2Pojo(row.encode(), Vctp.class);
-		}).collect(Collectors.toList())).onComplete(resultHandler);
-		return this;
-	}
-
-	@Override
 	public TopologyService getVctpsByType(ConnTypeEnum type, Handler<AsyncResult<List<Vctp>>> resultHandler) {
 		JsonArray params = new JsonArray().add(type.getValue());
 		find(ApiSql.FETCH_VCTPS_BY_TYPE, params).map(rawList -> rawList.stream().map(row -> {
@@ -586,14 +570,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	}
 
 	@Override
-	public TopologyService getAllVlinks(Handler<AsyncResult<List<Vlink>>> resultHandler) {
-		find(ApiSql.FETCH_ALL_VLINKS).map(rawList -> rawList.stream().map(row -> {
-			return JsonUtils.json2Pojo(row.encode(), Vlink.class);
-		}).collect(Collectors.toList())).onComplete(resultHandler);
-		return this;
-	}
-
-	@Override
 	public TopologyService getVlinksByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vlink>>> resultHandler) {
 		JsonArray params = new JsonArray().add(vsubnetId);
 		find(ApiSql.FETCH_VLINKS_BY_VSUBNET, params).map(rawList -> rawList.stream().map(row -> {
@@ -647,6 +623,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		});
 	}
 
+
 	/********** VlinkConn **********/
 	@Override
 	public TopologyService addVlinkConn(VlinkConn vlinkConn, Handler<AsyncResult<Integer>> resultHandler) {
@@ -669,14 +646,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		findOne(ApiSql.FETCH_VLINKCONN_BY_ID, new JsonArray().add(vlinkConnId)).map(json -> {
 			return JsonUtils.json2Pojo(json.encode(), VlinkConn.class);
 		}).onComplete(resultHandler);
-		return this;
-	}
-
-	@Override
-	public TopologyService getAllVlinkConns(Handler<AsyncResult<List<VlinkConn>>> resultHandler) {
-		find(ApiSql.FETCH_ALL_VLINKCONNS).map(rawList -> rawList.stream().map(row -> {
-			return JsonUtils.json2Pojo(row.encode(), VlinkConn.class);
-		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
 
@@ -716,6 +685,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		return this;
 	}
 
+
 	/********** Vconnection **********/
 	@Override
 	public TopologyService addVconnection(Vconnection vconnection, Handler<AsyncResult<Integer>> resultHandler) {
@@ -739,19 +709,24 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		}).onComplete(resultHandler);
 		return this;
 	}
-
+	
 	@Override
-	public TopologyService getAllVconnections(Handler<AsyncResult<List<Vconnection>>> resultHandler) {
-		find(ApiSql.FETCH_ALL_VCONNECTIONS).map(rawList -> rawList.stream().map(row -> {
+	public TopologyService getVconnectionsByType(ConnTypeEnum type, 
+			Handler<AsyncResult<List<Vconnection>>> resultHandler) {
+		JsonArray params = new JsonArray().add(type.getValue());
+		find(ApiSql.FETCH_VCONNECTIONS_BY_TYPE, params).map(rawList -> rawList.stream().map(row -> {
 			return JsonUtils.json2Pojo(row.encode(), Vconnection.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
 
 	@Override
-	public TopologyService getVconnectionsByType(ConnTypeEnum type, Handler<AsyncResult<List<Vconnection>>> resultHandler) {
-		JsonArray params = new JsonArray().add(type.getValue());
-		find(ApiSql.FETCH_VCONNECTIONS_BY_TYPE, params).map(rawList -> rawList.stream().map(row -> {
+	public TopologyService getVconnectionsByVsubnetByType(String vsubnetId, ConnTypeEnum type, 
+			Handler<AsyncResult<List<Vconnection>>> resultHandler) {
+		JsonArray params = new JsonArray()
+				.add(vsubnetId)
+				.add(type.getValue());
+		find(ApiSql.FETCH_VCONNECTIONS_BY_VSUBNET_BY_TYPE, params).map(rawList -> rawList.stream().map(row -> {
 			return JsonUtils.json2Pojo(row.encode(), Vconnection.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
@@ -784,7 +759,132 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		return this;
 	}
 
-	/********** PrefixAnn **********/
+
+	/********** Vtrail **********/
+	@Override
+	public TopologyService addVtrail(Vtrail vtrail, Handler<AsyncResult<Integer>> resultHandler) {
+		JsonArray pVtrail = new JsonArray()
+				.add(vtrail.getName())
+				.add(vtrail.getLabel())
+				.add(vtrail.getDescription())
+				.add(JsonUtils.pojo2Json(vtrail.getInfo(), false))
+				.add(vtrail.getStatus().getValue())
+				.add(vtrail.getSrcVnodeId())
+				.add(vtrail.getTrgtVnodeId());
+		insert(ApiSql.INSERT_VTRAIL, pVtrail, resultHandler);
+		return this;
+	}
+
+	@Override
+	public TopologyService getVtrail(String id, Handler<AsyncResult<Vtrail>> resultHandler) {
+		findOne(ApiSql.FETCH_VTRAIL_BY_ID, new JsonArray().add(id)).map(json -> {
+			return JsonUtils.json2Pojo(json.encode(), Vtrail.class);
+		}).onComplete(resultHandler);
+		return this;
+	}
+
+	@Override
+	public TopologyService getVtrailsByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vtrail>>> resultHandler) {
+		JsonArray params = new JsonArray().add(vsubnetId);
+		find(ApiSql.FETCH_VTRAILS_BY_VSUBNET, params).map(rawList -> rawList.stream().map(row -> {
+			return JsonUtils.json2Pojo(row.encode(), Vtrail.class);
+		}).collect(Collectors.toList())).onComplete(resultHandler);
+		return this;
+	}
+
+	@Override
+	public TopologyService deleteVtrail(String id, Handler<AsyncResult<Void>> resultHandler) {
+		delete(ApiSql.DELETE_VTRAIL, new JsonArray().add(id), resultHandler);
+		return this;
+	}
+
+	@Override
+	public TopologyService updateVtrail(String id, Vtrail vtrail, Handler<AsyncResult<Void>> resultHandler) {
+		JsonArray params = new JsonArray()
+				.add(vtrail.getLabel())
+				.add(vtrail.getDescription())
+				.add(JsonUtils.pojo2Json(vtrail.getInfo(), false))
+				.add(vtrail.getStatus().getValue())
+				.add(id);
+		execute(ApiSql.UPDATE_VTRAIL, params, resultHandler);
+		return this;
+	}
+
+
+	/********** CrossConnect **********/
+	@Override
+	public TopologyService addVcrossConnect(VcrossConnect vcrossConnect, Handler<AsyncResult<Integer>> resultHandler) {
+		JsonArray checkParams = new JsonArray()
+				.add(vcrossConnect.getSwitchId())
+				.add(Vnode.NodeTypeEnum.SWITCH.getValue())
+				.add(vcrossConnect.getIngressPortId())
+				.add(vcrossConnect.getEgressPortId());
+		
+		findOne(ApiSql.XC_CHECK_AND_GET_INFO, checkParams)
+			.onComplete(res -> {
+				if (res.succeeded()) {
+					JsonArray params = new JsonArray()
+							.add(vcrossConnect.getName())
+							.add(vcrossConnect.getLabel())
+							.add(vcrossConnect.getDescription())
+							.add(JsonUtils.pojo2Json(vcrossConnect.getInfo(), false))
+							.add(vcrossConnect.getStatus().getValue())
+							.add(vcrossConnect.getTrailId())
+							.add(vcrossConnect.getSwitchId())
+							.add(vcrossConnect.getIngressPortId())
+							.add(vcrossConnect.getEgressPortId());
+					insert(ApiSql.INSERT_VCROSS_CONNECT, params, resultHandler);
+				} else {
+					resultHandler.handle(Future.failedFuture(res.cause()));
+				}
+		});
+		return this;
+	}
+
+	@Override
+	public TopologyService getVcrossConnectById(String vcrossConnectId, Handler<AsyncResult<VcrossConnect>> resultHandler) {
+		findOne(ApiSql.FETCH_VCROSS_CONNECT_BY_ID, new JsonArray().add(vcrossConnectId)).map(json -> {
+			return JsonUtils.json2Pojo(json.encode(), VcrossConnect.class);
+		}).onComplete(resultHandler);
+		return this;
+	}
+
+	@Override
+	public TopologyService getVcrossConnectsByNode(String nodeId, Handler<AsyncResult<List<VcrossConnect>>> resultHandler) {
+		JsonArray params = new JsonArray().add(nodeId);
+		find(ApiSql.FETCH_VCROSS_CONNECTS_BY_NODE, params).map(rawList -> rawList.stream().map(row -> {
+			return JsonUtils.json2Pojo(row.encode(), VcrossConnect.class);
+		}).collect(Collectors.toList())).onComplete(resultHandler);
+		return this;
+	}
+
+	@Override
+	public TopologyService deleteVcrossConnect(String vcrossConnectId, Handler<AsyncResult<Void>> resultHandler) {		
+		findOne(ApiSql.XC_GET_INFO, new JsonArray().add(vcrossConnectId))
+			.onComplete(res -> {
+				if (res.succeeded()) {
+					delete(ApiSql.DELETE_VCROSS_CONNECT, new JsonArray().add(vcrossConnectId), resultHandler);
+				} else {
+					resultHandler.handle(Future.failedFuture(res.cause()));
+				}
+		});
+		return this;
+	}
+	
+	@Override
+	public TopologyService updateVcrossConnect(String id, VcrossConnect vcrossConnect, Handler<AsyncResult<Void>> resultHandler) {
+		JsonArray params = new JsonArray()
+				.add(vcrossConnect.getLabel())
+				.add(vcrossConnect.getDescription())
+				.add(JsonUtils.pojo2Json(vcrossConnect.getInfo(), false))
+				.add(vcrossConnect.getStatus())
+				.add(id);
+		execute(ApiSql.UPDATE_VCROSS_CONNECT, params, resultHandler);
+		return this;
+	}
+
+
+	/********** Prefix **********/
 	@Override
 	public TopologyService addPrefix(Prefix prefix, Handler<AsyncResult<Integer>> resultHandler) {
 		JsonArray params = new JsonArray()
@@ -840,62 +940,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService deletePrefixByName(int originId, String name, Handler<AsyncResult<Void>> resultHandler) {
 		JsonArray params = new JsonArray().add(originId).add(name);
 		execute(ApiSql.DELETE_PREFIX_BY_NAME, params, resultHandler);
-		return this;
-	}
-
-	/********** CrossConnect **********/
-	@Override
-	public TopologyService addCrossConnect(CrossConnect crossConnect, Handler<AsyncResult<Integer>> resultHandler) {
-		JsonArray checkParams = new JsonArray()
-				.add(crossConnect.getSwitchId())
-				.add(crossConnect.getIngressPortId())
-				.add(crossConnect.getEgressPortId());
-		
-		findOne(ApiSql.XC_CHECK_AND_GET_INFO, checkParams)
-			.onComplete(res -> {
-				if (res.succeeded()) {
-					JsonArray params = new JsonArray()
-							.add(crossConnect.getName())
-							.add(crossConnect.getLabel())
-							.add(crossConnect.getDescription())
-							.add(crossConnect.getSwitchId())
-							.add(crossConnect.getIngressPortId())
-							.add(crossConnect.getEgressPortId());
-					insert(ApiSql.INSERT_CROSS_CONNECT, params, resultHandler);
-				} else {
-					resultHandler.handle(Future.failedFuture(res.cause()));
-				}
-		});
-		return this;
-	}
-
-	@Override
-	public TopologyService getCrossConnectById(String crossConnectId, Handler<AsyncResult<CrossConnect>> resultHandler) {
-		findOne(ApiSql.FETCH_CROSS_CONNECT_BY_ID, new JsonArray().add(crossConnectId)).map(json -> {
-			return JsonUtils.json2Pojo(json.encode(), CrossConnect.class);
-		}).onComplete(resultHandler);
-		return this;
-	}
-
-	@Override
-	public TopologyService getCrossConnectsByNode(String nodeId, Handler<AsyncResult<List<CrossConnect>>> resultHandler) {
-		JsonArray params = new JsonArray().add(nodeId);
-		find(ApiSql.FETCH_CROSS_CONNECTS_BY_NODE, params).map(rawList -> rawList.stream().map(row -> {
-			return JsonUtils.json2Pojo(row.encode(), CrossConnect.class);
-		}).collect(Collectors.toList())).onComplete(resultHandler);
-		return this;
-	}
-
-	@Override
-	public TopologyService deleteCrossConnect(String crossConnectId, Handler<AsyncResult<Void>> resultHandler) {		
-		findOne(ApiSql.XC_GET_INFO, new JsonArray().add(crossConnectId))
-			.onComplete(res -> {
-				if (res.succeeded()) {
-					delete(ApiSql.DELETE_CROSS_CONNECT, new JsonArray().add(crossConnectId), resultHandler);
-				} else {
-					resultHandler.handle(Future.failedFuture(res.cause()));
-				}
-		});
 		return this;
 	}
 

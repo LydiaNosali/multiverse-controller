@@ -1,25 +1,5 @@
 = Cheatsheets
 
-[[CrossConnect]]
-== CrossConnect
-
-
-[cols=">25%,25%,50%"]
-[frame="topbot"]
-|===
-^|Name | Type ^| Description
-|[[created]]`@created`|`String`|-
-|[[description]]`@description`|`String`|-
-|[[egressPortId]]`@egressPortId`|`Number (int)`|-
-|[[id]]`@id`|`Number (int)`|-
-|[[ingressPortId]]`@ingressPortId`|`Number (int)`|-
-|[[label]]`@label`|`String`|-
-|[[name]]`@name`|`String`|-
-|[[switchId]]`@switchId`|`Number (int)`|-
-|[[switchIpAddr]]`@switchIpAddr`|`String`|-
-|[[updated]]`@updated`|`String`|-
-|===
-
 [[EtherConnInfo]]
 == EtherConnInfo
 
@@ -129,6 +109,28 @@
 |[[srcVctpId]]`@srcVctpId`|`Number (int)`|-
 |[[srcVnodeId]]`@srcVnodeId`|`Number (int)`|-
 |[[status]]`@status`|`link:enums.html#StatusEnum[StatusEnum]`|-
+|[[updated]]`@updated`|`String`|-
+|===
+
+[[VcrossConnect]]
+== VcrossConnect
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[created]]`@created`|`String`|-
+|[[description]]`@description`|`String`|-
+|[[egressPortId]]`@egressPortId`|`Number (int)`|-
+|[[id]]`@id`|`Number (int)`|-
+|[[ingressPortId]]`@ingressPortId`|`Number (int)`|-
+|[[label]]`@label`|`String`|-
+|[[name]]`@name`|`String`|-
+|[[status]]`@status`|`link:enums.html#StatusEnum[StatusEnum]`|-
+|[[switchId]]`@switchId`|`Number (int)`|-
+|[[switchIpAddr]]`@switchIpAddr`|`String`|-
+|[[trailId]]`@trailId`|`Number (int)`|-
 |[[updated]]`@updated`|`String`|-
 |===
 
@@ -256,6 +258,26 @@
 |[[id]]`@id`|`Number (int)`|-
 |[[label]]`@label`|`String`|-
 |[[name]]`@name`|`String`|-
+|[[type]]`@type`|`link:enums.html#SubnetTypeEnum[SubnetTypeEnum]`|-
+|[[updated]]`@updated`|`String`|-
+|===
+
+[[Vtrail]]
+== Vtrail
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[created]]`@created`|`String`|-
+|[[description]]`@description`|`String`|-
+|[[id]]`@id`|`Number (int)`|-
+|[[label]]`@label`|`String`|-
+|[[name]]`@name`|`String`|-
+|[[srcVnodeId]]`@srcVnodeId`|`Number (int)`|-
+|[[status]]`@status`|`link:enums.html#StatusEnum[StatusEnum]`|-
+|[[trgtVnodeId]]`@trgtVnodeId`|`Number (int)`|-
 |[[updated]]`@updated`|`String`|-
 |===
 

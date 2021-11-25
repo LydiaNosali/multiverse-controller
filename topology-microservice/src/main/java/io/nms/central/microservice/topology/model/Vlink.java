@@ -20,12 +20,12 @@ public class Vlink {
 	private String created;
 	private String updated;
 	private StatusEnum status;
-	private Map<String, Object> info = new HashMap<String, Object>();	
+	private Map<String, Object> info = new HashMap<String, Object>();
 		
 		// vlink fields
 	private int srcVltpId;	
 	private int destVltpId;
-	
+
 		// in object only
 	private int srcVnodeId;
 	private int destVnodeId;

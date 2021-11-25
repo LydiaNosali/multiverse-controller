@@ -10,12 +10,22 @@ import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
 public class Vsubnet {
+	
+	public enum SubnetTypeEnum {
+		QNET("QNET"),
+		NDN("NDN");
+
+		private String value;
+		private SubnetTypeEnum(String value) { this.value = value; }
+		public String getValue() { return this.value; }
+	};
 
 	// common fields
 	private int id = 0;
 	private String name;
 	private String label;
 	private String description;
+	private SubnetTypeEnum type;
 	private String created;
 	private String updated;
 	private Map<String, Object> info = new HashMap<String, Object>();
@@ -97,6 +107,12 @@ public class Vsubnet {
 	}
 	public void setInfo(Map<String, Object> info) {
 		this.info = info;
+	}
+	public SubnetTypeEnum getType() {
+		return type;
+	}
+	public void setType(SubnetTypeEnum type) {
+		this.type = type;
 	}
 }
 

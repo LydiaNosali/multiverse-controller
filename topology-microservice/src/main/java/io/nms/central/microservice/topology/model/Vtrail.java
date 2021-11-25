@@ -1,33 +1,36 @@
 package io.nms.central.microservice.topology.model;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import io.nms.central.microservice.common.functional.JsonUtils;
+import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
-public class CrossConnect {
+public class Vtrail {
     // fields
     private int id;
     private String name;
 	private String label;
 	private String description;
-    private int switchId;
-    private String switchIpAddr;
-    private int ingressPortId; 
-    private int egressPortId;
+    private int srcVnodeId;
+    private int trgtVnodeId;
     private String created;
 	private String updated;
+	private StatusEnum status;
+	private Map<String, Object> info = new HashMap<String, Object>();
     
     /*-----------------------------------------------*/
 
-	public CrossConnect() {}
-	public CrossConnect(int id) {
+	public Vtrail() {}
+	public Vtrail(int id) {
 		this.id = id;
 	}
-	public CrossConnect(JsonObject json) {
-		JsonUtils.fromJson(json, this, CrossConnect.class);
+	public Vtrail(JsonObject json) {
+		JsonUtils.fromJson(json, this, Vtrail.class);
 	}
 
 	/*-----------------------------------------------*/
@@ -41,7 +44,7 @@ public class CrossConnect {
 	}
 	@Override
 	public boolean equals(Object obj) {
-		return Objects.equals(toString(), ((CrossConnect) obj).toString());
+		return Objects.equals(toString(), ((Vtrail) obj).toString());
 	}
 	@Override
 	public int hashCode() {
@@ -57,34 +60,18 @@ public class CrossConnect {
 		this.id = id;
 	}
 
-    public int getSwitchId() {
-		return switchId;
+	public int getSrcVnodeId() {
+		return srcVnodeId;
 	}
-	public void setSwitchId(int switchId) {
-		this.switchId = switchId;
+	public void setSrcVnodeId(int srcVnodeId) {
+		this.srcVnodeId = srcVnodeId;
 	}
-	
-	public String getSwitchIpAddr() {
-		return switchIpAddr;
+	public int getTrgtVnodeId() {
+		return trgtVnodeId;
 	}
-	public void setSwitchIpAddr(String switchIpAddr) {
-		this.switchIpAddr = switchIpAddr;
+	public void setTrgtVnodeId(int trgtVnodeId) {
+		this.trgtVnodeId = trgtVnodeId;
 	}
-
-	public int getIngressPortId() {
-		return ingressPortId;
-	}
-	public void setIngressPortId(int ingressPortId) {
-		this.ingressPortId = ingressPortId;
-	}
-
-	public int getEgressPortId() {
-		return egressPortId;
-	}
-	public void setEgressPortId(int egressPortId) {
-		this.egressPortId = egressPortId;
-	}
-
 	public String getCreated() {
 		return created;
 	}
@@ -115,5 +102,17 @@ public class CrossConnect {
 	}
 	public void setDescription(String description) {
 		this.description = description;
+	}
+	public Map<String, Object> getInfo() {
+		return info;
+	}
+	public void setInfo(Map<String, Object> info) {
+		this.info = info;
+	}
+	public StatusEnum getStatus() {
+		return status;
+	}
+	public void setStatus(StatusEnum status) {
+		this.status = status;
 	}
 }
