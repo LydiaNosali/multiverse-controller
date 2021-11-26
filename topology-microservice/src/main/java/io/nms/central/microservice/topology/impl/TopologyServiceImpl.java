@@ -1,6 +1,7 @@
 package io.nms.central.microservice.topology.impl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -65,9 +66,14 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				conn.result().batch(statements, r -> {
 					conn.result().close();
 					if (r.succeeded()) {
-						initializeStatus(resultHandler);
+						createDefaultSubnets(sn -> {
+							if (sn.succeeded()) {
+								initializeStatus(resultHandler);
+							} else {
+								resultHandler.handle(Future.failedFuture(r.cause()));
+							}
+						});
 					} else {
-						logger.error("sql error: " + r.cause().getMessage());
 						resultHandler.handle(Future.failedFuture(r.cause()));
 					}
 				});
@@ -86,6 +92,8 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		statements.add(InternalSql.INIT_LINK_STATUS);
 		statements.add(InternalSql.INIT_LC_STATUS);
 		statements.add(InternalSql.INIT_CONNECTION_STATUS);
+		statements.add(InternalSql.INIT_TRAIL_STATUS);
+		statements.add(InternalSql.INIT_CROSSCONNECT_STATUS);
 		statements.add(InternalSql.INIT_PREFIX_STATUS);
 		client.getConnection(conn -> {
 			if (conn.succeeded()) {
@@ -99,6 +107,48 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				});
 			} else {
 				resultHandler.handle(Future.failedFuture(conn.cause()));
+			}
+		});
+	}
+	
+	private void createDefaultSubnets(Handler<AsyncResult<Void>> resultHandler) {
+		Vsubnet defaultNdnSubnet = new Vsubnet();
+		defaultNdnSubnet.setName("default-ndn-sn");
+		defaultNdnSubnet.setLabel("default ndn subnet");
+		defaultNdnSubnet.setDescription("Automatically created NDN subnet");
+		defaultNdnSubnet.setType(SubnetTypeEnum.NDN);
+		defaultNdnSubnet.setInfo(new HashMap<String,Object>());
+		JsonArray params1 = new JsonArray()
+				.add(defaultNdnSubnet.getName())
+				.add(defaultNdnSubnet.getLabel())
+				.add(defaultNdnSubnet.getDescription())
+				.add(defaultNdnSubnet.getType().getValue())
+				.add(JsonUtils.pojo2Json(defaultNdnSubnet.getInfo(), false));
+		
+		Vsubnet defaultQnetSubnet = new Vsubnet();
+		defaultQnetSubnet.setName("default-qnet-sn");
+		defaultQnetSubnet.setLabel("default qnet subnet");
+		defaultQnetSubnet.setDescription("Automatically created Qnet subnet");
+		defaultQnetSubnet.setType(SubnetTypeEnum.QNET);
+		defaultQnetSubnet.setInfo(new HashMap<String,Object>());
+		JsonArray params2 = new JsonArray()
+				.add(defaultNdnSubnet.getName())
+				.add(defaultNdnSubnet.getLabel())
+				.add(defaultNdnSubnet.getDescription())
+				.add(defaultNdnSubnet.getType().getValue())
+				.add(JsonUtils.pojo2Json(defaultNdnSubnet.getInfo(), false));
+
+		execute(InternalSql.INSERT_IGNORE_VSUBNET, params1, sn1 -> {
+			if (sn1.succeeded()) {
+				execute(InternalSql.INSERT_IGNORE_VSUBNET, params1, sn2 -> {
+					if (sn2.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
+					} else {
+						resultHandler.handle(Future.failedFuture(sn2.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(sn1.cause()));
 			}
 		});
 	}

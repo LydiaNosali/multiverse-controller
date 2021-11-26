@@ -66,11 +66,11 @@ public class JdbcRepositoryWrapper {
 			connection.updateWithParams(sql, params, r -> {
 				if (r.succeeded()) {
 					UpdateResult updateResult = r.result();
-					// if (updateResult.getKeys().size() > 0) {
+					if (updateResult.getKeys().size() > 0) {
 						resultHandler.handle(Future.succeededFuture(updateResult.getKeys().getInteger(0)));
-					//} else {
-					//	resultHandler.handle(Future.failedFuture("Not inserted"));
-					//}
+					} else {
+						resultHandler.handle(Future.failedFuture("Not inserted"));
+					}
 				} else {
 					resultHandler.handle(Future.failedFuture(convertError(r.cause())));
 					// resultHandler.handle(Future.failedFuture(r.cause()));
