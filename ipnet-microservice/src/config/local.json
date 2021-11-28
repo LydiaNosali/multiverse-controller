@@ -1,0 +1,6 @@
+{
+  "api.name": "ipnet",
+  "ipnet.http.address": "127.0.0.1",
+  "ipnet.http.port": 8087,
+  "host": "localhost"
+}

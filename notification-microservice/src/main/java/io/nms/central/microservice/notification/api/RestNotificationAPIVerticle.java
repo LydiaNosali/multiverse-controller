@@ -57,7 +57,7 @@ public class RestNotificationAPIVerticle extends RestAPIVerticle {
 
 		router.get(API_ALL_STATUS).handler(this::checkAdminRole).handler(this::apiGetAllStatus); 
 		router.put(API_ONE_STATUS).handler(this::apiPutStatus);
-		router.delete(API_ONE_STATUS).handler(this::checkAdminRole).handler(this::apiDeleteStatus);
+		// router.delete(API_ONE_STATUS).handler(this::checkAdminRole).handler(this::apiDeleteStatus);
 		
 		router.get(API_ALL_EVENT).handler(this::checkAdminRole).handler(this::apiGetAllEvents); 
 		router.put(API_ONE_EVENT).handler(this::checkAgentRole).handler(this::apiPutEvent);
@@ -109,10 +109,10 @@ public class RestNotificationAPIVerticle extends RestAPIVerticle {
 		service.retrieveAllStatus(resultHandlerNonEmpty(context));
 	}
 
-	private void apiDeleteStatus(RoutingContext context) {
+	/* private void apiDeleteStatus(RoutingContext context) {
 		String statusId = context.request().getParam("statusId");		
 		service.removeStatus(statusId, deleteResultHandler(context));
-	}
+	} */
 	
 	
 	private void apiPutEvent(RoutingContext context) {

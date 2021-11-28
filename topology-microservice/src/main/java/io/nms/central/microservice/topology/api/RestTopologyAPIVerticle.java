@@ -1,13 +1,11 @@
 package io.nms.central.microservice.topology.api;
 
-import java.util.Base64;
-
 import io.nms.central.microservice.common.RestAPIVerticle;
-import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.common.functional.JsonUtils;
+import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.topology.TopologyService;
-import io.nms.central.microservice.topology.model.CrossConnect;
-import io.nms.central.microservice.topology.model.PrefixAnn;
-import io.nms.central.microservice.topology.model.Route;
+import io.nms.central.microservice.topology.model.VcrossConnect;
+import io.nms.central.microservice.topology.model.Prefix;
 import io.nms.central.microservice.topology.model.Vconnection;
 import io.nms.central.microservice.topology.model.Vctp;
 import io.nms.central.microservice.topology.model.Vlink;
@@ -15,6 +13,10 @@ import io.nms.central.microservice.topology.model.VlinkConn;
 import io.nms.central.microservice.topology.model.Vltp;
 import io.nms.central.microservice.topology.model.Vnode;
 import io.nms.central.microservice.topology.model.Vsubnet;
+import io.nms.central.microservice.topology.model.Vsubnet.SubnetTypeEnum;
+import io.nms.central.microservice.topology.model.Vtrail;
+import io.nms.central.microservice.topology.model.Vctp.ConnTypeEnum;
+import io.nms.central.microservice.topology.model.Vnode.NodeTypeEnum;
 import io.vertx.core.Future;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -24,6 +26,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+
 
 /**
  * This verticle exposes a HTTP endpoint to process topology operations with
@@ -39,10 +42,12 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 
 	private static final String API_ONE_SUBNET = "/subnet/:subnetId";
 	private static final String API_ALL_SUBNETS = "/subnet";
+	private static final String API_SUBNETS_BY_TYPE = "/subnet/type/:type";
 
 	private static final String API_ONE_NODE = "/node/:nodeId";
 	private static final String API_ALL_NODES = "/node";
 	private static final String API_NODES_BY_SUBNET = "/subnet/:subnetId/nodes";
+	// private static final String API_NODES_BY_SUBNET_BY_TYPE = "/subnet/:subnetId/nodes/type/:type";
 
 	private static final String API_ONE_LTP = "/ltp/:ltpId";
 	private static final String API_ALL_LTPS = "/ltp";
@@ -50,10 +55,10 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 
 	private static final String API_ONE_CTP = "/ctp/:ctpId";
 	private static final String API_ALL_CTPS = "/ctp";
-	private static final String API_CTPS_BY_TYPE = "/ctp/type/:type";
 	private static final String API_CTPS_BY_LTP = "/ltp/:ltpId/ctps";
 	private static final String API_CTPS_BY_CTP = "/ctp/:ctpId/ctps";
 	private static final String API_CTPS_BY_NODE = "/node/:nodeId/ctps";
+	// private static final String API_CTPS_BY_SUBNET_BY_TYPE = "/subnet/:subnetId/ctps/type/:type";
 
 	private static final String API_ONE_LINK = "/link/:linkId";
 	private static final String API_ALL_LINKS = "/link";
@@ -66,23 +71,21 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 
 	private static final String API_ONE_CONNECTION = "/connection/:connectionId";
 	private static final String API_ALL_CONNECTIONS = "/connection";
-	private static final String API_CONNECTIONS_BY_TYPE = "/connection/type/:type";
 	private static final String API_CONNECTIONS_BY_SUBNET = "/subnet/:subnetId/connections";
+	private static final String API_CONNECTIONS_BY_SUBNET_BY_TYPE = "/subnet/:subnetId/connections/type/:type";
 
-	private static final String API_PA = "/pa";
-	private static final String API_ONE_PA = "/pa/:paId";
-	private static final String API_ONE_PA_BY_NAME = "/pa/name/:paName";
-	private static final String API_PAS_BY_SUBNET = "/subnet/:subnetId/pas";
-	private static final String API_PAS_BY_NODE = "/node/:nodeId/pas";
-
-	private static final String API_ONE_ROUTE = "/route/:routeId";
-	private static final String API_ALL_ROUTES = "/route";
-	private static final String API_ROUTES_BY_SUBNET = "/subnet/:subnetId/routes";
-	private static final String API_ROUTES_BY_NODE = "/node/:nodeId/routes";
+	private static final String API_ONE_TRAIL = "/trail/:trailId";
+	private static final String API_ALL_TRAILS = "/trail";
+	private static final String API_TRAILS_BY_SUBNET = "/subnet/:subnetId/trails";
 
 	private static final String API_ONE_CROSS_CONNECT = "/cross-connect/:xcId";
 	private static final String API_ALL_CROSS_CONNECTS = "/cross-connect";
-	private static final String API_CROSS_CONNECTS_BY_SWITCH = "/switch/:switchId/cross-connects";
+	private static final String API_CROSS_CONNECTS_BY_NODE = "/node/:nodeId/cross-connects";
+
+	private static final String API_PREFIX = "/prefix";
+	private static final String API_ONE_PREFIX = "/prefix/:prefixId";
+	private static final String API_PREFIXES_BY_SUBNET = "/subnet/:subnetId/prefixes";
+	private static final String API_PREFIXES_BY_NODE = "/node/:nodeId/prefixes";
 
 	private final TopologyService service;
 
@@ -102,27 +105,24 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 
 		router.post(API_ALL_SUBNETS).handler(this::checkAdminRole).handler(this::apiAddSubnet);
 		router.get(API_ALL_SUBNETS).handler(this::checkAdminRole).handler(this::apiGetAllSubnets);
+		router.get(API_SUBNETS_BY_TYPE).handler(this::checkAdminRole).handler(this::apiGetSubnetsByType);
 		router.get(API_ONE_SUBNET).handler(this::checkAdminRole).handler(this::apiGetSubnet);
 		router.delete(API_ONE_SUBNET).handler(this::checkAdminRole).handler(this::apiDeleteSubnet);
 		router.put(API_ONE_SUBNET).handler(this::checkAdminRole).handler(this::apiUpdateSubnet);
 
 		router.post(API_ALL_NODES).handler(this::checkAdminRole).handler(this::apiAddNode);
-		router.get(API_ALL_NODES).handler(this::checkAdminRole).handler(this::apiGetAllNodes);
 		router.get(API_NODES_BY_SUBNET).handler(this::checkAdminRole).handler(this::apiGetNodesBySubnet);
 		router.get(API_ONE_NODE).handler(this::checkAdminRole).handler(this::apiGetNode);
 		router.delete(API_ONE_NODE).handler(this::checkAdminRole).handler(this::apiDeleteNode);
 		router.put(API_ONE_NODE).handler(this::checkAdminRole).handler(this::apiUpdateNode);
 
 		router.post(API_ALL_LTPS).handler(this::checkAdminRole).handler(this::apiAddLtp);
-		router.get(API_ALL_LTPS).handler(this::checkAdminRole).handler(this::apiGetAllLtps);
 		router.get(API_LTPS_BY_NODE).handler(this::checkAdminRole).handler(this::apiGetLtpsByNode);
 		router.get(API_ONE_LTP).handler(this::checkAdminRole).handler(this::apiGetLtp);
 		router.delete(API_ONE_LTP).handler(this::checkAdminRole).handler(this::apiDeleteLtp);
 		router.put(API_ONE_LTP).handler(this::checkAdminRole).handler(this::apiUpdateLtp);
 
 		router.post(API_ALL_CTPS).handler(this::checkAdminRole).handler(this::apiAddCtp);
-		router.get(API_CTPS_BY_TYPE).handler(this::checkAdminRole).handler(this::apiGetCtpsByType);
-		router.get(API_ALL_CTPS).handler(this::checkAdminRole).handler(this::apiGetAllCtps);
 		router.get(API_CTPS_BY_CTP).handler(this::checkAdminRole).handler(this::apiGetCtpsByCtp);
 		router.get(API_CTPS_BY_LTP).handler(this::checkAdminRole).handler(this::apiGetCtpsByLtp);
 		router.get(API_CTPS_BY_NODE).handler(this::checkAdminRole).handler(this::apiGetCtpsByNode);
@@ -131,14 +131,12 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		router.put(API_ONE_CTP).handler(this::checkAdminRole).handler(this::apiUpdateCtp);
 
 		router.post(API_ALL_LINKS).handler(this::checkAdminRole).handler(this::apiAddLink);
-		router.get(API_ALL_LINKS).handler(this::checkAdminRole).handler(this::apiGetAllLinks);
 		router.get(API_LINKS_BY_SUBNET).handler(this::checkAdminRole).handler(this::apiGetLinksBySubnet);
 		router.get(API_ONE_LINK).handler(this::checkAdminRole).handler(this::apiGetLink);
 		router.delete(API_ONE_LINK).handler(this::checkAdminRole).handler(this::apiDeleteLink);
 		router.put(API_ONE_LINK).handler(this::checkAdminRole).handler(this::apiUpdateLink);
 
 		router.post(API_ALL_LINKCONNS).handler(this::checkAdminRole).handler(this::apiAddLinkConn);
-		router.get(API_ALL_LINKCONNS).handler(this::checkAdminRole).handler(this::apiGetAllLinkConns);
 		router.get(API_LINKCONNS_BY_LINK).handler(this::checkAdminRole).handler(this::apiGetLinkConnsByLink);
 		router.get(API_LINKCONNS_BY_SUBNET).handler(this::checkAdminRole).handler(this::apiGetLinkConnsBySubnet);
 		router.get(API_ONE_LINKCONN).handler(this::checkAdminRole).handler(this::apiGetLinkConn);
@@ -146,34 +144,29 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		router.put(API_ONE_LINKCONN).handler(this::checkAdminRole).handler(this::apiUpdateLinkConn);
 
 		router.post(API_ALL_CONNECTIONS).handler(this::checkAdminRole).handler(this::apiAddConnection);
-		router.get(API_ALL_CONNECTIONS).handler(this::checkAdminRole).handler(this::apiGetAllConnections);
-		router.get(API_CONNECTIONS_BY_TYPE).handler(this::checkAdminRole).handler(this::apiGetConnectionsByType);
+		router.get(API_CONNECTIONS_BY_SUBNET_BY_TYPE).handler(this::checkAdminRole).handler(this::apiGetConnectionsBySubnetByType);
 		router.get(API_CONNECTIONS_BY_SUBNET).handler(this::checkAdminRole).handler(this::apiGetConnectionsBySubnet);
 		router.get(API_ONE_CONNECTION).handler(this::checkAdminRole).handler(this::apiGetConnection);
 		router.delete(API_ONE_CONNECTION).handler(this::checkAdminRole).handler(this::apiDeleteConnection);
 		router.put(API_ONE_CONNECTION).handler(this::checkAdminRole).handler(this::apiUpdateConnection);
 
-		router.post(API_PA).handler(this::apiAddPrefixAnn);
-		router.get(API_PA).handler(this::checkAdminRole).handler(this::apiGetAllPrefixAnns);
-		router.get(API_PAS_BY_SUBNET).handler(this::checkAdminRole).handler(this::apiGetPrefixAnnsBySubnet);
-		router.get(API_PAS_BY_NODE).handler(this::checkAdminRole).handler(this::apiGetPrefixAnnsByNode);
-		router.get(API_ONE_PA).handler(this::checkAdminRole).handler(this::apiGetPrefixAnn);
-		router.delete(API_ONE_PA).handler(this::checkAdminRole).handler(this::apiDeletePrefixAnn);
-		
+		router.post(API_ALL_TRAILS).handler(this::checkAdminRole).handler(this::apiAddTrail);
+		router.get(API_TRAILS_BY_SUBNET).handler(this::checkAdminRole).handler(this::apiGetTrailsBySubnet);
+		router.get(API_ONE_TRAIL).handler(this::checkAdminRole).handler(this::apiGetTrail);
+		router.delete(API_ONE_TRAIL).handler(this::checkAdminRole).handler(this::apiDeleteTrail);
+		router.put(API_ONE_TRAIL).handler(this::checkAdminRole).handler(this::apiUpdateTrail);
+
 		router.post(API_ALL_CROSS_CONNECTS).handler(this::checkAdminRole).handler(this::apiAddCrossConnect);
-		router.get(API_CROSS_CONNECTS_BY_SWITCH).handler(this::checkAdminRole).handler(this::apiGetCrossConnectsBySwitch);
+		router.get(API_CROSS_CONNECTS_BY_NODE).handler(this::checkAdminRole).handler(this::apiGetCrossConnectsByNode);
 		router.get(API_ONE_CROSS_CONNECT).handler(this::checkAdminRole).handler(this::apiGetCrossConnectById);
 		router.delete(API_ONE_CROSS_CONNECT).handler(this::checkAdminRole).handler(this::apiDeleteCrossConnect);
+		router.put(API_ONE_CROSS_CONNECT).handler(this::checkAdminRole).handler(this::apiUpdateCrossConnect);
 
-		// agent only
-		router.delete(API_ONE_PA_BY_NAME).handler(this::checkAgentRole).handler(this::apiDeleteOnePaByName);
-
-		router.post(API_ALL_ROUTES).handler(this::checkAdminRole).handler(this::apiAddRoute);
-		router.get(API_ALL_ROUTES).handler(this::checkAdminRole).handler(this::apiGetAllRoutes);
-		router.get(API_ROUTES_BY_SUBNET).handler(this::checkAdminRole).handler(this::apiGetRoutesBySubnet);
-		router.get(API_ROUTES_BY_NODE).handler(this::checkAdminRole).handler(this::apiGetRoutesByNode);
-		router.get(API_ONE_ROUTE).handler(this::checkAdminRole).handler(this::apiGetRoute);
-		router.delete(API_ONE_ROUTE).handler(this::checkAdminRole).handler(this::apiDeleteRoute);
+		router.post(API_PREFIX).handler(this::checkAdminRole).handler(this::apiAddPrefix);
+		router.get(API_PREFIXES_BY_SUBNET).handler(this::checkAdminRole).handler(this::apiGetPrefixesBySubnet);
+		router.get(API_PREFIXES_BY_NODE).handler(this::checkAdminRole).handler(this::apiGetPrefixesByNode);
+		router.get(API_ONE_PREFIX).handler(this::checkAdminRole).handler(this::apiGetPrefix);
+		router.delete(API_ONE_PREFIX).handler(this::checkAdminRole).handler(this::apiDeletePrefix);
 
 		// get HTTP host and port from configuration, or use default value
 		String host = config().getString("topology.http.address", "0.0.0.0");
@@ -181,8 +174,8 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 
 		// create HTTP server and publish REST service
 		createHttpServer(router, host, port)
-				.compose(serverCreated -> publishHttpEndpoint(SERVICE_NAME, host, port))
-				.onComplete(future);
+		.compose(serverCreated -> publishHttpEndpoint(SERVICE_NAME, host, port))
+		.onComplete(future);
 	}
 
 	private void apiVersion(RoutingContext context) {
@@ -192,7 +185,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// Subnet API
 	private void apiAddSubnet(RoutingContext context) {
 		try {
-			final Vsubnet vsubnet = JSONUtils.json2PojoE(context.getBodyAsString(), Vsubnet.class);
+			final Vsubnet vsubnet = JsonUtils.json2PojoE(context.getBodyAsString(), Vsubnet.class);
 			service.addVsubnet(vsubnet, createResultHandler(context, "/subnet"));
 		} catch (Exception e) {
 			logger.info("Exception: " + e.getMessage());
@@ -207,6 +200,11 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 
 	private void apiGetAllSubnets(RoutingContext context) {
 		service.getAllVsubnets(resultHandler(context, Json::encodePrettily));
+	}
+	
+	private void apiGetSubnetsByType(RoutingContext context) {
+		String type = context.request().getParam("type");
+		service.getVsubnetsByType(SubnetTypeEnum.valueOf(type), resultHandler(context, Json::encodePrettily));
 	}
 
 	private void apiDeleteSubnet(RoutingContext context) {
@@ -223,33 +221,35 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// Node API
 	private void apiAddNode(RoutingContext context) {
 		try {
-			final Vnode vnode = JSONUtils.json2PojoE(context.getBodyAsString(), Vnode.class);
-			service.addVnode(vnode, createResultHandler(context, "/node"));
+			final Vnode vnode = JsonUtils.json2PojoE(context.getBodyAsString(), Vnode.class);
+			service.addVnode(vnode, res -> {
+				if (res.succeeded()) {
+					notifyTopologyChange();
+				}
+				createResultHandler(context, "/node").handle(res);
+			});
 		} catch (Exception e) {
 			logger.info("Exception: " + e.getMessage());
 			badRequest(context, e);
 		}
 	}
-
 	private void apiGetNode(RoutingContext context) {
 		String nodeId = context.request().getParam("nodeId");
 		service.getVnode(nodeId, resultHandlerNonEmpty(context));
 	}
-
-	private void apiGetAllNodes(RoutingContext context) {
-		service.getAllVnodes(resultHandler(context, Json::encodePrettily));
-	}
-
 	private void apiGetNodesBySubnet(RoutingContext context) {
 		String subnetId = context.request().getParam("subnetId");
 		service.getVnodesByVsubnet(subnetId, resultHandler(context, Json::encodePrettily));
 	}
-
 	private void apiDeleteNode(RoutingContext context) {
 		String nodeId = context.request().getParam("nodeId");
-		service.deleteVnode(nodeId, deleteResultHandler(context));
+		service.deleteVnode(nodeId, res -> {
+			if (res.succeeded()) {
+				notifyTopologyChange();
+			}
+			deleteResultHandler(context).handle(res);
+		});
 	}
-
 	private void apiUpdateNode(RoutingContext context) {
 		String id = context.request().getParam("nodeId");
 		final Vnode vnode = Json.decodeValue(context.getBodyAsString(), Vnode.class);
@@ -259,7 +259,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// Ltp API
 	private void apiAddLtp(RoutingContext context) {
 		try {
-			final Vltp vltp = JSONUtils.json2PojoE(context.getBodyAsString(), Vltp.class);
+			final Vltp vltp = JsonUtils.json2PojoE(context.getBodyAsString(), Vltp.class);
 			service.addVltp(vltp, createResultHandler(context, "/ltp"));
 		} catch (Exception e) {
 			logger.info("Exception: " + e.getMessage());
@@ -271,21 +271,14 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		String ltpId = context.request().getParam("ltpId");
 		service.getVltp(ltpId, resultHandlerNonEmpty(context));
 	}
-
 	private void apiGetLtpsByNode(RoutingContext context) {
 		String nodeId = context.request().getParam("nodeId");
 		service.getVltpsByVnode(nodeId, resultHandler(context, Json::encodePrettily));
 	}
-
-	private void apiGetAllLtps(RoutingContext context) {
-		service.getAllVltps(resultHandler(context, Json::encodePrettily));
-	}
-
 	private void apiDeleteLtp(RoutingContext context) {
 		String ltpId = context.request().getParam("ltpId");
 		service.deleteVltp(ltpId, deleteResultHandler(context));
 	}
-
 	private void apiUpdateLtp(RoutingContext context) {
 		String id = context.request().getParam("ltpId");
 		final Vltp vltp = Json.decodeValue(context.getBodyAsString(), Vltp.class);
@@ -295,8 +288,13 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// Ctp API
 	private void apiAddCtp(RoutingContext context) {
 		try {
-			final Vctp vctp = JSONUtils.json2PojoE(context.getBodyAsString(), Vctp.class);
-			service.addVctp(vctp, createResultHandler(context, "/ctp"));
+			final Vctp vctp = JsonUtils.json2PojoE(context.getBodyAsString(), Vctp.class);
+			service.addVctp(vctp, res -> {
+				if (res.succeeded()) {
+					notifyTopologyChange();
+				}
+				createResultHandler(context, "/ctp").handle(res);
+			});
 		} catch (Exception e) {
 			logger.info("Exception: " + e.getMessage());
 			badRequest(context, e);
@@ -318,16 +316,14 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		String nodeId = context.request().getParam("nodeId");		
 		service.getVctpsByVnode(nodeId, resultHandler(context, Json::encodePrettily));		
 	}
-	private void apiGetCtpsByType(RoutingContext context) {
-		String type = context.request().getParam("type");		
-		service.getVctpsByType(type, resultHandler(context, Json::encodePrettily));		
-	}
-	private void apiGetAllCtps(RoutingContext context) {		
-		service.getAllVctps(resultHandler(context, Json::encodePrettily));
-	}
 	private void apiDeleteCtp(RoutingContext context) {
-		String ctpId = context.request().getParam("ctpId");		
-		service.deleteVctp(ctpId, deleteResultHandler(context));
+		String ctpId = context.request().getParam("ctpId");
+		service.deleteVctp(ctpId, res -> {
+			if (res.succeeded()) {
+				notifyTopologyChange();
+			}
+			deleteResultHandler(context).handle(res);
+		});
 	}
 	private void apiUpdateCtp(RoutingContext context) {
 		String id = context.request().getParam("ctpId");
@@ -338,7 +334,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// Link API
 	private void apiAddLink(RoutingContext context) {
 		try {
-			final Vlink vlink = JSONUtils.json2PojoE(context.getBodyAsString(), Vlink.class);
+			final Vlink vlink = JsonUtils.json2PojoE(context.getBodyAsString(), Vlink.class);
 			service.addVlink(vlink, createResultHandler(context, "/link"));
 		} catch (Exception e) {
 			logger.info("Exception: " + e.getMessage());
@@ -348,9 +344,6 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private void apiGetLink(RoutingContext context) {
 		String linkId = context.request().getParam("linkId");
 		service.getVlink(linkId, resultHandlerNonEmpty(context));
-	}
-	private void apiGetAllLinks(RoutingContext context) {
-		service.getAllVlinks(resultHandler(context, Json::encodePrettily));
 	}
 	private void apiGetLinksBySubnet(RoutingContext context) {	
 		String subnetId = context.request().getParam("subnetId");		
@@ -369,7 +362,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// LinkConn API
 	private void apiAddLinkConn(RoutingContext context) {
 		try {
-			final VlinkConn vlc = JSONUtils.json2PojoE(context.getBodyAsString(), VlinkConn.class);
+			final VlinkConn vlc = JsonUtils.json2PojoE(context.getBodyAsString(), VlinkConn.class);
 			service.addVlinkConn(vlc, createResultHandler(context, "/lc"));
 		} catch (Exception e) {
 			badRequest(context, e);
@@ -378,9 +371,6 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private void apiGetLinkConn(RoutingContext context) {
 		String linkConnId = context.request().getParam("lcId");		
 		service.getVlinkConn(linkConnId, resultHandlerNonEmpty(context));
-	}
-	private void apiGetAllLinkConns(RoutingContext context) {
-		service.getAllVlinkConns(resultHandler(context, Json::encodePrettily));
 	}
 	private void apiGetLinkConnsByLink(RoutingContext context) {	
 		String linkId = context.request().getParam("linkId");		
@@ -403,8 +393,13 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	// connection API
 	private void apiAddConnection(RoutingContext context) {
 		try {
-			final Vconnection vconn = JSONUtils.json2PojoE(context.getBodyAsString(), Vconnection.class);
-			service.addVconnection(vconn, createResultHandler(context, "/connection"));
+			final Vconnection vconn = JsonUtils.json2PojoE(context.getBodyAsString(), Vconnection.class);
+			service.addVconnection(vconn, res -> {
+				if (res.succeeded()) {
+					notifyTopologyChange();
+				}
+				createResultHandler(context, "/connection").handle(res);
+			});
 		} catch (Exception e) {
 			badRequest(context, e);
 		}
@@ -413,20 +408,24 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		String connectionId = context.request().getParam("connectionId");		
 		service.getVconnection(connectionId, resultHandlerNonEmpty(context));
 	}
-	private void apiGetAllConnections(RoutingContext context) {
-		service.getAllVconnections(resultHandler(context, Json::encodePrettily));
-	}
-	private void apiGetConnectionsByType(RoutingContext context) {
+	private void apiGetConnectionsBySubnetByType(RoutingContext context) {
+		String subnetId = context.request().getParam("subnetId");
 		String type = context.request().getParam("type");		
-		service.getVconnectionsByType(type, resultHandler(context, Json::encodePrettily));		
+		service.getVconnectionsByVsubnetByType(subnetId, ConnTypeEnum.valueOf(type), 
+				resultHandler(context, Json::encodePrettily));		
 	}
 	private void apiGetConnectionsBySubnet(RoutingContext context) {	
 		String subnetId = context.request().getParam("subnetId");		
 		service.getVconnectionsByVsubnet(subnetId, resultHandler(context, Json::encodePrettily));
 	}
 	private void apiDeleteConnection(RoutingContext context) {
-		String connectionId = context.request().getParam("connectionId");		
-		service.deleteVconnection(connectionId, deleteResultHandler(context));
+		String connectionId = context.request().getParam("connectionId");
+		service.deleteVconnection(connectionId, res -> {
+			if (res.succeeded()) {
+				notifyTopologyChange();
+			}
+			deleteResultHandler(context).handle(res);
+		});
 	}
 	private void apiUpdateConnection(RoutingContext context) {
 		String id = context.request().getParam("connectionId");
@@ -434,125 +433,130 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		service.updateVconnection(id, vconnection, resultVoidHandler(context, 200));
 	}
 
-	// Prefix Announcement API
-	private void apiAddPrefixAnn(RoutingContext context) {
-		PrefixAnn pa;
+	// Trail API
+	private void apiAddTrail(RoutingContext context) {
 		try {
-			pa = Json.decodeValue(context.getBodyAsString(), PrefixAnn.class);
-		} catch (DecodeException e) {
+			final Vtrail vtrail = JsonUtils.json2PojoE(context.getBodyAsString(), Vtrail.class);
+			service.addVtrail(vtrail, createResultHandler(context, "/trail"));
+		} catch (Exception e) {
+			logger.info("Exception: " + e.getMessage());
 			badRequest(context, e);
-			return;
 		}
-		
-		if (pa.getName() == null) {
-			badRequest(context, new Throwable("name is missing"));
-			return;
-		}
-		
-		if (!isBase64(pa.getName())) {
-			badRequest(context, new Throwable("name must be a base64 string"));
-			return;
-		}
-		
-		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
-		String role = principal.getString("role");
-		
-		if (role.equals("agent")) {
-			int originId = principal.getInteger("nodeId");
-			pa.setOriginId(originId);
-			pa.setAvailable(true);
-		} else if (role.equals("admin")) {
-			if (pa.getOriginId() == null) {
-				badRequest(context, new Throwable("origin ID is missing"));
-				return;
-			}
-		}
-		service.addPrefixAnn(pa, resultVoidHandler(context, 200));
 	}
-	private void apiGetPrefixAnn(RoutingContext context) {
-		String prefixAnnId = context.request().getParam("prefixAnnId");			
-		service.getPrefixAnn(prefixAnnId, resultHandlerNonEmpty(context));
+	private void apiGetTrail(RoutingContext context) {
+		String trailId = context.request().getParam("trailId");
+		service.getVtrail(trailId, resultHandlerNonEmpty(context));
 	}
-	private void apiGetAllPrefixAnns(RoutingContext context) {
-		service.getAllPrefixAnns(resultHandler(context, Json::encodePrettily));
-	}
-	private void apiGetPrefixAnnsBySubnet(RoutingContext context) {	
+	private void apiGetTrailsBySubnet(RoutingContext context) {	
 		String subnetId = context.request().getParam("subnetId");		
-		service.getPrefixAnnsByVsubnet(subnetId, resultHandler(context, Json::encodePrettily));
+		service.getVtrailsByVsubnet(subnetId, resultHandler(context, Json::encodePrettily));
 	}
-	private void apiGetPrefixAnnsByNode(RoutingContext context) {	
-		String nodeId = context.request().getParam("nodeId");		
-		service.getPrefixAnnsByVnode(nodeId, resultHandler(context, Json::encodePrettily));
+	private void apiDeleteTrail(RoutingContext context) {
+		String trailId = context.request().getParam("trailId");		
+		service.deleteVtrail(trailId, deleteResultHandler(context));	
 	}
-	private void apiDeletePrefixAnn(RoutingContext context) {
-		String prefixAnnId = context.request().getParam("paId");			
-		service.deletePrefixAnn(prefixAnnId, deleteResultHandler(context));
-	}
-	
-	private void apiDeleteOnePaByName(RoutingContext context) {
-		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
-		String name = context.request().getParam("name");
-		int originId = principal.getInteger("nodeId"); 
-		service.deletePrefixAnnByName(originId, name, deleteResultHandler(context));
+	private void apiUpdateTrail(RoutingContext context) {
+		String trailId = context.request().getParam("trailId");
+		final Vtrail vtrail = Json.decodeValue(context.getBodyAsString(), Vtrail.class);		
+		service.updateVtrail(trailId, vtrail, resultVoidHandler(context, 200));
 	}
 
 	// CrossConnect API
 	private void apiAddCrossConnect(RoutingContext context) {
+		final VcrossConnect vcrossConnect;
 		try {
-			final CrossConnect crossConnect = JSONUtils.json2PojoE(context.getBodyAsString(), CrossConnect.class);
-			service.addCrossConnect(crossConnect, createResultHandler(context, "/cross-connect"));
+			vcrossConnect = JsonUtils.json2PojoE(context.getBodyAsString(), VcrossConnect.class);
 		} catch (Exception e) {
+			logger.info("Exception: " + e.getMessage());
 			badRequest(context, e);
+			return;
 		}
+		service.addVcrossConnect(vcrossConnect, res -> {
+			if (res.succeeded()) {
+				notifyTopologyChange();
+			}
+			createResultHandler(context, "/cross-connect").handle(res);
+		});
 	}
 	private void apiGetCrossConnectById(RoutingContext context) {
 		String xcId = context.request().getParam("xcId");
-		service.getCrossConnectById(xcId, resultHandlerNonEmpty(context));
+		service.getVcrossConnectById(xcId, resultHandlerNonEmpty(context));
 	}
-	private void apiGetCrossConnectsBySwitch(RoutingContext context) {
-		String switchId = context.request().getParam("switchId");
-		service.getCrossConnectsBySwtich(switchId, resultHandler(context, Json::encodePrettily));
+	private void apiGetCrossConnectsByNode(RoutingContext context) {
+		String nodeId = context.request().getParam("nodeId");
+		service.getVcrossConnectsByNode(nodeId, resultHandler(context, Json::encodePrettily));
 	}
 	private void apiDeleteCrossConnect(RoutingContext context) {
 		String xcId = context.request().getParam("xcId");
-		service.deleteCrossConnect(xcId, deleteResultHandler(context));
+		service.deleteVcrossConnect(xcId, res -> {
+			if (res.succeeded()) {
+				notifyTopologyChange();
+				notifyFrontend();
+			}
+			deleteResultHandler(context).handle(res);
+		});
+	}
+	private void apiUpdateCrossConnect(RoutingContext context) {
+		String xcId = context.request().getParam("xcId");
+		final VcrossConnect vcrossConnect = Json.decodeValue(context.getBodyAsString(), VcrossConnect.class);		
+		service.updateVcrossConnect(xcId, vcrossConnect, resultVoidHandler(context, 200));
 	}
 
-	// Route API
-	private void apiAddRoute(RoutingContext context) {
-		final Route route = Json.decodeValue(context.getBodyAsString(), Route.class);
-		service.addRoute(route, createResultHandler(context, "/route"));
-	}
-	private void apiGetRoute(RoutingContext context) {
-		String routeId = context.request().getParam("routeId");
-		service.getRoute(routeId, resultHandlerNonEmpty(context));
-	}
-	private void apiGetAllRoutes(RoutingContext context) {
-		service.getAllRoutes(resultHandler(context, Json::encodePrettily));
-	}
-	private void apiGetRoutesBySubnet(RoutingContext context) {	
-		String subnetId = context.request().getParam("subnetId");
-		service.getRoutesByVsubnet(subnetId, resultHandler(context, Json::encodePrettily));
-	}
-	private void apiGetRoutesByNode(RoutingContext context) {	
-		String nodeId = context.request().getParam("nodeId");		
-		service.getRoutesByNode(nodeId, resultHandler(context, Json::encodePrettily));
-	}
-	private void apiDeleteRoute(RoutingContext context) {
-		String routeId = context.request().getParam("routeId");
-		service.deleteRoute(routeId, deleteResultHandler(context));
-	}
-	
-	private boolean isBase64(String str) {
-		if (str.isEmpty()) {
-			return false;
-		}
-		Base64.Decoder decoder = Base64.getDecoder();
+	// Prefix API
+	private void apiAddPrefix(RoutingContext context) {
+		Prefix prefix;
 		try {
-			decoder.decode(str);
-			return true;
-		} catch(IllegalArgumentException iae) {
-			return false;
+			prefix = Json.decodeValue(context.getBodyAsString(), Prefix.class);
+		} catch (DecodeException e) {
+			badRequest(context, e);
+			return;
 		}
+		if (prefix.getName() == null) {
+			badRequest(context, new Throwable("name is missing"));
+			return;
+		}
+		if (!Functional.isBase64(prefix.getName())) {
+			badRequest(context, new Throwable("name must be a base64 string"));
+			return;
+		}
+		service.addPrefix(prefix, res -> {
+			if (res.succeeded()) {
+				notifyTopologyChange();
+				notifyFrontend();
+			}
+			createResultHandler(context, "/prefix").handle(res);
+		});
+	}
+	private void apiGetPrefix(RoutingContext context) {
+		String prefixId = context.request().getParam("prefixId");			
+		service.getPrefix(prefixId, resultHandlerNonEmpty(context));
+	}
+	private void apiGetPrefixesBySubnet(RoutingContext context) {	
+		String subnetId = context.request().getParam("subnetId");		
+		service.getPrefixesByVsubnet(subnetId, resultHandler(context, Json::encodePrettily));
+	}
+	private void apiGetPrefixesByNode(RoutingContext context) {	
+		String nodeId = context.request().getParam("nodeId");		
+		service.getPrefixesByVnode(nodeId, resultHandler(context, Json::encodePrettily));
+	}
+	private void apiDeletePrefix(RoutingContext context) {
+		String prefixId = context.request().getParam("prefixId");
+		service.deletePrefix(prefixId, res -> {
+			if (res.succeeded()) {
+				notifyTopologyChange();
+				notifyFrontend();
+			}
+			deleteResultHandler(context).handle(res);
+		});
+	}
+
+	// Notifications
+	public void notifyTopologyChange() {
+		// TODO: add type of change
+		vertx.eventBus().publish(TopologyService.EVENT_ADDRESS, new JsonObject());
+	}
+
+	private void notifyFrontend() {
+		vertx.eventBus().publish(TopologyService.FROTNEND_ADDRESS, new JsonObject());
 	}
 }

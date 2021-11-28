@@ -10,13 +10,9 @@ import io.nms.central.microservice.notification.model.Status.ResTypeEnum;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
-import io.vertx.core.eventbus.Message;
-import io.vertx.core.eventbus.MessageConsumer;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.servicediscovery.types.MessageSource;
 
 public class StatusHandler extends BaseMicroserviceVerticle {
 
@@ -35,27 +31,13 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 		super.start(promise);
 		vertx.eventBus().consumer(NotificationService.STATUS_ADDRESS, ar -> {
 			Status status = new Status(((JsonObject)ar.body()));
-			initHandleStatus(status, null);
+			initHandleStatus(status);
 		});
-		/* MessageSource.<JsonObject>getConsumer(discovery,
-			new JsonObject().put("name", "status-message-source"), ar -> {
-				if (ar.succeeded()) {
-					MessageConsumer<JsonObject> statusConsumer = ar.result();
-					statusConsumer.handler(message -> {
-						Status status = Json.decodeValue(message.body().encode(), Status.class);
-						initHandleStatus(status, message);
-					});
-					promise.complete();
-				} else {
-					promise.fail(ar.cause());
-				}
-			}); */
 	}
 
-	private void initHandleStatus(Status status, Message<JsonObject> sender) {
+	private void initHandleStatus(Status status) {
 		if (!status.getResType().equals(ResTypeEnum.NODE)) {
 			dispatchStatus(status);
-			// sender.reply(new JsonObject());
 			return;
 		}
 		int resId = status.getResId();
@@ -79,7 +61,6 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 				statusTimers.put(resId, timerId);
 			}
 		}
-		// sender.reply(new JsonObject());
 	}
 	private void dispatchStatus(Status status) {
 		int resId = status.getResId();
@@ -157,12 +138,5 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 	 
 	private void notifyTopologyChange() {
 		vertx.eventBus().publish(TopologyService.EVENT_ADDRESS, new JsonObject());
-		/* vertx.eventBus().request(TopologyService.EVENT_ADDRESS, new JsonObject(), reply -> {
-			if (reply.failed()) {
-				logger.warn("CONFIG ERROR: ", reply.cause().getMessage());
-			} else {
-				logger.warn("CONFIG : ", reply.result().body());
-			}
-		}); */
 	}
 }

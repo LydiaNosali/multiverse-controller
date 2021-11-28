@@ -1,14 +1,7 @@
 package io.nms.central.microservice.account.model;
 
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-
 import io.vertx.codegen.annotations.DataObject;
 
 @DataObject(generateConverter = true)

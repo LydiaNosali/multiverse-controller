@@ -1,0 +1,6 @@
+{
+  "api.name": "ndnet",
+  "ndnet.http.address": "ndnet-microservice",
+  "ndnet.http.port": 8088,  
+  "host": "mongo"
+}

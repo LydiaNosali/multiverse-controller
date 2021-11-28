@@ -23,16 +23,15 @@ public class RestTelemetryAPIVerticle extends RestAPIVerticle {
 
 	private static final String API_VERSION = "/v";
 
-	private static final String API_ALL_CAPABILITIES = "/capabilities";
+	private static final String API_ALL_CAPABILITIES = "/capability";
 
 	private static final String API_SPECIFICATION = "/specification";
-	private static final String API_ALL_SPECIFICATIONS = "/specifications";
 
 	private static final String API_INTERRUPT = "/interrupt";
 
-	private static final String API_ALL_RECEIPTS = "/receipts";
+	private static final String API_RECEIPT = "/receipt";
 
-	private static final String API_ALL_OPERATIONS = "/operations/:type";
+	private static final String API_ALL_OPERATIONS = "/result/:type";
 	private static final String API_ONE_OPERATION = "/operation/:opId";
 	private static final String API_RESULTS_BY_OPS = "/operation/:opId/results";
 	
@@ -59,13 +58,12 @@ public class RestTelemetryAPIVerticle extends RestAPIVerticle {
 
 		router.get(API_ALL_CAPABILITIES).handler(this::checkAdminRole).handler(this::apiGetAllCapabilities);
 
-		router.get(API_ALL_SPECIFICATIONS).handler(this::checkAdminRole).handler(this::apiGetAllSpecifications);
+		router.get(API_SPECIFICATION).handler(this::checkAdminRole).handler(this::apiGetAllSpecifications);
 		router.post(API_SPECIFICATION).handler(this::checkAdminRole).handler(this::apiSendSpecification);
 
 		router.post(API_INTERRUPT).handler(this::checkAdminRole).handler(this::apiSendInterrupt);
 
-		router.get(API_ALL_RECEIPTS).handler(this::checkAdminRole).handler(this::apiGetAllReceipts);
-
+		router.get(API_RECEIPT).handler(this::checkAdminRole).handler(this::apiGetAllReceipts);
 
 		router.get(API_ALL_OPERATIONS).handler(this::checkAdminRole).handler(this::apiGetAllOperations);
 		router.delete(API_ONE_OPERATION).handler(this::checkAdminRole).handler(this::apiDeleteOperation);

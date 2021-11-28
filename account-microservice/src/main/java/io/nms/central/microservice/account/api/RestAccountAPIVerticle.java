@@ -20,7 +20,7 @@ public class RestAccountAPIVerticle extends RestAPIVerticle {
 	
 	private static final String API_VERSION = "/v";
 	
-	private static final String API_ALL_AGENTS = "/agent/all";
+	private static final String API_ALL_AGENTS = "/agent";
 	private static final String API_ONE_AGENT = "/agent/:username";
 
 	
@@ -40,8 +40,8 @@ public class RestAccountAPIVerticle extends RestAPIVerticle {
 		router.get(API_VERSION).handler(this::apiVersion);
 		
 		router.put(API_ONE_AGENT).handler(this::checkAdminRole).handler(this::apiPutAgent);
-		router.get(API_ALL_AGENTS).handler(this::checkAdminRole).handler(this::apiGetAllAgents);
 		router.get(API_ONE_AGENT).handler(this::checkAdminRole).handler(this::apiGetAgent);
+		router.get(API_ALL_AGENTS).handler(this::checkAdminRole).handler(this::apiGetAllAgents);
 		router.delete(API_ONE_AGENT).handler(this::checkAdminRole).handler(this::apiDeleteAgent);
 		
 

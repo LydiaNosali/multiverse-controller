@@ -2,7 +2,6 @@
 FROM maven:3.6.3-jdk-11 as build
 
 COPY ./ /home/multiverse
-COPY ./pom.xml /home/multiverse
 
 RUN mvn -f /home/multiverse/pom.xml -pl notification-microservice -am clean install -Dmaven.test.skip=true
 

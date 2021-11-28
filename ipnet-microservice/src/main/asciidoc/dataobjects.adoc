@@ -1,0 +1,41 @@
+= Cheatsheets
+
+[[ApplyConfigResult]]
+== ApplyConfigResult
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[message]]`@message`|`String`|-
+|===
+
+[[ConfigChange]]
+== ConfigChange
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[action]]`@action`|`link:enums.html#ActionEnum[ActionEnum]`|-
+|[[datetime]]`@datetime`|`String`|-
+|[[id]]`@id`|`String`|-
+|[[location]]`@location`|`String`|-
+|[[type]]`@type`|`link:enums.html#ResourceTypeEnum[ResourceTypeEnum]`|-
+|===
+
+[[ConfigProfile]]
+== ConfigProfile
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[verifyReport]]`@verifyReport`|`link:dataobjects.html#VerificationReport[VerificationReport]`|-
+|[[viewId]]`@viewId`|`String`|-
+|[[viewUpdated]]`@viewUpdated`|`String`|-
+|===
+

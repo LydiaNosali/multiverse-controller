@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -13,7 +13,7 @@ import io.vertx.core.json.JsonObject;
 public class Vconnection {
 
 		// common fields
-	private int id;
+	private int id = 0;
 	private String name;
 	private String label;
 	private String description;
@@ -36,16 +36,18 @@ public class Vconnection {
 	public Vconnection(int id) {
 		this.id = id;
 	}
-	public Vconnection(JsonObject json) {}
+	public Vconnection(JsonObject json) {
+		JsonUtils.fromJson(json, this, Vconnection.class);
+	}
 	
 	/*-----------------------------------------------*/
 
 	public JsonObject toJson() {
-		return new JsonObject(JSONUtils.pojo2Json(this, false));
+		return new JsonObject(JsonUtils.pojo2Json(this, false));
 	}
 	@Override
 	public String toString() {
-		return JSONUtils.pojo2Json(this, false);
+		return JsonUtils.pojo2Json(this, false);
 	}
 	@Override
 	public boolean equals(Object obj) {

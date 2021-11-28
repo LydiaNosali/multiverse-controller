@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import com.hazelcast.spi.impl.AllowedDuringPassiveState;
-
 import io.nms.central.microservice.account.AccountService;
 import io.nms.central.microservice.account.model.Account;
 import io.nms.central.microservice.common.RestAPIVerticle;
@@ -26,7 +24,7 @@ import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.ext.auth.PubSecKeyOptions;
 import io.vertx.ext.auth.jwt.JWTAuth;
 import io.vertx.ext.auth.jwt.JWTAuthOptions;
-import io.vertx.ext.auth.jwt.JWTOptions;
+import io.vertx.ext.jwt.JWTOptions;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -48,7 +46,7 @@ import io.vertx.serviceproxy.ServiceProxyBuilder;
 public class APIGatewayVerticle extends RestAPIVerticle {
 
 	private static final int DEFAULT_PORT = 8787;
-	private static final int TOKEN_EXPIRES_MN = 60;
+	private static final int TOKEN_EXPIRES_MN = 120;
 	
 	private static final Logger logger = LoggerFactory.getLogger(APIGatewayVerticle.class);
 	private JWTAuth jwt;
@@ -124,18 +122,20 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 	    /*----------------------------------------------------------------*/
 
 		// enable HTTPS
-		String certsPath = "/opt/data/";
-		HttpServerOptions httpServerOptions = new HttpServerOptions()
-				.setSsl(true)
-				.setPemKeyCertOptions(
-    		            new PemKeyCertOptions()
+		boolean https = config().getBoolean("api.gateway.https", false);
+		HttpServerOptions httpServerOptions = new HttpServerOptions();
+		if (https) {
+			String certsPath = "/opt/data/";
+			httpServerOptions
+					.setSsl(true)
+					.setPemKeyCertOptions(
+    		            	new PemKeyCertOptions()
     		  		       .setKeyPath(certsPath+"multiverse.controller.key.pem")
     		  		       .setCertPath(certsPath+"multiverse.controller.crt.pem"));
-
-		// create http server
+		}
 		vertx.createHttpServer(httpServerOptions)
-		.requestHandler(router)
-		.listen(port, host, ar -> {
+				.requestHandler(router)
+				.listen(port, host, ar -> {
 			if (ar.succeeded()) {
 				publishApiGateway(host, port)
 				.onComplete(promise);
@@ -145,11 +145,6 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 				promise.fail(ar.cause());
 			}
 		});
-
-		// dev only
-		// vertx.createHttpServer()
-		//	.requestHandler(router)
-		//	.listen(8788, host);
 	}
 
 	private void dispatchRequests(RoutingContext context) {
@@ -180,7 +175,7 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 							.findAny(); // simple load balance
 
 					if (client.isPresent()) {
-						doDispatch(context, newPath, discovery.getReference(client.get()).get(), future.future());
+						doDispatch(context, newPath, discovery.getReference(client.get()).get(), future);
 					} else {
 						notFound(context);
 						future.complete();
@@ -203,7 +198,7 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 	 * @param path    relative path
 	 * @param client  relevant HTTP client
 	 */
-	private void doDispatch(RoutingContext context, String path, HttpClient client, Future<Object> cbFuture) {
+	private void doDispatch(RoutingContext context, String path, HttpClient client, Promise<Object> cbFuture) {
 		HttpClientRequest toReq = client
 				.request(context.request().method(), path, response -> {
 					response.bodyHandler(body -> {        	
@@ -221,7 +216,7 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 						}
 						ServiceDiscovery.releaseServiceObject(discovery, client);
 					});
-				});
+				}).setTimeout(60000);
 		// set headers
 		context.request().headers().forEach(header -> {
 			toReq.putHeader(header.getKey(), header.getValue());
@@ -238,7 +233,10 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 	}
 
 	private void apiVersion(RoutingContext context) {
-		context.response().end(new JsonObject().put("version", "v1").encodePrettily());
+		context.response().end(new JsonObject()
+				.put("name", "multiverse-controller")
+				.put("version", "v1")
+				.encodePrettily());
 	}
 
 	/**
@@ -261,7 +259,6 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 	}
 
 	// auth
-
 	private void userLoginHandler(RoutingContext context) {
 		String username = context.getBodyAsJson().getString("username");
 		String password = context.getBodyAsJson().getString("password");
@@ -278,9 +275,7 @@ public class APIGatewayVerticle extends RestAPIVerticle {
 				JsonObject principal = new JsonObject()
 						.put("username", acc.getUsername())
 						.put("role", acc.getRole());
-				context.response()
-						.setStatusCode(200)
-						.end(jwt.generateToken(principal, new JWTOptions().setExpiresInMinutes(TOKEN_EXPIRES_MN)));
+				responseToken(context, jwt.generateToken(principal, new JWTOptions().setExpiresInMinutes(TOKEN_EXPIRES_MN)));
 			} else {
 				unauthorized(context);
 			}

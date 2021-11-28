@@ -15,7 +15,6 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.SessionHandler;
 import io.vertx.ext.web.sstore.ClusteredSessionStore;
@@ -107,8 +106,7 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 			if (res.succeeded()) {
 				handler.handle(res.result());
 			} else {
-				internalError(context, res.cause());
-				res.cause().printStackTrace();
+				handleFailedOperation(context, res.cause());
 			}
 		};
 	}
@@ -117,7 +115,6 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 			if (ar.succeeded()) {
 				T res = ar.result();
 				if (res == null) {
-					// serviceUnavailable(context, "invalid_result");
 					internalError(context, new Throwable("invalid result"));
 				} else {
 					context.response()
@@ -125,8 +122,7 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 							.end(converter.apply(res));
 				}
 			} else {
-				internalError(context, ar.cause());
-				ar.cause().printStackTrace();
+				handleFailedOperation(context, ar.cause());
 			}
 		};
 	}
@@ -142,8 +138,7 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 							.end(res.toString());
 				}
 			} else {
-				internalError(context, ar.cause());
-				ar.cause().printStackTrace();
+				handleFailedOperation(context, ar.cause());
 			}
 		};
 	}
@@ -154,8 +149,7 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 				context.response()
 				.end(res == null ? "" : res.toString());
 			} else {
-				internalError(context, ar.cause());
-				ar.cause().printStackTrace();
+				handleFailedOperation(context, ar.cause());
 			}
 		};
 	}
@@ -167,8 +161,7 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 						.putHeader("content-type", "application/json")
 						.end();
 			} else {
-				internalError(context, ar.cause());
-				ar.cause().printStackTrace();
+				handleFailedOperation(context, ar.cause());
 			}
 		};
 	}
@@ -179,11 +172,28 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 				context.response()
 						.setStatusCode(201)
 						.putHeader("content-type", "application/json")
-// 						.putHeader("Location", location + "/" + id)
+ 						.putHeader("Location", location + "/" + id)
 						.end(new JsonObject().put("id", id).encode());
 			} else {
-				badRequest(context, ar.cause());
-				ar.cause().printStackTrace();
+				handleFailedOperation(context, ar.cause());
+			}
+		};
+	}
+	protected Handler<AsyncResult<Void>> createResultHandler(RoutingContext context) {
+		return ar -> {
+			if (ar.succeeded()) {
+				context.response().setStatusCode(201).end();
+			} else {
+				handleFailedOperation(context, ar.cause());
+			}
+		};
+	}
+	protected Handler<AsyncResult<Void>> updateResultHandler(RoutingContext context) {
+		return ar -> {
+			if (ar.succeeded()) {
+				context.response().setStatusCode(200).end();
+			} else {
+				handleFailedOperation(context, ar.cause());
 			}
 		};
 	}
@@ -195,15 +205,31 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 						.putHeader("content-type", "application/json")
 						.end();
 			} else {
-				internalError(context, res.cause());
-				res.cause().printStackTrace();
+				handleFailedOperation(context, res.cause());
 			}
 		};
+	}
+
+	protected void handleFailedOperation(RoutingContext context, Throwable cause) {
+		// TODO: use accurate messages
+		if (cause.getMessage().toUpperCase().contains("CONFLICT")) {
+			conflict(context);
+		} else if (cause.getMessage().toUpperCase().contains("NOT_FOUND")) {
+			notFound(context);
+		} else if (cause.getMessage().toUpperCase().contains("INVALID")) {
+			badRequest(context, cause);
+			// cause.printStackTrace();
+		} else {
+			internalError(context, cause);
+		}
 	}
 
 	// helper method for HTTP responses  
 	protected void notChanged(RoutingContext context) {
 		context.response().setStatusCode(304).end();
+	}
+	protected void conflict(RoutingContext context) {
+		context.response().setStatusCode(409).end();
 	}
 	protected void badRequest(RoutingContext context, Throwable ex) {
 		context.response().setStatusCode(400)

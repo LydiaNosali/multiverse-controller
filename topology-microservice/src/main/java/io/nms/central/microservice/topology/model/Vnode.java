@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import io.nms.central.microservice.common.functional.JSONUtils;
+import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -12,14 +12,14 @@ import io.vertx.core.json.JsonObject;
 @DataObject(generateConverter = true)
 public class Vnode {
 
-	public enum TypeEnum {
+	public enum NodeTypeEnum {
 		SWITCH("SWITCH"),
 		ROUTER("ROUTER"),
 		NDNFWD("NDNFWD"),
 		ENDSYS("ENDSYS");
 
 		private String value;
-		private TypeEnum(String value) { this.value = value; }
+		private NodeTypeEnum(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 	};
 
@@ -38,7 +38,7 @@ public class Vnode {
 	private int posx;
 	private int posy;
 	private int vsubnetId;
-	private TypeEnum type;
+	private NodeTypeEnum type;
 	private String hwaddr;
 	private String mgmtIp;
 
@@ -49,17 +49,17 @@ public class Vnode {
 		this.id = id;
 	}
 	public Vnode(JsonObject json) {
-		JSONUtils.fromJson(json, this, Vnode.class);
+		JsonUtils.fromJson(json, this, Vnode.class);
 	}
 
 	/*-----------------------------------------------*/
 
 	public JsonObject toJson() {
-		return new JsonObject(JSONUtils.pojo2Json(this, false));
+		return new JsonObject(JsonUtils.pojo2Json(this, false));
 	}
 	@Override
 	public String toString() {
-		return JSONUtils.pojo2Json(this, false);
+		return JsonUtils.pojo2Json(this, false);
 	}
 	@Override
 	public boolean equals(Object obj) {
@@ -93,10 +93,10 @@ public class Vnode {
 		this.description = description;
 	}
 
-	public TypeEnum getType() {
+	public NodeTypeEnum getType() {
 		return type;
 	}
-	public void setType(TypeEnum type) {
+	public void setType(NodeTypeEnum type) {
 		this.type = type;
 	}
 

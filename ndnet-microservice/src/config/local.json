@@ -1,0 +1,6 @@
+{
+  "api.name": "ndnet",
+  "ndnet.http.address": "127.0.0.1",
+  "ndnet.http.port": 8088,  
+  "host": "localhost"
+}

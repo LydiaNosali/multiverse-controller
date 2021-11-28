@@ -3,22 +3,25 @@ package io.nms.central.microservice.topology;
 import java.util.List;
 
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
-import io.nms.central.microservice.topology.model.CrossConnect;
-import io.nms.central.microservice.topology.model.PrefixAnn;
-import io.nms.central.microservice.topology.model.Route;
+import io.nms.central.microservice.topology.model.VcrossConnect;
+import io.nms.central.microservice.topology.model.Prefix;
 import io.nms.central.microservice.topology.model.Vconnection;
 import io.nms.central.microservice.topology.model.Vctp;
 import io.nms.central.microservice.topology.model.Vctp.ConnTypeEnum;
+import io.nms.central.microservice.topology.model.Vnode.NodeTypeEnum;
 import io.nms.central.microservice.topology.model.Vlink;
 import io.nms.central.microservice.topology.model.VlinkConn;
 import io.nms.central.microservice.topology.model.Vltp;
 import io.nms.central.microservice.topology.model.Vnode;
 import io.nms.central.microservice.topology.model.Vsubnet;
+import io.nms.central.microservice.topology.model.Vsubnet.SubnetTypeEnum;
+import io.nms.central.microservice.topology.model.Vtrail;
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.json.Json;
 
 /**
  * A service interface managing topology.
@@ -59,10 +62,13 @@ public interface TopologyService {
 	@Fluent
 	TopologyService getAllVsubnets(Handler<AsyncResult<List<Vsubnet>>> resultHandler);
 	
+	@Fluent
+	TopologyService getVsubnetsByType(SubnetTypeEnum type, Handler<AsyncResult<List<Vsubnet>>> resultHandler);
+	
 	@Fluent	
 	TopologyService deleteVsubnet(String vsubnetId, Handler<AsyncResult<Void>> resultHandler);
 	
-	@Fluent 
+	@Fluent
 	TopologyService updateVsubnet(String id, Vsubnet vsubnet, Handler<AsyncResult<Void>> resultHandler);
 	
 	
@@ -73,12 +79,12 @@ public interface TopologyService {
 	@Fluent	
 	TopologyService getVnode(String vnodeId, Handler<AsyncResult<Vnode>> resultHandler);
 	
-	@Fluent	
-	TopologyService getAllVnodes(Handler<AsyncResult<List<Vnode>>> resultHandler);
-	
-	@Fluent	
+	@Fluent
 	TopologyService getVnodesByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vnode>>> resultHandler);
 	
+	@Fluent
+	TopologyService getVnodesByType(NodeTypeEnum type, Handler<AsyncResult<List<Vnode>>> resultHandler);
+
 	@Fluent	
 	TopologyService deleteVnode(String vnodeId, Handler<AsyncResult<Void>> resultHandler);
 	
@@ -92,9 +98,6 @@ public interface TopologyService {
 	
 	@Fluent	
 	TopologyService getVltp(String vltpId, Handler<AsyncResult<Vltp>> resultHandler);
-	
-	@Fluent	
-	TopologyService getAllVltps(Handler<AsyncResult<List<Vltp>>> resultHandler);
 	
 	@Fluent	
 	TopologyService getVltpsByVnode(String vnodeId, Handler<AsyncResult<List<Vltp>>> resultHandler);
@@ -114,10 +117,7 @@ public interface TopologyService {
 	TopologyService getVctp(String vctpId, Handler<AsyncResult<Vctp>> resultHandler);
 	
 	@Fluent	
-	TopologyService getAllVctps(Handler<AsyncResult<List<Vctp>>> resultHandler);
-	
-	@Fluent	
-	TopologyService getVctpsByType(String type, Handler<AsyncResult<List<Vctp>>> resultHandler);
+	TopologyService getVctpsByType(ConnTypeEnum type, Handler<AsyncResult<List<Vctp>>> resultHandler);
 
 	@Fluent	
 	TopologyService getVctpsByVltp(String vltpId, Handler<AsyncResult<List<Vctp>>> resultHandler);
@@ -143,9 +143,6 @@ public interface TopologyService {
 	TopologyService getVlink(String vlinkId, Handler<AsyncResult<Vlink>> resultHandler);
 	
 	@Fluent	
-	TopologyService getAllVlinks(Handler<AsyncResult<List<Vlink>>> resultHandler);
-	
-	@Fluent	
 	TopologyService getVlinksByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vlink>>> resultHandler);
 	
 	@Fluent	
@@ -161,9 +158,6 @@ public interface TopologyService {
 	
 	@Fluent	
 	TopologyService getVlinkConn(String vlinkConnId, Handler<AsyncResult<VlinkConn>> resultHandler);
-	
-	@Fluent	
-	TopologyService getAllVlinkConns(Handler<AsyncResult<List<VlinkConn>>> resultHandler);
 	
 	@Fluent	
 	TopologyService getVlinkConnsByVlink(String vlinkId, Handler<AsyncResult<List<VlinkConn>>> resultHandler);
@@ -184,14 +178,14 @@ public interface TopologyService {
 	
 	@Fluent	
 	TopologyService getVconnection(String vconnectionId, Handler<AsyncResult<Vconnection>> resultHandler);
-	
-	@Fluent	
-	TopologyService getAllVconnections(Handler<AsyncResult<List<Vconnection>>> resultHandler);
 
 	@Fluent	
-	TopologyService getVconnectionsByType(String type, Handler<AsyncResult<List<Vconnection>>> resultHandler);
-		
-	@Fluent	
+	TopologyService getVconnectionsByVsubnetByType(String vsubnetId, ConnTypeEnum type, Handler<AsyncResult<List<Vconnection>>> resultHandler);
+	
+	@Fluent
+	TopologyService getVconnectionsByType(ConnTypeEnum type, Handler<AsyncResult<List<Vconnection>>> resultHandler);
+	
+	@Fluent
 	TopologyService getVconnectionsByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vconnection>>> resultHandler);
 	
 	@Fluent	
@@ -200,63 +194,63 @@ public interface TopologyService {
 	@Fluent 
 	TopologyService updateVconnection(String id, Vconnection vconnection, Handler<AsyncResult<Void>> resultHandler);
 
-	
-	/* PrefixAnn */
-	@Fluent	
-	TopologyService addPrefixAnn(PrefixAnn pa, Handler<AsyncResult<Void>> resultHandler);
-	
-	@Fluent	
-	TopologyService getPrefixAnn(String paId, Handler<AsyncResult<PrefixAnn>> resultHandler);
-	
-	@Fluent
-	TopologyService getAllPrefixAnns(Handler<AsyncResult<List<PrefixAnn>>> resultHandler);
-	
-	@Fluent	
-	TopologyService getPrefixAnnsByVsubnet(String vsubnetId, Handler<AsyncResult<List<PrefixAnn>>> resultHandler);
-	
-	@Fluent
-	TopologyService getPrefixAnnsByVnode(String nodeId, Handler<AsyncResult<List<PrefixAnn>>> resultHandler);
-	
-	@Fluent	
-	TopologyService deletePrefixAnn(String paId, Handler<AsyncResult<Void>> resultHandler);
-	
-	@Fluent	
-	TopologyService deletePrefixAnnByName(int originId, String name, Handler<AsyncResult<Void>> resultHandler);
-	
-	
-	/* Route */
-	@Fluent	
-	TopologyService addRoute(Route route, Handler<AsyncResult<Integer>> resultHandler);
-	
-	@Fluent	
-	TopologyService getRoute(String routeId, Handler<AsyncResult<Route>> resultHandler);
-	
-	@Fluent
-	TopologyService getAllRoutes(Handler<AsyncResult<List<Route>>> resultHandler);
-	
-	@Fluent	
-	TopologyService getRoutesByVsubnet(String vsubnetId, Handler<AsyncResult<List<Route>>> resultHandler);
-	
-	@Fluent
-	TopologyService getRoutesByNode(String nodeId, Handler<AsyncResult<List<Route>>> resultHandler);
-	
-	@Fluent	
-	TopologyService deleteRoute(String routeId, Handler<AsyncResult<Void>> resultHandler);
 
+	/* Vtrail */
+	@Fluent	
+	TopologyService addVtrail(Vtrail vtrail, Handler<AsyncResult<Integer>> resultHandler);
+
+	@Fluent	
+	TopologyService getVtrail(String id, Handler<AsyncResult<Vtrail>> resultHandler);
 	
+	@Fluent
+	TopologyService getVtrailsByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vtrail>>> resultHandler);
+	
+	@Fluent	
+	TopologyService deleteVtrail(String vtrailId, Handler<AsyncResult<Void>> resultHandler);
+	
+	@Fluent 
+	TopologyService updateVtrail(String id, Vtrail vtrail, Handler<AsyncResult<Void>> resultHandler);
+
+
 	/* CrossConnect */
 	@Fluent	
-	TopologyService addCrossConnect(CrossConnect crossConnect, Handler<AsyncResult<Integer>> resultHandler);
+	TopologyService addVcrossConnect(VcrossConnect vcrossConnect, Handler<AsyncResult<Integer>> resultHandler);
 	
 	@Fluent	
-	TopologyService getCrossConnectById(String crossConnectId, Handler<AsyncResult<CrossConnect>> resultHandler);
+	TopologyService getVcrossConnectById(String vcrossConnectId, Handler<AsyncResult<VcrossConnect>> resultHandler);
 	
 	@Fluent	
-	TopologyService getCrossConnectsBySwtich(String switchId, Handler<AsyncResult<List<CrossConnect>>> resultHandler);
+	TopologyService getVcrossConnectsByNode(String nodeId, Handler<AsyncResult<List<VcrossConnect>>> resultHandler);
 	
 	@Fluent	
-	TopologyService deleteCrossConnect(String crossConnectId, Handler<AsyncResult<Void>> resultHandler);
+	TopologyService deleteVcrossConnect(String vcrossConnectId, Handler<AsyncResult<Void>> resultHandler);
 	
+	@Fluent
+	TopologyService updateVcrossConnect(String id, VcrossConnect vcrossConnect, Handler<AsyncResult<Void>> resultHandler);
+
+
+	/* Prefix */
+	@Fluent	
+	TopologyService addPrefix(Prefix prefix, Handler<AsyncResult<Integer>> resultHandler);
+	
+	@Fluent	
+	TopologyService getPrefix(String prefixId, Handler<AsyncResult<Prefix>> resultHandler);
+	
+	@Fluent
+	TopologyService getAllPrefixes(Handler<AsyncResult<List<Prefix>>> resultHandler);
+	
+	@Fluent	
+	TopologyService getPrefixesByVsubnet(String vsubnetId, Handler<AsyncResult<List<Prefix>>> resultHandler);
+	
+	@Fluent
+	TopologyService getPrefixesByVnode(String nodeId, Handler<AsyncResult<List<Prefix>>> resultHandler);
+	
+	@Fluent	
+	TopologyService deletePrefix(String prefixId, Handler<AsyncResult<Void>> resultHandler);
+	
+	@Fluent
+	TopologyService deletePrefixByName(int originId, String name, Handler<AsyncResult<Void>> resultHandler);
+
 
 	/* Status management */
 	@Fluent
