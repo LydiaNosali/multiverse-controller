@@ -1,5 +1,5 @@
 {
-  "api.name": "digital-twin",
+  "api.name": "dt",
   "digitaltwin.http.address": "digitaltwin-microservice",
   "digitaltwin.http.port": 8084,
   "url": "bolt://neo4j:7687",

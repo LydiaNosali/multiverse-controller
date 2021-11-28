@@ -1,5 +1,5 @@
 {
-  "api.name": "digital-twin",
+  "api.name": "dt",
   "digitaltwin.http.address": "127.0.0.1",
   "digitaltwin.http.port": 8084,
   "url": "bolt://localhost:7687",
