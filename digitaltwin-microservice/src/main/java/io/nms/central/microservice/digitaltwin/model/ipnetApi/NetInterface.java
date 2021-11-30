@@ -23,7 +23,8 @@ public class NetInterface extends Configurable {
 	
 	public enum InterfaceStatus {
 		up("up"),
-		down("down");
+		down("down"),
+		undefined("undefined");
 		private String value;
 		private InterfaceStatus(String value) { this.value = value; }
 		public String getValue() { return this.value; }

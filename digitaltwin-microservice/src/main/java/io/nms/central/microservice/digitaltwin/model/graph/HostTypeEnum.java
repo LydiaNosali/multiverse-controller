@@ -6,7 +6,7 @@ public enum HostTypeEnum {
 	LeafRouter("LeafRouter"),
 	BorderRouter("BorderRouter"),
 	Firewall("Firewall"),
-	server("server"),
+	Server("Server"),
 	Switch("Switch");
 
 	private String value;

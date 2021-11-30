@@ -1,0 +1,118 @@
+type Query {
+  network: Network
+}
+
+type Network {
+  devices: [Device]
+  links: [Link]
+  subnets: [Subnet]
+}
+
+type Device {
+  name: String
+	hostname: String
+	mac: String
+	platform: String
+	type: String
+	bgpAsn: String
+	bgpStatus: String
+	hwsku: String
+  interfaces: [Interface]
+  ipRoutes: [IpRoute]
+  arp: [Arp]
+  acl: [AclTable]
+}
+
+type Link {
+  srcDevice: String
+  srcInterface: String
+  destDevice: String
+  destInterface: String
+}
+
+type Subnet {
+  netAddress: String
+  hostAddresses: [String]
+}
+
+type Interface {
+  name: String
+  ipAddr: String
+  bgp: Bgp
+}
+
+type Bgp {
+  remoteAddr: String
+	localAsn: String
+	remoteAsn: String
+	localId: String
+	remoteId: String
+	holdTime: String
+	keepAlive: String
+	state: BgpState
+}
+
+type AclTable {
+  name: String
+  binding: String
+  description: String
+  stage: AclTableStage
+  type: AclTableType
+  rules: [AclRule]
+}
+
+type AclRule {
+  name: String
+  action: String
+  priority: String
+  match: String
+}
+
+type IpRoute {
+  netInterface: String
+  to: String
+  type: String
+  via: String
+}
+
+type Arp {
+  netInterface: String
+  ipAddr: String
+  macAddr: String
+  vlan: String
+}
+
+enum DeviceType {
+  SpineRouter
+	LeafRouter
+	BorderRouter
+	Firewall
+	Server
+	Switch
+}
+
+enum BgpStatus {
+  up
+  down
+}
+
+enum BgpState {
+  Idle
+	Connect
+	Active
+	OpenSent
+	OpenConfirm
+	Established
+}
+
+enum AclTableType {
+  L3
+	L3V6
+	CTRLPLANE
+	MIRROR
+}
+
+enum AclTableStage {
+  ingress
+	egress
+}

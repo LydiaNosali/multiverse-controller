@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.digitaltwin.model.graph.HostTypeEnum;
+import io.nms.central.microservice.digitaltwin.model.graph.Metadata.BgpStatusEnum;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
 
@@ -16,7 +17,7 @@ public class Device extends Configurable {
 	private String platform;
 	private HostTypeEnum type;
 	private String bgpAsn;
-	private String bgpStatus;
+	private BgpStatusEnum bgpStatus;
 	private String hwsku;
 	
 	/*-----------------------------------------------*/
@@ -55,10 +56,10 @@ public class Device extends Configurable {
 	public void setBgpAsn(String bgpAsn) {
 		this.bgpAsn = bgpAsn;
 	}
-	public String getBgpStatus() {
+	public BgpStatusEnum getBgpStatus() {
 		return bgpStatus;
 	}
-	public void setBgpStatus(String bgpStatus) {
+	public void setBgpStatus(BgpStatusEnum bgpStatus) {
 		this.bgpStatus = bgpStatus;
 	}
 	public String getHwsku() {

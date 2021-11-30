@@ -6,8 +6,12 @@ import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
 import io.nms.central.microservice.digitaltwin.model.dt.DtQueryResult;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclRule;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclTable;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Arp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpRoute;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
 import io.vertx.codegen.annotations.Fluent;
@@ -61,6 +65,14 @@ public interface DigitalTwinService {
 	DigitalTwinService runningGetDeviceBgps(String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningGetBgp(String deviceName, String itfAddr, Handler<AsyncResult<Bgp>> resultHandler);
+	@Fluent	
+	DigitalTwinService runningGetDeviceIpRoutes(String deviceName, Handler<AsyncResult<List<IpRoute>>> resultHandler);
+	@Fluent	
+	DigitalTwinService runningGetDeviceArps(String deviceName, Handler<AsyncResult<List<Arp>>> resultHandler);
+	@Fluent
+	DigitalTwinService runningGetDeviceAclTables(String deviceName, Handler<AsyncResult<List<AclTable>>> resultHandler);
+	@Fluent
+	DigitalTwinService runningGetAclRules(String deviceName, String tableName, Handler<AsyncResult<List<AclRule>>> resultHandler);
 	
 	@Fluent
 	DigitalTwinService runningGetDeviceConfig(String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
