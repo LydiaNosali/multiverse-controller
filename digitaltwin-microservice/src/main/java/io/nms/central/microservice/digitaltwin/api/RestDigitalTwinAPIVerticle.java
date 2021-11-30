@@ -21,6 +21,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 
 /**
  * This verticle exposes REST API endpoints to process Digital-Twin service operation
@@ -52,8 +53,10 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	private static final String API_VIEW_BGPS = "/view/:viewId/device/:deviceName/bgps";
 	private static final String API_VIEW_ONE_BGP = "/view/:viewId/device/:deviceName/bgp/:itfAddr";
 	
+	private static final String API_GRAPHQL = "/mqe";
 
-	private final DigitalTwinService service;
+	private DigitalTwinService service;
+	private NetworkQueryEngine nqe;
 
 	public RestDigitalTwinAPIVerticle(DigitalTwinService service) {
 		this.service = service;
@@ -72,7 +75,6 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		
 		/* Operations on running network */
 		router.post(API_RUNNING).handler(this::checkAdminRole).handler(this::apiProcessNetworkRunningState);
-
 		router.get(API_RUNNING_VERIFY).handler(this::checkAdminRole).handler(this::apiRunningVerifyNetwork);
 		router.get(API_RUNNING_NETWORK).handler(this::checkAdminRole).handler(this::apiRunningGetNetwork);
 		router.get(API_RUNNING_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiRunningGetDevice);
@@ -84,26 +86,27 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		/* Operations on view network */
 		router.post(API_ONE_VIEW).handler(this::checkAdminRole).handler(this::apiCreateView);
 		router.delete(API_ONE_VIEW).handler(this::checkAdminRole).handler(this::apiDeleteView);
-		
 		router.get(API_VIEW_VERIFY).handler(this::checkAdminRole).handler(this::apiViewVerify);
 		router.get(API_VIEW_NETCONFIG).handler(this::checkAdminRole).handler(this::apiViewGenerateNetworkConfig);
-		
 		router.get(API_VIEW_NETWORK).handler(this::checkAdminRole).handler(this::apiViewGetNetwork);
-		
 		router.get(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewGetDevice);
 		router.put(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewUpdateDevice);
-		
 		router.get(API_VIEW_INTERFACES).handler(this::checkAdminRole).handler(this::apiViewGetDeviceInterfaces);
 		router.get(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewGetInterface);
 		router.put(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewUpdateInterface);
-		
 		router.get(API_VIEW_BGPS).handler(this::checkAdminRole).handler(this::apiViewGetDeviceBgps);
 		router.get(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewGetBgp);
 		// router.post(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewCreateBgp);
 		router.put(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewUpdateBgp);
 		router.delete(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewDeleteBgp);
-
-		// get HTTP host and port from configuration, or use default value
+		
+		/* GraphQL endpoint for NQE */
+		nqe = new NetworkQueryEngine(service);
+		String schema = vertx.fileSystem().readFileBlocking("schema.graphqls").toString();
+		GraphQLHandler nqeHandler = nqe.setupQueryEngine(schema);
+		router.post(API_GRAPHQL).handler(this::checkAdminRole).handler(nqeHandler);
+		
+	    // get HTTP host and port from configuration, or use default value
 		String host = config().getString("digitaltwin.http.address", "0.0.0.0");
 		int port = config().getInteger("digitaltwin.http.port", 8084);
 

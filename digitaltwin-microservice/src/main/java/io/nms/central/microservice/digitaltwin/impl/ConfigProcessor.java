@@ -21,8 +21,10 @@ import io.nms.central.microservice.digitaltwin.model.graph.Interface.InterfaceTy
 import io.nms.central.microservice.digitaltwin.model.graph.IpRoute;
 import io.nms.central.microservice.digitaltwin.model.graph.Lldp;
 import io.nms.central.microservice.digitaltwin.model.graph.Metadata;
+import io.nms.central.microservice.digitaltwin.model.graph.Metadata.BgpStatusEnum;
 import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
 import io.nms.central.microservice.digitaltwin.model.graph.Vlan;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -31,8 +33,7 @@ import io.vertx.core.logging.LoggerFactory;
 public class ConfigProcessor {
 	
 	private static final Logger logger = LoggerFactory.getLogger(ConfigProcessor.class);
-	
-	// private static FileWriter file;
+
 	private NetworkState netConfig;
 	private JsonObject output;
 	private List<String> report;
@@ -100,9 +101,9 @@ public class ConfigProcessor {
 		    newDevice.put("hostname", meta.getHostname());
 		    newDevice.put("mac", meta.getMac());
 		    newDevice.put("platform", meta.getPlatform());
-		    if (deviceType.equals(HostTypeEnum.server)) {
+		    if (deviceType.equals(HostTypeEnum.Server)) {
 		    	newDevice.put("bgpAsn", "-");
-		    	newDevice.put("bgpStatus", "-");
+		    	newDevice.put("bgpStatus", BgpStatusEnum.undefined.getValue());
 		    	newDevice.put("hwsku", "-");
 		    } else {
 		    	newDevice.put("bgpAsn", meta.getBgpAsn());
@@ -114,7 +115,7 @@ public class ConfigProcessor {
 		    // step 1: interfaces
 		    // JSONArray interfaces = (JSONArray) ((JSONObject) host.get("interface")).get("rows");
 		    List<Interface> netItfs = config.getNetInterface();
-		    if (deviceType.equals(HostTypeEnum.server)) {
+		    if (deviceType.equals(HostTypeEnum.Server)) {
 	    		processServerInterfaces(deviceName, deviceType, netItfs);
 	    	} else if (deviceType.equals(HostTypeEnum.BorderRouter) 
 	    			|| deviceType.equals(HostTypeEnum.SpineRouter) 
@@ -393,7 +394,7 @@ public class ConfigProcessor {
 	   		ltp.put("type", e.getType().getValue());
 
 	   		// For consistent Ltp object. Not applicable fields?
-    		ltp.put("adminStatus", "-");
+    		ltp.put("adminStatus", NetInterface.InterfaceStatus.undefined);
     		ltp.put("index", "-");
     		ltp.put("mtu", "-");
     		ltp.put("speed", "-");

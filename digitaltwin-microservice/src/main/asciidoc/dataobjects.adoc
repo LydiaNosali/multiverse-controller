@@ -15,6 +15,35 @@
 |[[tableName]]`@tableName`|`String`|-
 |===
 
+[[AclRule]]
+== AclRule
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[action]]`@action`|`String`|-
+|[[match]]`@match`|`String`|-
+|[[name]]`@name`|`String`|-
+|[[priority]]`@priority`|`String`|-
+|===
+
+[[AclTable]]
+== AclTable
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[binding]]`@binding`|`String`|-
+|[[description]]`@description`|`String`|-
+|[[name]]`@name`|`String`|-
+|[[stage]]`@stage`|`link:enums.html#AclStageEnum[AclStageEnum]`|-
+|[[type]]`@type`|`link:enums.html#AclTypeEnum[AclTypeEnum]`|-
+|===
+
 [[AclTable]]
 == AclTable
 
@@ -44,23 +73,18 @@
 |[[vlan]]`@vlan`|`String`|-
 |===
 
-[[Bgp]]
-== Bgp
+[[Arp]]
+== Arp
 
 
 [cols=">25%,25%,50%"]
 [frame="topbot"]
 |===
 ^|Name | Type ^| Description
-|[[holdTime]]`@holdTime`|`String`|-
-|[[keepAlive]]`@keepAlive`|`String`|-
-|[[localAddr]]`@localAddr`|`String`|-
-|[[localAsn]]`@localAsn`|`String`|-
-|[[localId]]`@localId`|`String`|-
-|[[remoteAddr]]`@remoteAddr`|`String`|-
-|[[remoteAsn]]`@remoteAsn`|`String`|-
-|[[remoteId]]`@remoteId`|`String`|-
-|[[state]]`@state`|`link:enums.html#BgpStateEnum[BgpStateEnum]`|-
+|[[ipAddr]]`@ipAddr`|`String`|-
+|[[macAddr]]`@macAddr`|`String`|-
+|[[netInterface]]`@netInterface`|`String`|-
+|[[vlan]]`@vlan`|`String`|-
 |===
 
 [[Bgp]]
@@ -80,6 +104,25 @@
 |[[neighborAddress]]`@neighborAddress`|`String`|-
 |[[remoteAs]]`@remoteAs`|`String`|-
 |[[remoteRouterId]]`@remoteRouterId`|`String`|-
+|===
+
+[[Bgp]]
+== Bgp
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[holdTime]]`@holdTime`|`String`|-
+|[[keepAlive]]`@keepAlive`|`String`|-
+|[[localAddr]]`@localAddr`|`String`|-
+|[[localAsn]]`@localAsn`|`String`|-
+|[[localId]]`@localId`|`String`|-
+|[[remoteAddr]]`@remoteAddr`|`String`|-
+|[[remoteAsn]]`@remoteAsn`|`String`|-
+|[[remoteId]]`@remoteId`|`String`|-
+|[[state]]`@state`|`link:enums.html#BgpStateEnum[BgpStateEnum]`|-
 |===
 
 [[CreationReport]]
@@ -105,7 +148,7 @@
 |===
 ^|Name | Type ^| Description
 |[[bgpAsn]]`@bgpAsn`|`String`|-
-|[[bgpStatus]]`@bgpStatus`|`String`|-
+|[[bgpStatus]]`@bgpStatus`|`link:enums.html#BgpStatusEnum[BgpStatusEnum]`|-
 |[[hostname]]`@hostname`|`String`|-
 |[[hwsku]]`@hwsku`|`String`|-
 |[[mac]]`@mac`|`String`|-
@@ -171,6 +214,20 @@
 |[[name]]`@name`|`String`|-
 |[[speed]]`@speed`|`String`|-
 |[[type]]`@type`|`link:enums.html#InterfaceTypeEnum[InterfaceTypeEnum]`|-
+|===
+
+[[IpRoute]]
+== IpRoute
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[netInterface]]`@netInterface`|`String`|-
+|[[to]]`@to`|`String`|-
+|[[type]]`@type`|`String`|-
+|[[via]]`@via`|`String`|-
 |===
 
 [[IpRoute]]

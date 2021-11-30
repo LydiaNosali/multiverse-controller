@@ -8,7 +8,6 @@ import java.util.Map;
 public class CypherQuery {
 	public static final String CLEAR_DB = "MATCH (n) DETACH DELETE n";
 	
-	
 	public static class Graph {
 		public static final String CREATE_HOST = "";
 		public static final String CREATE_LTP = "";
@@ -68,7 +67,15 @@ public class CypherQuery {
 		public static final String GET_BGP = "MATCH (h:Host{name: $deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr: $itfAddr})-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "RETURN c.ipAddr as localAddr, b.lAsn as localAsn, b.lId as localId, b.rAddr as remoteAddr, b.rAsn as remoteAsn, b.rId as remoteId, "
 				+ "b.holdTime as holdTime, b.keepAlive as keepAlive, b.state as state";
-		
+		public static final String GET_HOST_ACLTABLES = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(a:Acl) \r\n"
+				+ "RETURN DISTINCT a.name as name, a.binding as binding, a.description as description, a.stage as stage, a.type as type";
+		public static final String GET_ACLRULES = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(a:Acl{name:$tableName})-[:NEXT_RULE*]->(r:AclRule) \r\n"
+				+ "RETURN DISTINCT r.name as name, r.priority as priority, r.action as action, r.matching as match";
+		public static final String GET_HOST_IPROUTES = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(i:Ltp)-[:CONTAINS*2]->(c:Ip4Ctp)-[:TO_ROUTE]->(p:Route) "
+				+ "RETURN i.name as netInterface, p.to as to, p.via as via, p.type as type";
+		public static final String GET_HOST_ARPS = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(l:Ltp)-[:CONTAINS*2]->(lc:Ip4Ctp)-[:IP_CONN]->(rc:Ip4Ctp)<-[:CONTAINS]-(re:EtherCtp) "
+				+ "RETURN l.name as netInterface, rc.ipAddr as ipAddr, re.macAddr as macAddr, lc.vlan as vlan";
+
 		public static final String UPDATE_HOST = "MATCH (h:Host{name:$deviceName}) SET h.hostname=$hostname, h.bgpStatus=$bgpStatus, "
 				+ "h.bgpAsn=$bgpAsn, h.type=$type, h.platform=$platform, h.mac=$mac, h.hwsku=$hwsku";
 		public static final String UPDATE_INTERFACE_IP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(l:Ltp{name:$itfName})-[:CONTAINS]->(e:EtherCtp)\r\n"

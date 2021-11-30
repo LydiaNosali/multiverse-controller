@@ -23,8 +23,12 @@ import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.nms.central.microservice.digitaltwin.model.graph.DeviceState;
 import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclRule;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclTable;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Arp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpRoute;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpSubnet;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
@@ -123,6 +127,73 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	public DigitalTwinService runningGetBgp(String deviceName, String itfAddr,
 			Handler<AsyncResult<Bgp>> resultHandler) {
 		getBgp(MAIN_DB, deviceName, itfAddr, resultHandler);
+		return this;
+	}
+	
+	@Override
+	public DigitalTwinService runningGetDeviceIpRoutes(String deviceName, 
+			Handler<AsyncResult<List<IpRoute>>> resultHandler) {
+		JsonObject params = new JsonObject().put("deviceName", deviceName);
+		find(MAIN_DB, CypherQuery.Api.GET_HOST_IPROUTES, params, res -> {
+			if (res.succeeded()) {
+				List<IpRoute> ipRoutes = res.result().stream()
+						.map(o -> {return new IpRoute(o);})
+						.collect(Collectors.toList());
+				resultHandler.handle(Future.succeededFuture(ipRoutes));
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
+	}
+	@Override
+	public DigitalTwinService runningGetDeviceArps(String deviceName, 
+			Handler<AsyncResult<List<Arp>>> resultHandler) {
+		JsonObject params = new JsonObject().put("deviceName", deviceName);
+		find(MAIN_DB, CypherQuery.Api.GET_HOST_ARPS, params, res -> {
+			if (res.succeeded()) {
+				List<Arp> arps = res.result().stream()
+						.map(o -> {return new Arp(o);})
+						.collect(Collectors.toList());
+				resultHandler.handle(Future.succeededFuture(arps));
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
+	}
+	@Override
+	public DigitalTwinService runningGetDeviceAclTables(String deviceName, 
+			Handler<AsyncResult<List<AclTable>>> resultHandler) {
+		JsonObject params = new JsonObject().put("deviceName", deviceName);
+		find(MAIN_DB, CypherQuery.Api.GET_HOST_ACLTABLES, params, res -> {
+			if (res.succeeded()) {
+				List<AclTable> aclTables = res.result().stream()
+						.map(o -> {return new AclTable(o);})
+						.collect(Collectors.toList());
+				resultHandler.handle(Future.succeededFuture(aclTables));
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
+	}
+	@Override
+	public DigitalTwinService runningGetAclRules(String deviceName, String tableName, 
+			Handler<AsyncResult<List<AclRule>>> resultHandler) {
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName)
+				.put("tableName", tableName);
+		find(MAIN_DB, CypherQuery.Api.GET_ACLRULES, params, res -> {
+			if (res.succeeded()) {
+				List<AclRule> aclRules = res.result().stream()
+						.map(o -> {return new AclRule(o);})
+						.collect(Collectors.toList());
+				resultHandler.handle(Future.succeededFuture(aclRules));
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 		return this;
 	}
 
@@ -485,10 +556,16 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	private void getDevice(String db, String deviceName,
 			Handler<AsyncResult<Device>> resultHandler) {
 		JsonObject params = new JsonObject().put("deviceName", deviceName);
-		findOne(db, CypherQuery.Api.GET_HOST, params, res -> {
+		find(db, CypherQuery.Api.GET_HOST, params, res -> {
 			if (res.succeeded()) {
-				Device device = JsonUtils.json2Pojo(res.result().encode(), Device.class);
-				resultHandler.handle(Future.succeededFuture(device));
+				if (res.result().size() == 1) {
+					Device device = JsonUtils.json2Pojo(res.result().get(0).encode(), Device.class);
+					resultHandler.handle(Future.succeededFuture(device));
+				} else {
+					resultHandler.handle(Future.succeededFuture(null));
+				}
+				// Device device = JsonUtils.json2Pojo(res.result().encode(), Device.class);
+				// resultHandler.handle(Future.succeededFuture(device));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}
@@ -515,10 +592,16 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		JsonObject params = new JsonObject()
 				.put("deviceName", deviceName)
 				.put("itfName", itfName);
-		findOne(db, CypherQuery.Api.GET_INTERFACE, params, res -> {
+		find(db, CypherQuery.Api.GET_INTERFACE, params, res -> {
 			if (res.succeeded()) {
-				NetInterface netItf = JsonUtils.json2Pojo(res.result().encode(), NetInterface.class);
-				resultHandler.handle(Future.succeededFuture(netItf));
+				if (res.result().size() == 1) {
+					NetInterface netItf = JsonUtils.json2Pojo(res.result().get(0).encode(), NetInterface.class);
+					resultHandler.handle(Future.succeededFuture(netItf));
+				} else {
+					resultHandler.handle(Future.succeededFuture(null));
+				}
+				// NetInterface netItf = JsonUtils.json2Pojo(res.result().encode(), NetInterface.class);
+				// resultHandler.handle(Future.succeededFuture(netItf));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}
@@ -544,10 +627,14 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		JsonObject params = new JsonObject()
 				.put("deviceName", deviceName)
 				.put("itfAddr", itfAddr);
-		findOne(db, CypherQuery.Api.GET_BGP, params, res -> {
+		find(db, CypherQuery.Api.GET_BGP, params, res -> {
 			if (res.succeeded()) {
-				Bgp bgp = JsonUtils.json2Pojo(res.result().encode(), Bgp.class);
-				resultHandler.handle(Future.succeededFuture(bgp));
+				if (res.result().size() == 1) {
+					Bgp bgp = JsonUtils.json2Pojo(res.result().get(0).encode(), Bgp.class);
+					resultHandler.handle(Future.succeededFuture(bgp));
+				} else {
+					resultHandler.handle(Future.succeededFuture(null));
+				}
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}
