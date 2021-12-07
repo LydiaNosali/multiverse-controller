@@ -48,14 +48,15 @@ public class NetworkQueryEngine {
 						.dataFetcher("network", networkDataFetcher)
 						.dataFetcher("path", pathDataFetcher))
 				.type(TypeRuntimeWiring.newTypeWiring("Device")
-						.dataFetcher("interfaces", interfacesDataFetcher)
-						.dataFetcher("ipRoutes", ipRoutesDataFetcher)
+						.dataFetcher("interface", interfacesDataFetcher)
+						.dataFetcher("route", ipRoutesDataFetcher)
 						.dataFetcher("arp", arpsDataFetcher)
-						.dataFetcher("acl", aclTablesDataFetcher))
+						.dataFetcher("acl", aclTablesDataFetcher)
+						.dataFetcher("bgp", deviceBgpsDataFetcher))
 				.type(TypeRuntimeWiring.newTypeWiring("Interface")
 						.dataFetcher("bgp", bgpDataFetcher))
 				.type(TypeRuntimeWiring.newTypeWiring("AclTable")
-						.dataFetcher("rules", aclRulesDataFetcher))
+						.dataFetcher("rule", aclRulesDataFetcher))
 				.type(TypeRuntimeWiring.newTypeWiring("Path")
 						.dataFetcher("routeHops", routeHopsDataFetcher))
 				.build();
@@ -124,6 +125,12 @@ public class NetworkQueryEngine {
 		String deviceName = device.getName();
 		service.runningGetDeviceArps(deviceName, future);
 	});
+	VertxDataFetcher<List<Bgp>> deviceBgpsDataFetcher = 
+			new VertxDataFetcher<>((environment, future) -> {
+		Device device = environment.getSource();
+		String deviceName = device.getName();
+		service.runningGetDeviceBgps(deviceName, future);
+	});
 	VertxDataFetcher<DataFetcherResult<List<AclTable>>> aclTablesDataFetcher = 
 			new VertxDataFetcher<>((environment, future) -> {
 		Device device = environment.getSource();
@@ -150,7 +157,7 @@ public class NetworkQueryEngine {
 		String itfAddr = itf.getIpAddr();
 		GraphQLContext rc = environment.getLocalContext();
 		if (itfAddr != null) {
-			service.runningGetBgp(rc.get("deviceName"), itfAddr, future);
+			service.runningGetBgp(rc.get("deviceName"), itfAddr.split("/")[0], future);
 		} else {
 			future.complete(null);
 		}
