@@ -2,9 +2,6 @@ package io.nms.central.microservice.digitaltwin.model.ipnetApi;
 
 import java.util.Objects;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-
 import io.nms.central.microservice.common.functional.JsonUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;

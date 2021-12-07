@@ -105,6 +105,28 @@ public final class Functional {
 		Matcher m = p.matcher(str);
 		return m.matches();
 	}
+	
+	public static boolean isValidHostIp(String str) {
+		if (str == null) {
+			return false;
+		}
+		String regex = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
+				+ "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
+		Pattern p = Pattern.compile(regex);
+		Matcher m = p.matcher(str);
+		return m.matches();
+	}
+	
+	public static boolean isValidHostname(String str) {
+		if (str == null) {
+			return false;
+		}
+		String regex = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*"
+				+ "([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
+		Pattern p = Pattern.compile(regex);
+		Matcher m = p.matcher(str);
+		return m.matches();
+	}
 
 	public static JsonObject computePatched(JsonObject origin, JsonArray patch) throws IllegalArgumentException {
 		String sPatched = rawPatch(origin.encode(), patch.encode());

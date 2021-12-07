@@ -5,6 +5,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.nms.central.microservice.common.functional.Functional;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Path;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.PathHop;
+
 public class CypherQuery {
 	public static final String CLEAR_DB = "MATCH (n) DETACH DELETE n";
 	
@@ -49,7 +53,7 @@ public class CypherQuery {
 		public static final String GET_HOST = "MATCH (h:Host{name:$deviceName}) RETURN h.name as name, "
 				+ "h.hostname as hostname, h.bgpStatus as bgpStatus, h.bgpAsn as bgpAsn, "
 				+ "h.type as type, h.platform as platform, h.mac as mac, h.hwsku as hwsku";
-		public static final String GET_NETWORK_LINKS = "MATCH (sH:Host)-[:CONTAINS]->(sL:Ltp)-[l:LINKED]->(dL:Ltp)<-[:CONTAINS]-(dH:Host) "
+		public static final String GET_NETWORK_LINKS = "MATCH (sH:Host)-[:CONTAINS]->(sL:Ltp)-[:LINKED_L2|:LINKED_L3|:LINKED_VLT]->(dL:Ltp)<-[:CONTAINS]-(dH:Host) "
 				+ "RETURN sH.name as srcDevice, sL.name as srcInterface, dH.name as destDevice, dL.name as destInterface";
 		public static final String GET_NETWORK_SUBNETS = "MATCH (c:Ip4Ctp) WHERE c.netMask <> '/32' "
 				+ "RETURN DISTINCT c.netAddr+c.netMask as netAddress, collect(c.ipAddr) as hostAddresses";
@@ -67,12 +71,15 @@ public class CypherQuery {
 		public static final String GET_BGP = "MATCH (h:Host{name: $deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr: $itfAddr})-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "RETURN c.ipAddr as localAddr, b.lAsn as localAsn, b.lId as localId, b.rAddr as remoteAddr, b.rAsn as remoteAsn, b.rId as remoteId, "
 				+ "b.holdTime as holdTime, b.keepAlive as keepAlive, b.state as state";
+		
+		// TODO: update
 		public static final String GET_HOST_ACLTABLES = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(a:Acl) \r\n"
 				+ "RETURN DISTINCT a.name as name, a.binding as binding, a.description as description, a.stage as stage, a.type as type";
 		public static final String GET_ACLRULES = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(a:Acl{name:$tableName})-[:NEXT_RULE*]->(r:AclRule) \r\n"
 				+ "RETURN DISTINCT r.name as name, r.priority as priority, r.action as action, r.matching as match";
 		public static final String GET_HOST_IPROUTES = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(i:Ltp)-[:CONTAINS*2]->(c:Ip4Ctp)-[:TO_ROUTE]->(p:Route) "
 				+ "RETURN i.name as netInterface, p.to as to, p.via as via, p.type as type";
+		
 		public static final String GET_HOST_ARPS = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(l:Ltp)-[:CONTAINS*2]->(lc:Ip4Ctp)-[:IP_CONN]->(rc:Ip4Ctp)<-[:CONTAINS]-(re:EtherCtp) "
 				+ "RETURN l.name as netInterface, rc.ipAddr as ipAddr, re.macAddr as macAddr, lc.vlan as vlan";
 
@@ -114,6 +121,80 @@ public class CypherQuery {
 				+ "RETURN done";
 		public static String getExtractionQuery(String db, String user, String password) {
 			return String.format(P_EXTRACT_VIEW, db, user, password);
+		}
+	}
+	
+	public static class PathSearch {
+		public static final String HOST_TO_HOST = "CALL {\r\n"
+				+ "	MATCH (from:Host{name:$from})\r\n"
+				+ "	MATCH (to:Host{name:$to})\r\n"
+				+ "	WHERE from.type = 'Server' AND to.type = 'Server'\r\n"
+				+ "	WITH from, to\r\n"
+				+ "	CALL apoc.path.expandConfig(from, {\r\n"
+				+ "    		sequence: \"Host,CONTAINS>,Ltp,LINKED_L2|LINKED_L3,Ltp,<CONTAINS\",\r\n"
+				+ "    		terminatorNodes: [to],\r\n"
+				+ "    		maxLevel: 12\r\n"
+				+ "	})\r\n"
+				+ "	YIELD path\r\n"
+				+ "	RETURN path\r\n"
+				+ "	UNION\r\n"
+				+ "	MATCH (from:Host{name:$from})\r\n"
+				+ "	MATCH (to:Host{name:$to})\r\n"
+				+ "	WHERE from.type ENDS WITH 'Router' AND to.type ENDS WITH 'Router'\r\n"
+				+ "	WITH from, to\r\n"
+				+ "	CALL apoc.path.expandConfig(from, {\r\n"
+				+ "    		sequence: \"Host,CONTAINS>,Ltp,LINKED_L3,Ltp,<CONTAINS\",\r\n"
+				+ "    		terminatorNodes: [to],\r\n"
+				+ "    		maxLevel: 6\r\n"
+				+ "	})\r\n"
+				+ "	YIELD path\r\n"
+				+ "	RETURN path\r\n"
+				+ "}\r\n"
+				+ "WITH path, [n IN nodes(path) WHERE n:Ltp] as ltps, [n IN nodes(path) WHERE n:Host] as hosts\r\n"
+				+ "UNWIND hosts as host\r\n"
+				+ "UNWIND ltps as ltp\r\n"
+				+ "MATCH (host)-[:CONTAINS]->(ltp)-[:CONTAINS]->(mac:EtherCtp)-[:BRIDGE|:CONTAINS]->(ip:Ip4Ctp)\r\n"
+				+ "WITH hosts, ltps, collect({host:host.name, itf:ltp.name, type:ltp.type, adminStatus:ltp.adminStatus, "
+				+ "index:ltp.index, speed:ltp.speed, mtu:ltp.mtu, macAddr:mac.macAddr, vlan:mac.vlan, mode:mac.mode, "
+				+ "ipAddr:ip.ipAddr+ip.netMask, svi:ip.svi}) as hops\r\n"
+				+ "RETURN hops\r\n";
+		private static final String P_IPPATH_FIRST_HOP = 
+				"MATCH (h%d:Host{name:'%s'})\r\n"
+				+ "OPTIONAL MATCH (h%d)-[:TO_ROUTE|ACL*1..2]->(r%d:Route)-[:EGRESS]->(c%d:Ip4Ctp{ipAddr:'%s'})<-[:CONTAINS*2]-(l%d:Ltp)\r\n"
+				+ "WHERE r%d.to = '0.0.0.0/0' OR r%d.to = '%s'\r\n"
+				+ "OPTIONAL MATCH (h%d)-[:ACL]->(a%d:Acl)-[:TO_ROUTE]->(r%d)\r\n"
+				+ "OPTIONAL MATCH (c%d)-[arp%d:IP_CONN]->(:Ip4Ctp{ipAddr:'%s'})<-[:CONTAINS*3]-(:Host{name:'%s'})\r\n"
+				+ "WITH collect({host:h%d{.*}, route:r%d{.*, netInterface:l%d.name}, acl:a%d{.*}, arp:arp%d IS NOT NULL}) AS hop%d";
+		private static final String P_IPPATH_ONE_HOP = 
+				"\nMATCH (h%d:Host{name:'%s'})\r\n"
+				+ "OPTIONAL MATCH (h%d)-[:TO_ROUTE|ACL*1..2]->(r%d:Route)-[:EGRESS]->(c%d:Ip4Ctp{ipAddr:'%s'})<-[:CONTAINS*2]-(l%d:Ltp)\r\n"
+				+ "WHERE r%d.to = '0.0.0.0/0' OR r%d.to = '%s'\r\n"
+				+ "OPTIONAL MATCH (h%d)-[:ACL]->(a%d:Acl)-[:TO_ROUTE]->(r%d)\r\n"
+				+ "OPTIONAL MATCH (c%d)-[arp%d:IP_CONN]->(:Ip4Ctp{ipAddr:'%s'})<-[:CONTAINS*3]-(:Host{name:'%s'})\r\n"
+				+ "WITH hop%d + collect({host:h%d{.*}, route:r%d{.*, netInterface:l%d.name}, acl:a%d{.*}, arp:arp%d IS NOT NULL}) AS hop%d";
+		private static final String P_IPPATH_RETURN = "\nUNWIND hop%d as ipHop RETURN ipHop";
+		public static String getFindIpPathQuery(List<PathHop> path) {
+			PathHop dest = path.get(path.size()-1);
+			String destSubnetAddr = Functional.parseSubnetAddress(dest.getIpAddr())+"/"+dest.getIpAddr().split("/")[1];
+			int i=0;
+			String query = String.format(P_IPPATH_FIRST_HOP, 
+					i, path.get(i).getHost(), 
+					i,i,i, path.get(i).getIpAddr().split("/")[0], i, 
+					i,i, destSubnetAddr,
+					i,i,i,
+					i,i, path.get(i+1).getIpAddr().split("/")[0], path.get(i+1).getHost(), 
+					i,i,i,i,i,i);
+			for (i=2; i<=path.size()-2; i+=2) {
+				query+=String.format(P_IPPATH_ONE_HOP, 
+						i, path.get(i).getHost(), 
+						i,i,i, path.get(i).getIpAddr().split("/")[0], i, 
+						i,i, destSubnetAddr,
+						i,i,i,
+						i,i, path.get(i+1).getIpAddr().split("/")[0], path.get(i+1).getHost(), 
+						i-2,i,i,i,i,i,i);
+			}
+			query+=String.format(P_IPPATH_RETURN, path.size()-2);
+			return query;
 		}
 	}
 	
@@ -163,6 +244,7 @@ public class CypherQuery {
 				+ "h1.name as deviceName1, c1.ipAddr as ipAddr1, b1.lAsn as lAsn1, b1.rAsn as rAsn1, b1.rAddr as rAddr1, "
 				+ "h2.name as deviceName2, c2.ipAddr as ipAddr2, b2.lAsn as lAsn2, b2.rAsn as rAsn2, b2.rAddr as rAddr2";
 		
+		// TODO: update
 		public static final String MISCONFIGURED_DEFAULT_ROUTE = "MATCH (h:Host)-[:CONTAINS*3]->(:Ip4Ctp)-[:TO_ROUTE]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp) "
 				+ "WHERE NOT (e)-[:IP_CONN]->(:Ip4Ctp) "
 				+ "RETURN DISTINCT h.name, e.ipAddr "
@@ -205,12 +287,13 @@ public class CypherQuery {
 		public static final String GET_BGP_NEIGHBORS = "MATCH (lh {name:'%s'})-[:CONTAINS*3]->(lc:Ip4Ctp)-[:HAS_CONFIG]->(lb:Bgp)-[:BGP_PEER]->(rb:Bgp)<-[:HAS_CONFIG]-(rc:Ip4Ctp)<-[:CONTAINS*3]-(rh)\r\n"
 				+ "RETURN rc.ipAddr as remote_addr, lc.ipAddr as local_addr, rb.lAsn as asn, rh.name as name";
 		
+		// TODO: update
 		public static final String GET_ACLTABLES = "MATCH ({name:'%s'})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(acl:Acl)\r\n"
 				+ "RETURN DISTINCT acl.name as name, acl.binding as services, acl.stage as stage, acl.type as type, acl.description as description";
-		
 		public static final String GET_ACLRULES = "MATCH ({name:'%s'})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(t:Acl{name:'BLK_SSH'})\r\n"
 				+ "OPTIONAL MATCH (r:AclRule)-[:NEXT_RULE*]-(t) \r\n"
 				+ "RETURN DISTINCT r.name as name, r.action as action, r.priority as priority, r.matching as matching, t.name as table";
+		
 		public static final Map<String,String> queryMap(String device) {
 			Map<String,String> map = new HashMap<String,String>();
 			map.put("metadata", String.format(GET_METADATA, device));

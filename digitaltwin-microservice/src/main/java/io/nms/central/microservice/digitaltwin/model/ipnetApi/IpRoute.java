@@ -13,7 +13,7 @@ public class IpRoute extends Configurable {
 	private String via;
 	private String to;
 	private String type;
-	
+
 	public String getNetInterface() {
 		return netInterface;
 	}

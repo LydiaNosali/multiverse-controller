@@ -28,11 +28,14 @@ import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclTable;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Arp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.RouteHop;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpRoute;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpSubnet;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Path;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.PathHop;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -420,6 +423,52 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		return this;
 	}
 	
+	/* Operations on path search */
+	@Override
+	public DigitalTwinService runningFindPathByHostnames(String from, String to,
+			Handler<AsyncResult<List<Path>>> resultHandler) {
+		JsonObject params = new JsonObject()
+				.put("from", from)
+				.put("to", to)
+				.put("from", from)
+				.put("to", to);
+		find(MAIN_DB, CypherQuery.PathSearch.HOST_TO_HOST, params, res -> {
+        	if (res.succeeded()) {
+        		List<Path> paths = res.result().stream()
+						.map(o -> {return new Path(o);})
+						.collect(Collectors.toList());
+				resultHandler.handle(Future.succeededFuture(paths));
+        	} else {
+        		resultHandler.handle(Future.failedFuture(res.cause()));
+        	}
+        });
+		return this;
+	}
+
+	@Override
+	public DigitalTwinService runningFindPathByIpAddrs(String from, String to,
+			Handler<AsyncResult<List<Path>>> resultHandler) {
+		// TODO Auto-generated method stub
+		return this;
+	}
+	
+	@Override
+	public DigitalTwinService runningGetIpRoutesOfPath(List<PathHop> path, 
+			Handler<AsyncResult<List<RouteHop>>> resultHandler) {
+		String query = CypherQuery.PathSearch.getFindIpPathQuery(path);
+		find(MAIN_DB, query, res -> {
+        	if (res.succeeded()) {
+        		List<RouteHop> ipPaths = res.result().stream()
+						.map(o -> {return new RouteHop(o.getJsonObject("ipHop"));})
+						.collect(Collectors.toList());
+				resultHandler.handle(Future.succeededFuture(ipPaths));
+        	} else {
+        		resultHandler.handle(Future.failedFuture(res.cause()));
+        	}
+        });
+		return this;
+	}
+	
 	/* Processing functions */
 	private void processNetworkState(NetworkState netState, 
 			Handler<AsyncResult<CreationReport>> resultHandler) {
@@ -451,6 +500,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				Duration timeElapsed = Duration.between(start, end);
 				logger.info("Graph creation time: " + timeElapsed.getNano() / 1000000 + " ms");
 				logger.info("Queries: " + queries.size());
+				// logger.info("Report: " + res.result());
 				report.setGraphCreator(res.result());
 				resultHandler.handle(Future.succeededFuture(report));	
 			} else {
@@ -557,8 +607,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				} else {
 					resultHandler.handle(Future.succeededFuture(null));
 				}
-				// Device device = JsonUtils.json2Pojo(res.result().encode(), Device.class);
-				// resultHandler.handle(Future.succeededFuture(device));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}
@@ -593,8 +641,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				} else {
 					resultHandler.handle(Future.succeededFuture(null));
 				}
-				// NetInterface netItf = JsonUtils.json2Pojo(res.result().encode(), NetInterface.class);
-				// resultHandler.handle(Future.succeededFuture(netItf));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}
