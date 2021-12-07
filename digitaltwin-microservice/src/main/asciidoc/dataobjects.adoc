@@ -346,6 +346,54 @@
 |[[id]]`@id`|`Number (int)`|-
 |===
 
+[[Path]]
+== Path
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[hops]]`@hops`|`Array of link:dataobjects.html#PathHop[PathHop]`|-
+|[[routeHops]]`@routeHops`|`Array of link:dataobjects.html#RouteHop[RouteHop]`|-
+|===
+
+[[PathHop]]
+== PathHop
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[adminStatus]]`@adminStatus`|`link:enums.html#InterfaceStatus[InterfaceStatus]`|-
+|[[host]]`@host`|`String`|-
+|[[index]]`@index`|`String`|-
+|[[ipAddr]]`@ipAddr`|`String`|-
+|[[itf]]`@itf`|`String`|-
+|[[macAddr]]`@macAddr`|`String`|-
+|[[mode]]`@mode`|`String`|-
+|[[mtu]]`@mtu`|`String`|-
+|[[speed]]`@speed`|`String`|-
+|[[svi]]`@svi`|`String`|-
+|[[type]]`@type`|`link:enums.html#InterfaceType[InterfaceType]`|-
+|[[vlan]]`@vlan`|`String`|-
+|===
+
+[[RouteHop]]
+== RouteHop
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[acl]]`@acl`|`link:dataobjects.html#AclTable[AclTable]`|-
+|[[arp]]`@arp`|`Boolean`|-
+|[[host]]`@host`|`link:dataobjects.html#Device[Device]`|-
+|[[route]]`@route`|`link:dataobjects.html#IpRoute[IpRoute]`|-
+|===
+
 [[VerificationReport]]
 == VerificationReport
 

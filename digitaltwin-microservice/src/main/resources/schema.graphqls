@@ -1,5 +1,6 @@
 type Query {
   network: Network
+  path(from: String!, to: String!): [Path]
 }
 
 type Network {
@@ -8,12 +9,17 @@ type Network {
   subnets: [Subnet]
 }
 
+type Path {
+  hops: [PathHop]
+  routeHops: [RouteHop]
+}
+
 type Device {
   name: String
 	hostname: String
 	mac: String
 	platform: String
-	type: String
+	type: DeviceType
 	bgpAsn: String
 	bgpStatus: String
 	hwsku: String
@@ -37,7 +43,16 @@ type Subnet {
 
 type Interface {
   name: String
-  ipAddr: String
+	type: ItfType
+	adminStatus: ItfStatus
+	index: String
+	speed: String
+	mtu: String
+	macAddr: String
+	vlan: String
+	mode: String
+	ipAddr: String       # CIDR
+	svi: String
   bgp: Bgp
 }
 
@@ -82,6 +97,29 @@ type Arp {
   vlan: String
 }
 
+type PathHop {
+  host: String
+  itf: String
+	type: ItfType
+	adminStatus: ItfStatus
+	index: String
+	speed: String
+	mtu: String
+	macAddr: String
+	vlan: String
+	mode: String
+	ipAddr: String       # CIDR
+	svi: String
+  # bgp: Bgp
+}
+
+type RouteHop {
+  host: Device
+	route: IpRoute
+	acl: AclTable
+	arp: Boolean
+}
+
 enum DeviceType {
   SpineRouter
 	LeafRouter
@@ -91,9 +129,22 @@ enum DeviceType {
 	Switch
 }
 
+enum ItfType {
+	Bridge
+	Vlan
+	Other
+}
+	
+enum ItfStatus {
+	up
+	down
+	undefined
+}
+
 enum BgpStatus {
   up
   down
+  undefined
 }
 
 enum BgpState {

@@ -11,15 +11,19 @@ import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.TypeRuntimeWiring;
+import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclRule;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclTable;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Arp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.RouteHop;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpRoute;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Path;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.PathHop;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
@@ -41,7 +45,8 @@ public class NetworkQueryEngine {
 
 		RuntimeWiring runtimeWiring = RuntimeWiring.newRuntimeWiring()
 				.type(TypeRuntimeWiring.newTypeWiring("Query")
-						.dataFetcher("network", networkDataFetcher))
+						.dataFetcher("network", networkDataFetcher)
+						.dataFetcher("path", pathDataFetcher))
 				.type(TypeRuntimeWiring.newTypeWiring("Device")
 						.dataFetcher("interfaces", interfacesDataFetcher)
 						.dataFetcher("ipRoutes", ipRoutesDataFetcher)
@@ -51,6 +56,8 @@ public class NetworkQueryEngine {
 						.dataFetcher("bgp", bgpDataFetcher))
 				.type(TypeRuntimeWiring.newTypeWiring("AclTable")
 						.dataFetcher("rules", aclRulesDataFetcher))
+				.type(TypeRuntimeWiring.newTypeWiring("Path")
+						.dataFetcher("routeHops", routeHopsDataFetcher))
 				.build();
 
 		SchemaGenerator schemaGenerator = new SchemaGenerator();
@@ -63,6 +70,27 @@ public class NetworkQueryEngine {
 	/* Network level */
 	VertxDataFetcher<Network> networkDataFetcher = new VertxDataFetcher<>((environment, future) -> {
 		service.runningGetNetwork(future);
+	});
+	
+	/* Path level */
+	VertxDataFetcher<List<Path>> pathDataFetcher = new VertxDataFetcher<>((environment, future) -> {
+		String from = environment.getArgument("from");
+		String to = environment.getArgument("to");
+		if (Functional.isValidHostIp(from) && Functional.isValidHostIp(to)) {
+			service.runningFindPathByIpAddrs(from, to, future);
+		} else if (Functional.isValidHostname(from) && Functional.isValidHostname(to)) {
+			service.runningFindPathByHostnames(from, to, future);
+		} else {
+			future.fail("Malformed API arguments");
+		}
+	});
+	
+	/* IpPath level */
+	VertxDataFetcher<List<RouteHop>> routeHopsDataFetcher = new VertxDataFetcher<>((environment, future) -> {
+		Path path = environment.getSource();
+		List<PathHop> hops = path.getHops();
+		logger.info("hops: " + hops);
+		service.runningGetIpRoutesOfPath(hops, future);
 	});
 
 	/* Device level */
