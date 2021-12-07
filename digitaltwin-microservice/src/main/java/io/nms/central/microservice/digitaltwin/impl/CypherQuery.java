@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.nms.central.microservice.common.functional.Functional;
-import io.nms.central.microservice.digitaltwin.model.ipnetApi.Path;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.PathHop;
 
 public class CypherQuery {
@@ -46,7 +45,7 @@ public class CypherQuery {
 				+ "MERGE (c)-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "SET b.lAsn=$localAsn, b.lId=$localId, b.rAddr=$remoteAddr, b.rAsn=$remoteAsn, b.rId=$remoteId, "
 				+ "b.holdTime=$holdTime, b.keepAlive=$keepAlive, b.state=$state";
-		
+
 		public static final String GET_NETWORK_HOSTS = "MATCH (h:Host) RETURN h.name as name, "
 				+ "h.hostname as hostname, h.bgpStatus as bgpStatus, h.bgpAsn as bgpAsn, "
 				+ "h.type as type, h.platform as platform, h.mac as mac, h.hwsku as hwsku";
@@ -71,15 +70,12 @@ public class CypherQuery {
 		public static final String GET_BGP = "MATCH (h:Host{name: $deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr: $itfAddr})-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "RETURN c.ipAddr as localAddr, b.lAsn as localAsn, b.lId as localId, b.rAddr as remoteAddr, b.rAsn as remoteAsn, b.rId as remoteId, "
 				+ "b.holdTime as holdTime, b.keepAlive as keepAlive, b.state as state";
-		
-		// TODO: update
-		public static final String GET_HOST_ACLTABLES = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(a:Acl) \r\n"
+		public static final String GET_HOST_ACLTABLES = "MATCH (h:Host{name:$deviceName})-[:ACL]->(a:Acl)\r\n"
 				+ "RETURN DISTINCT a.name as name, a.binding as binding, a.description as description, a.stage as stage, a.type as type";
-		public static final String GET_ACLRULES = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(a:Acl{name:$tableName})-[:NEXT_RULE*]->(r:AclRule) \r\n"
+		public static final String GET_ACLRULES = "MATCH (h:Host{name:$deviceName})-[:ACL]->(a:Acl{name:$tableName})-[:NEXT_RULE*]->(r:AclRule)\r\n"
 				+ "RETURN DISTINCT r.name as name, r.priority as priority, r.action as action, r.matching as match";
-		public static final String GET_HOST_IPROUTES = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(i:Ltp)-[:CONTAINS*2]->(c:Ip4Ctp)-[:TO_ROUTE]->(p:Route) "
-				+ "RETURN i.name as netInterface, p.to as to, p.via as via, p.type as type";
-		
+		public static final String GET_HOST_IPROUTES = "MATCH (h:Host{name:$deviceName})-[:TO_ROUTE]->(r:Route)-[:EGRESS]->(:Ip4Ctp)<-[:CONTAINS*2]-(i:Ltp)\r\n"
+				+ "RETURN i.name as netInterface, r.to as to, r.via as via, r.type as type";
 		public static final String GET_HOST_ARPS = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(l:Ltp)-[:CONTAINS*2]->(lc:Ip4Ctp)-[:IP_CONN]->(rc:Ip4Ctp)<-[:CONTAINS]-(re:EtherCtp) "
 				+ "RETURN l.name as netInterface, rc.ipAddr as ipAddr, re.macAddr as macAddr, lc.vlan as vlan";
 
@@ -213,19 +209,16 @@ public class CypherQuery {
 		public static final String DUPLICATE_HOSTNAME = "MATCH (h:Host) "
 				+ "WITH h.hostname as hn, COLLECT(h) AS hns, COUNT(*) AS count WHERE count > 1 "
 				+ "RETURN hn as hostname, count";
-
 		public static final String DUPLICATE_MAC = "MATCH (c:EtherCtp) "
 				+ "WITH c.macAddr as m, COLLECT(c) AS ctps, COUNT(*) AS count WHERE count > 1 "
 				+ "UNWIND ctps AS x "
 				+ "MATCH (h:Host)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(x) "
 				+ "RETURN h.name as deviceName, l.name as itfName, x.macAddr as dupMacAddr";
-
 		public static final String DUPLICATE_IP = "MATCH (c:Ip4Ctp) "
 				+ "WITH c.ipAddr AS addr, c.netMask as mask, COLLECT(c) AS ctps, COUNT(*) AS count WHERE count > 1 "
 				+ "UNWIND ctps AS x "
 				+ "MATCH (h:Host)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(e:EtherCtp)-[:CONTAINS]->(x) "
 				+ "RETURN h.name as deviceName, l.name as itfName, x.ipAddr as dupIpAddr";
-
 		public static final String DUPLICATE_VLAN = "MATCH (c1:Ip4Ctp) WHERE c1.svi <> '-' "
 				+ "WITH c1 "
 				+ "MATCH (c2:Ip4Ctp) WHERE c2.svi <> '-' AND c1.vlan = c2.vlan AND c1.netAddr <> c2.netAddr "
@@ -234,7 +227,6 @@ public class CypherQuery {
 				+ "RETURN DISTINCT "
 				+ "n1.name as deviceName1, l1.name as itfName1, c1.netAddr as netAddr1, "
 				+ "n2.name as deviceName2, l2.name as itfName2, c2.netAddr as netAddr2, c1.vlan as vlan";
-
 		public static final String BAD_BGP_PEER = "MATCH (b1:Bgp)<-[:HAS_CONFIG]-(c1:Ip4Ctp)-[:IP_CONN]-(c2:Ip4Ctp)-[:HAS_CONFIG]->(b2:Bgp) "
 				+ "WHERE NOT EXISTS((b1)-[:BGP_PEER]-(b2)) "
 				+ "WITH DISTINCT c1, b1, c2, b2 "
@@ -243,14 +235,11 @@ public class CypherQuery {
 				+ "RETURN "
 				+ "h1.name as deviceName1, c1.ipAddr as ipAddr1, b1.lAsn as lAsn1, b1.rAsn as rAsn1, b1.rAddr as rAddr1, "
 				+ "h2.name as deviceName2, c2.ipAddr as ipAddr2, b2.lAsn as lAsn2, b2.rAsn as rAsn2, b2.rAddr as rAddr2";
-		
-		// TODO: update
-		public static final String MISCONFIGURED_DEFAULT_ROUTE = "MATCH (h:Host)-[:CONTAINS*3]->(:Ip4Ctp)-[:TO_ROUTE]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp) "
-				+ "WHERE NOT (e)-[:IP_CONN]->(:Ip4Ctp) "
-				+ "RETURN DISTINCT h.name, e.ipAddr "
-				+ "UNION "
-				+ "MATCH (h:Host)-[:CONTAINS*3]-(:Ip4Ctp)-[:TO_ROUTE]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp)-[:IP_CONN]->(x:Ip4Ctp) "
-				+ "WHERE e.netAddr <> x.netAddr "
+		public static final String MISCONFIGURED_DEFAULT_ROUTE = "MATCH (h:Host)-[:TO_ROUTE]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp)\r\n"
+				+ "WHERE NOT (e)-[:IP_CONN]->(:Ip4Ctp)\r\n"
+				+ "RETURN DISTINCT h.name as deviceName, e.ipAddr as misconfGateway\r\n"
+				+ "UNION \r\n"
+				+ "MATCH (h:Host)-[:TO_ROUTE]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp)-[:IP_CONN]->(x:Ip4Ctp) WHERE e.netAddr <> x.netAddr\r\n"
 				+ "RETURN DISTINCT h.name as deviceName, e.ipAddr as misconfGateway";
 	}
 	
@@ -258,40 +247,31 @@ public class CypherQuery {
 		public static final String GET_DEVICES = "MATCH (h:Host) WHERE h.type = 'SpineRouter' OR h.type = 'LeafRouter' "
 				+ "OR h.type = 'BorderRouter' OR h.type = 'Firewall' "
 				+ "RETURN h.name as device";
-
 		public static final String GET_METADATA = "MATCH (h:Host{name:'%s'}) RETURN h.hostname as hostname, h.type as type, h.platform as platform, "
 				+ "h.hwsku as hwsku, h.bgpAsn as bgpAsn, h.bgpStatus as bgpStatus, h.mac as mac";
-
 		public static final String GET_INTERFACES = "MATCH ({name:'%s'})-[:CONTAINS]->(l:Ltp)\r\n"
 				+ "WHERE NOT l.name STARTS WITH 'Bridge' AND NOT l.name STARTS WITH 'Loopback' AND NOT l.name STARTS WITH 'eth'\r\n"
 				+ "OPTIONAL MATCH (l)-[:CONTAINS*2]->(i:Ip4Ctp) \r\n"
 				+ "RETURN l.name as interface, i.ipAddr+i.netMask as ipAddress";
-
 		public static final String GET_LOOPBACK_ITFS = "MATCH ({name:'%s'})-[:CONTAINS]->(l:Ltp)-[:CONTAINS*2]->(i:Ip4Ctp) \r\n"
 				+ "WHERE l.name STARTS WITH 'Loopback'\r\n"
 				+ "RETURN l.name as interface, i.ipAddr+i.netMask as ipAddress";
-		
 		public static final String GET_PORTS = "MATCH (h:Host{name:'%s'})-[:CONTAINS]->(l:Ltp) \r\n"
 				+ "WHERE NOT l.name STARTS WITH 'Loopback' AND NOT l.name STARTS WITH 'Bridge' \r\n"
 				+ "AND NOT l.name STARTS WITH 'eth'\r\n"	// temporary in emulation network
 				+ "RETURN l.name as name, l.adminStatus as adminStatus, l.index as index, l.mtu as mtu, l.speed as speed";
-
 		public static final String GET_VLANS = "MATCH (h {name:'%s'})-[:CONTAINS*3]->(v:Ip4Ctp) WHERE v.svi <> '-'\r\n"
 				+ "OPTIONAL MATCH (h)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(m:EtherCtp) WHERE m.vlan = v.vlan\r\n"
 				+ "RETURN v.svi as name, v.vlan as vlanid, v.ipAddr+v.netMask as vlanaddr, collect(l.name) as members";
-		
 		public static final String GET_VLAN_MEMBERS = "MATCH (h {name:'%s'})-[:CONTAINS*3]->(v:Ip4Ctp) WHERE v.svi <> '-'\r\n"
 				+ "OPTIONAL MATCH (h)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(m:EtherCtp) WHERE m.vlan = v.vlan\r\n"
 				+ "RETURN l.name as member, m.mode as mode, v.svi as name";
-		
 		public static final String GET_BGP_NEIGHBORS = "MATCH (lh {name:'%s'})-[:CONTAINS*3]->(lc:Ip4Ctp)-[:HAS_CONFIG]->(lb:Bgp)-[:BGP_PEER]->(rb:Bgp)<-[:HAS_CONFIG]-(rc:Ip4Ctp)<-[:CONTAINS*3]-(rh)\r\n"
 				+ "RETURN rc.ipAddr as remote_addr, lc.ipAddr as local_addr, rb.lAsn as asn, rh.name as name";
-		
-		// TODO: update
-		public static final String GET_ACLTABLES = "MATCH ({name:'%s'})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(acl:Acl)\r\n"
+		public static final String GET_ACLTABLES = "MATCH ({name:'%s'})-[:ACL]->(acl:Acl)\r\n"
 				+ "RETURN DISTINCT acl.name as name, acl.binding as services, acl.stage as stage, acl.type as type, acl.description as description";
-		public static final String GET_ACLRULES = "MATCH ({name:'%s'})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(t:Acl{name:'BLK_SSH'})\r\n"
-				+ "OPTIONAL MATCH (r:AclRule)-[:NEXT_RULE*]-(t) \r\n"
+		public static final String GET_ACLRULES = "MATCH ({name:'%s'})-[:ACL]->(t:Acl)\r\n"
+				+ "OPTIONAL MATCH (r:AclRule)<-[:NEXT_RULE*]-(t)\r\n"
 				+ "RETURN DISTINCT r.name as name, r.action as action, r.priority as priority, r.matching as matching, t.name as table";
 		
 		public static final Map<String,String> queryMap(String device) {

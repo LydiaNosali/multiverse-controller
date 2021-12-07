@@ -269,7 +269,7 @@ public class GraphCreator {
 				+ "MATCH (f:Host {name:'%s'})-[:CONTAINS]->(l:Ltp)-[:CONTAINS*2]->(c:Ip4Ctp)\r\n"
 				+ "WHERE (NOT l.name STARTS WITH 'Loopback') AND (NOT (c)-[:HAS_ACL]->())\r\n"
 				+ "CREATE (c)-[:HAS_ACL]->(a);"; */
-		String qInGbl = "T14@CREATE (a:Acl{stage: '%s', name: '%s', binding: '%s', type: '%s', description: '%s'})\r\n"
+		String qInGbl = "T14@CREATE (a:Acl{stage: '%s', name: '%s', binding: '%s', type: '%s', description: '%s', rules:[]})\r\n"
 				+ "WITH a\r\n"
 				+ "MATCH (h:Host {name:'%s'})\r\n"
 				+ "CREATE (h)-[:ACL]->(a);";

@@ -23,10 +23,11 @@ type Device {
 	bgpAsn: String
 	bgpStatus: String
 	hwsku: String
-  interfaces: [Interface]
-  ipRoutes: [IpRoute]
+  interface: [Interface]
+  route: [IpRoute]
   arp: [Arp]
   acl: [AclTable]
+  bgp: [Bgp]
 }
 
 type Link {
@@ -73,7 +74,7 @@ type AclTable {
   description: String
   stage: AclTableStage
   type: AclTableType
-  rules: [AclRule]
+  rule: [AclRule]
 }
 
 type AclRule {
