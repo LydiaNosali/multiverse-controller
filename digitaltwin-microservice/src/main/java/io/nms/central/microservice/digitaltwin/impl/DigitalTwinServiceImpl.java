@@ -450,8 +450,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 			Handler<AsyncResult<List<Path>>> resultHandler) {
 		JsonObject params = new JsonObject()
 				.put("from", from)
-				.put("to", to)
-				.put("from", from)
 				.put("to", to);
 		find(MAIN_DB, CypherQuery.PathSearch.HOST_TO_HOST, params, res -> {
         	if (res.succeeded()) {
@@ -469,7 +467,19 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService runningFindPathByIpAddrs(String from, String to,
 			Handler<AsyncResult<List<Path>>> resultHandler) {
-		// TODO Auto-generated method stub
+		JsonObject params = new JsonObject()
+				.put("from", from)
+				.put("to", to);
+		find(MAIN_DB, CypherQuery.PathSearch.IP_TO_IP, params, res -> {
+        	if (res.succeeded()) {
+        		List<Path> paths = res.result().stream()
+						.map(o -> {return new Path(o);})
+						.collect(Collectors.toList());
+				resultHandler.handle(Future.succeededFuture(paths));
+        	} else {
+        		resultHandler.handle(Future.failedFuture(res.cause()));
+        	}
+        });
 		return this;
 	}
 	
