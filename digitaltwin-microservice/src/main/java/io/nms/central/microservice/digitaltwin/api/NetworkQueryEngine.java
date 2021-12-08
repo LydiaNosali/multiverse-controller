@@ -90,7 +90,6 @@ public class NetworkQueryEngine {
 	VertxDataFetcher<List<RouteHop>> routeHopsDataFetcher = new VertxDataFetcher<>((environment, future) -> {
 		Path path = environment.getSource();
 		List<PathHop> hops = path.getHops();
-		logger.info("hops: " + hops);
 		service.runningGetIpRoutesOfPath(hops, future);
 	});
 
