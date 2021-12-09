@@ -75,8 +75,6 @@ public interface DigitalTwinService {
 	DigitalTwinService runningGetDeviceArps(String deviceName, Handler<AsyncResult<List<Arp>>> resultHandler);
 	@Fluent
 	DigitalTwinService runningGetDeviceAclTables(String deviceName, Handler<AsyncResult<List<AclTable>>> resultHandler);
-	@Fluent
-	DigitalTwinService runningGetAclRules(String deviceName, String tableName, Handler<AsyncResult<List<AclRule>>> resultHandler);
 	
 	@Fluent
 	DigitalTwinService runningGetDeviceConfig(String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);

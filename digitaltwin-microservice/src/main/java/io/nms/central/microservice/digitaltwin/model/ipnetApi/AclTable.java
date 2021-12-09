@@ -1,5 +1,6 @@
 package io.nms.central.microservice.digitaltwin.model.ipnetApi;
 
+import java.util.List;
 import java.util.Objects;
 
 import io.nms.central.microservice.common.functional.JsonUtils;
@@ -16,6 +17,7 @@ public class AclTable extends Configurable {
 	private String description;
 	private AclStageEnum stage;
 	private AclTypeEnum type;
+	private List<AclRule> rules;
 
 	/*-----------------------------------------------*/
 
@@ -70,5 +72,11 @@ public class AclTable extends Configurable {
 	}
 	public void setType(AclTypeEnum type) {
 		this.type = type;
+	}
+	public List<AclRule> getRules() {
+		return rules;
+	}
+	public void setRules(List<AclRule> rules) {
+		this.rules = rules;
 	}
 }

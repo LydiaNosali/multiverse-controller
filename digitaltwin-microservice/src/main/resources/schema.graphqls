@@ -10,8 +10,8 @@ type Network {
 }
 
 type Path {
-  hops: [PathHop]
-  routeHops: [RouteHop]
+  path: [PathHop]
+  route: [RouteHop]
 }
 
 type Device {
@@ -23,11 +23,11 @@ type Device {
 	bgpAsn: String
 	bgpStatus: String
 	hwsku: String
-  interface: [Interface]
-  route: [IpRoute]
-  arp: [Arp]
-  acl: [AclTable]
-  bgp: [Bgp]
+  interfaces: [Interface]
+  routes: [IpRoute]
+  arps: [Arp]
+  acls: [AclTable]
+  bgps: [Bgp]
 }
 
 type Link {
@@ -74,14 +74,14 @@ type AclTable {
   description: String
   stage: AclTableStage
   type: AclTableType
-  rule: [AclRule]
+  rules: [AclRule]
 }
 
 type AclRule {
   name: String
   action: String
   priority: String
-  match: String
+  matching: String
 }
 
 type IpRoute {

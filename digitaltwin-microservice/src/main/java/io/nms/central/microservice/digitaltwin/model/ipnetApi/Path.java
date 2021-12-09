@@ -9,8 +9,8 @@ import io.vertx.core.json.JsonObject;
 @DataObject(generateConverter = true)
 public class Path {
 
-	private List<PathHop> hops;
-	private List<RouteHop> routeHops;
+	private List<PathHop> path;
+	private List<RouteHop> route;
 
 	public Path() {}
 	public Path(JsonObject json) {
@@ -30,18 +30,18 @@ public class Path {
 	}
 	@Override
 	public int hashCode() {
-		return Objects.hash(hops.hashCode());
+		return Objects.hash(path.hashCode()+route.hashCode());
 	}
-	public List<PathHop> getHops() {
-		return hops;
+	public List<PathHop> getPath() {
+		return path;
 	}
-	public void setHops(List<PathHop> hops) {
-		this.hops = hops;
+	public void setPath(List<PathHop> path) {
+		this.path = path;
 	}
-	public List<RouteHop> getRouteHops() {
-		return routeHops;
+	public List<RouteHop> getRoute() {
+		return route;
 	}
-	public void setRouteHops(List<RouteHop> routeHops) {
-		this.routeHops = routeHops;
+	public void setRoute(List<RouteHop> route) {
+		this.route = route;
 	}
 }
