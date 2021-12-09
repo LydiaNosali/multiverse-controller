@@ -56,7 +56,6 @@ public interface DigitalTwinService {
 	DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<VerificationReport>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
-	
 	@Fluent	
 	DigitalTwinService runningGetDevice(String deviceName, Handler<AsyncResult<Device>> resultHandler);
 	@Fluent
@@ -67,8 +66,10 @@ public interface DigitalTwinService {
 	DigitalTwinService runningGetDeviceBgps(String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningGetBgp(String deviceName, String itfAddr, Handler<AsyncResult<Bgp>> resultHandler);
-	@Fluent	
+	@Fluent
 	DigitalTwinService runningGetDeviceIpRoutes(String deviceName, Handler<AsyncResult<List<IpRoute>>> resultHandler);
+	@Fluent	
+	DigitalTwinService runningGetDeviceIpRoutesTo(String deviceName, String to, Handler<AsyncResult<List<IpRoute>>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningGetDeviceArps(String deviceName, Handler<AsyncResult<List<Arp>>> resultHandler);
 	@Fluent

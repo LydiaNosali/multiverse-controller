@@ -75,10 +75,12 @@ public class CypherQuery {
 				+ "WITH a{.*,rules:collect(r{.*})} as acl\r\n"
 				+ "RETURN acl.name as name, acl.binding as binding, acl.description as description, acl.stage as stage, "
 				+ "acl.type as type, acl.rules as rules";
-		//public static final String GET_ACLRULES = "MATCH (h:Host{name:$deviceName})-[:ACL]->(a:Acl{name:$tableName})-[:NEXT_RULE*]->(r:AclRule)\r\n"
-		//		+ "RETURN DISTINCT r.name as name, r.priority as priority, r.action as action, r.matching as match";
-		public static final String GET_HOST_IPROUTES = "MATCH (h:Host{name:$deviceName})-[:TO_ROUTE]->(r:Route)-[:EGRESS]->(:Ip4Ctp)<-[:CONTAINS*2]-(i:Ltp)\r\n"
-				+ "RETURN i.name as netInterface, r.to as to, r.via as via, r.type as type";
+		public static final String GET_HOST_IPROUTES = 
+				"MATCH (h:Host{name:$deviceName})-[:TO_ROUTE|ACL*..2]->(r:Route)-[:EGRESS]->(:Ip4Ctp)<-[:CONTAINS*2]-(i:Ltp)\r\n"
+				+ "RETURN DISTINCT i.name as netInterface, r.to as to, r.via as via, r.type as type";
+		public static final String GET_HOST_IPROUTES_TO = 
+				"MATCH (h:Host{name:$deviceName})-[:TO_ROUTE|ACL*..2]->(r:Route{to:$to})-[:EGRESS]->(:Ip4Ctp)<-[:CONTAINS*2]-(i:Ltp)\r\n"
+				+ "RETURN DISTINCT i.name as netInterface, r.to as to, r.via as via, r.type as type";
 		public static final String GET_HOST_ARPS = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(l:Ltp)-[:CONTAINS*2]->(lc:Ip4Ctp)-[:IP_CONN]->(rc:Ip4Ctp)<-[:CONTAINS]-(re:EtherCtp) "
 				+ "RETURN l.name as netInterface, rc.ipAddr as ipAddr, re.macAddr as macAddr, lc.vlan as vlan";
 
@@ -265,11 +267,12 @@ public class CypherQuery {
 				+ "RETURN "
 				+ "h1.name as deviceName1, c1.ipAddr as ipAddr1, b1.lAsn as lAsn1, b1.rAsn as rAsn1, b1.rAddr as rAddr1, "
 				+ "h2.name as deviceName2, c2.ipAddr as ipAddr2, b2.lAsn as lAsn2, b2.rAsn as rAsn2, b2.rAddr as rAddr2";
-		public static final String MISCONFIGURED_DEFAULT_ROUTE = "MATCH (h:Host)-[:TO_ROUTE]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp)\r\n"
+		public static final String MISCONFIGURED_DEFAULT_ROUTE = 
+				"MATCH (h:Host)-[:TO_ROUTE|ACL*1..2]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp)\r\n"
 				+ "WHERE NOT (e)-[:IP_CONN]->(:Ip4Ctp)\r\n"
 				+ "RETURN DISTINCT h.name as deviceName, e.ipAddr as misconfGateway\r\n"
 				+ "UNION \r\n"
-				+ "MATCH (h:Host)-[:TO_ROUTE]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp)-[:IP_CONN]->(x:Ip4Ctp) WHERE e.netAddr <> x.netAddr\r\n"
+				+ "MATCH (h:Host)-[:TO_ROUTE|ACL*1..2]->(r:Route{to:'0.0.0.0/0'})-[:EGRESS]->(e:Ip4Ctp)-[:IP_CONN]->(x:Ip4Ctp) WHERE e.netAddr <> x.netAddr\r\n"
 				+ "RETURN DISTINCT h.name as deviceName, e.ipAddr as misconfGateway";
 	}
 	

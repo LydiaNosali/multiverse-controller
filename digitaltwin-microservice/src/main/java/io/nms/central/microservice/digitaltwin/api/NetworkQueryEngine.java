@@ -45,10 +45,11 @@ public class NetworkQueryEngine {
 		RuntimeWiring runtimeWiring = RuntimeWiring.newRuntimeWiring()
 				.type(TypeRuntimeWiring.newTypeWiring("Query")
 						.dataFetcher("network", networkDataFetcher)
+						.dataFetcher("device", deviceDataFetcher)
 						.dataFetcher("path", pathDataFetcher))
 				.type(TypeRuntimeWiring.newTypeWiring("Device")
 						.dataFetcher("interfaces", interfacesDataFetcher)
-						.dataFetcher("routes", ipRoutesDataFetcher)
+						.dataFetcher("routes", routesDataFetcher)
 						.dataFetcher("arps", arpsDataFetcher)
 						.dataFetcher("acls", aclTablesDataFetcher)
 						.dataFetcher("bgps", deviceBgpsDataFetcher))
@@ -65,12 +66,12 @@ public class NetworkQueryEngine {
 		return GraphQLHandler.create(gql);
 	}
 
-	/* Network level */
+	/* Network */
 	VertxDataFetcher<Network> networkDataFetcher = new VertxDataFetcher<>((environment, future) -> {
 		service.runningGetNetwork(future);
 	});
 	
-	/* Path level */
+	/* Path */
 	VertxDataFetcher<List<Path>> pathDataFetcher = new VertxDataFetcher<>((environment, future) -> {
 		String from = environment.getArgument("from");
 		String to = environment.getArgument("to");
@@ -83,14 +84,18 @@ public class NetworkQueryEngine {
 		}
 	});
 	
-	/* IpPath level */
+	/* IpPath */
 	VertxDataFetcher<List<RouteHop>> routeHopsDataFetcher = new VertxDataFetcher<>((environment, future) -> {
 		Path path = environment.getSource();
 		List<PathHop> hops = path.getPath();
 		service.runningGetIpRoutesOfPath(hops, future);
 	});
 
-	/* Device level */
+	/* Device */
+	VertxDataFetcher<Device> deviceDataFetcher = new VertxDataFetcher<>((environment, future) -> {
+		String name = environment.getArgument("name");
+		service.runningGetDevice(name, future);
+	});
 	VertxDataFetcher<DataFetcherResult<List<NetInterface>>> interfacesDataFetcher = 
 			new VertxDataFetcher<>((environment, future) -> {
 		Device device = environment.getSource();
@@ -109,11 +114,16 @@ public class NetworkQueryEngine {
 			}
 		});
 	});
-	VertxDataFetcher<List<IpRoute>> ipRoutesDataFetcher = 
+	VertxDataFetcher<List<IpRoute>> routesDataFetcher = 
 			new VertxDataFetcher<>((environment, future) -> {
 		Device device = environment.getSource();
 		String deviceName = device.getName();
-		service.runningGetDeviceIpRoutes(deviceName, future);
+		if (environment.containsArgument("to")) {
+			String to = environment.getArgument("to");
+			service.runningGetDeviceIpRoutesTo(deviceName, to, future);
+		} else {
+			service.runningGetDeviceIpRoutes(deviceName, future);
+		}
 	});
 	VertxDataFetcher<List<Arp>> arpsDataFetcher = 
 			new VertxDataFetcher<>((environment, future) -> {
@@ -146,7 +156,7 @@ public class NetworkQueryEngine {
 		});
 	});
 
-	/* Interface level */
+	/* Interface */
 	VertxDataFetcher<Bgp> bgpDataFetcher = 
 			new VertxDataFetcher<>((environment, future) -> {
 		NetInterface itf = environment.getSource();
