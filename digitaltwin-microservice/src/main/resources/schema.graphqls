@@ -1,5 +1,6 @@
 type Query {
   network: Network
+  device(name: String!): Device
   path(from: String!, to: String!): [Path]
 }
 
@@ -24,7 +25,7 @@ type Device {
 	bgpStatus: String
 	hwsku: String
   interfaces: [Interface]
-  routes: [IpRoute]
+  routes(to: String): [IpRoute]
   arps: [Arp]
   acls: [AclTable]
   bgps: [Bgp]

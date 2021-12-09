@@ -2,12 +2,8 @@ package io.nms.central.microservice.digitaltwin;
 
 import java.util.List;
 import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
-import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
-import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
-import io.nms.central.microservice.digitaltwin.model.dt.DtQueryResult;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
-import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclRule;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclTable;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Arp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
@@ -56,7 +52,6 @@ public interface DigitalTwinService {
 	DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<VerificationReport>> resultHandler);
 	@Fluent
 	DigitalTwinService runningGetNetworkConfig(Handler<AsyncResult<JsonObject>> resultHandler);
-	
 	@Fluent	
 	DigitalTwinService runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
 	@Fluent
@@ -69,8 +64,10 @@ public interface DigitalTwinService {
 	DigitalTwinService runningGetDeviceBgps(String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningGetBgp(String deviceName, String itfAddr, Handler<AsyncResult<Bgp>> resultHandler);
-	@Fluent	
+	@Fluent
 	DigitalTwinService runningGetDeviceIpRoutes(String deviceName, Handler<AsyncResult<List<IpRoute>>> resultHandler);
+	@Fluent	
+	DigitalTwinService runningGetDeviceIpRoutesTo(String deviceName, String to, Handler<AsyncResult<List<IpRoute>>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningGetDeviceArps(String deviceName, Handler<AsyncResult<List<Arp>>> resultHandler);
 	@Fluent

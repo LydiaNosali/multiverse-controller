@@ -156,6 +156,24 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		return this;
 	}
 	@Override
+	public DigitalTwinService runningGetDeviceIpRoutesTo(String deviceName, String to, 
+			Handler<AsyncResult<List<IpRoute>>> resultHandler) {
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName)
+				.put("to", to);
+		find(MAIN_DB, CypherQuery.Api.GET_HOST_IPROUTES_TO, params, res -> {
+			if (res.succeeded()) {
+				List<IpRoute> ipRoutes = res.result().stream()
+						.map(o -> {return new IpRoute(o);})
+						.collect(Collectors.toList());
+				resultHandler.handle(Future.succeededFuture(ipRoutes));
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
+	}
+	@Override
 	public DigitalTwinService runningGetDeviceArps(String deviceName, 
 			Handler<AsyncResult<List<Arp>>> resultHandler) {
 		JsonObject params = new JsonObject().put("deviceName", deviceName);
