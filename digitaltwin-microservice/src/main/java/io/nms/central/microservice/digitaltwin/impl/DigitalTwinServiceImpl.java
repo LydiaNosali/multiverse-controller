@@ -23,12 +23,10 @@ import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.nms.central.microservice.digitaltwin.model.graph.DeviceState;
 import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
-import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclRule;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclTable;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Arp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
-import io.nms.central.microservice.digitaltwin.model.ipnetApi.RouteHop;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpRoute;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpSubnet;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
@@ -36,6 +34,7 @@ import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Path;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.PathHop;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.RouteHop;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -175,24 +174,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 						.map(o -> {return new AclTable(o);})
 						.collect(Collectors.toList());
 				resultHandler.handle(Future.succeededFuture(aclTables));
-			} else {
-				resultHandler.handle(Future.failedFuture(res.cause()));
-			}
-		});
-		return this;
-	}
-	@Override
-	public DigitalTwinService runningGetAclRules(String deviceName, String tableName, 
-			Handler<AsyncResult<List<AclRule>>> resultHandler) {
-		JsonObject params = new JsonObject()
-				.put("deviceName", deviceName)
-				.put("tableName", tableName);
-		find(MAIN_DB, CypherQuery.Api.GET_ACLRULES, params, res -> {
-			if (res.succeeded()) {
-				List<AclRule> aclRules = res.result().stream()
-						.map(o -> {return new AclRule(o);})
-						.collect(Collectors.toList());
-				resultHandler.handle(Future.succeededFuture(aclRules));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}
@@ -490,7 +471,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		find(MAIN_DB, query, res -> {
         	if (res.succeeded()) {
         		List<RouteHop> ipPaths = res.result().stream()
-						.map(o -> {return new RouteHop(o.getJsonObject("ipHop"));})
+						.map(o -> {return new RouteHop(o.getJsonObject("route"));})
 						.collect(Collectors.toList());
 				resultHandler.handle(Future.succeededFuture(ipPaths));
         	} else {

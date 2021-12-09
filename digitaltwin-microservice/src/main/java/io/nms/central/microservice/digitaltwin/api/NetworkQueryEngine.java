@@ -13,17 +13,16 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.TypeRuntimeWiring;
 import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.digitaltwin.DigitalTwinService;
-import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclRule;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclTable;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Arp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
-import io.nms.central.microservice.digitaltwin.model.ipnetApi.RouteHop;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpRoute;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Path;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.PathHop;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.RouteHop;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
@@ -48,17 +47,15 @@ public class NetworkQueryEngine {
 						.dataFetcher("network", networkDataFetcher)
 						.dataFetcher("path", pathDataFetcher))
 				.type(TypeRuntimeWiring.newTypeWiring("Device")
-						.dataFetcher("interface", interfacesDataFetcher)
-						.dataFetcher("route", ipRoutesDataFetcher)
-						.dataFetcher("arp", arpsDataFetcher)
-						.dataFetcher("acl", aclTablesDataFetcher)
-						.dataFetcher("bgp", deviceBgpsDataFetcher))
+						.dataFetcher("interfaces", interfacesDataFetcher)
+						.dataFetcher("routes", ipRoutesDataFetcher)
+						.dataFetcher("arps", arpsDataFetcher)
+						.dataFetcher("acls", aclTablesDataFetcher)
+						.dataFetcher("bgps", deviceBgpsDataFetcher))
 				.type(TypeRuntimeWiring.newTypeWiring("Interface")
 						.dataFetcher("bgp", bgpDataFetcher))
-				.type(TypeRuntimeWiring.newTypeWiring("AclTable")
-						.dataFetcher("rule", aclRulesDataFetcher))
 				.type(TypeRuntimeWiring.newTypeWiring("Path")
-						.dataFetcher("routeHops", routeHopsDataFetcher))
+						.dataFetcher("route", routeHopsDataFetcher))
 				.build();
 
 		SchemaGenerator schemaGenerator = new SchemaGenerator();
@@ -89,7 +86,7 @@ public class NetworkQueryEngine {
 	/* IpPath level */
 	VertxDataFetcher<List<RouteHop>> routeHopsDataFetcher = new VertxDataFetcher<>((environment, future) -> {
 		Path path = environment.getSource();
-		List<PathHop> hops = path.getHops();
+		List<PathHop> hops = path.getPath();
 		service.runningGetIpRoutesOfPath(hops, future);
 	});
 
@@ -160,14 +157,5 @@ public class NetworkQueryEngine {
 		} else {
 			future.complete(null);
 		}
-	});
-
-	/* AclTable level */
-	VertxDataFetcher<List<AclRule>> aclRulesDataFetcher = 
-			new VertxDataFetcher<>((environment, future) -> {
-		AclTable table = environment.getSource();
-		String tableName = table.getName();
-		GraphQLContext rc = environment.getLocalContext();
-		service.runningGetAclRules(rc.get("deviceName"), tableName, future);
 	});
 }

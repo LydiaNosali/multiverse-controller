@@ -12,7 +12,7 @@ public class AclRule extends Configurable {
 	private String name;
 	private String priority;
 	private String action;
-	private String match;
+	private String matching;
 	
 	/*-----------------------------------------------*/
 
@@ -36,7 +36,7 @@ public class AclRule extends Configurable {
 	}
 	@Override
 	public int hashCode() {
-		return Objects.hash(name+priority+action+match);
+		return Objects.hash(name+priority+action+matching);
 	}
 	public String getName() {
 		return name;
@@ -56,10 +56,10 @@ public class AclRule extends Configurable {
 	public void setAction(String action) {
 		this.action = action;
 	}
-	public String getMatch() {
-		return match;
+	public String getMatching() {
+		return matching;
 	}
-	public void setMatch(String match) {
-		this.match = match;
+	public void setMatching(String matching) {
+		this.matching = matching;
 	}	
 }

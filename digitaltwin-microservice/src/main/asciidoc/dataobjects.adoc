@@ -24,7 +24,7 @@
 |===
 ^|Name | Type ^| Description
 |[[action]]`@action`|`String`|-
-|[[match]]`@match`|`String`|-
+|[[matching]]`@matching`|`String`|-
 |[[name]]`@name`|`String`|-
 |[[priority]]`@priority`|`String`|-
 |===
@@ -55,6 +55,7 @@
 |[[binding]]`@binding`|`String`|-
 |[[description]]`@description`|`String`|-
 |[[name]]`@name`|`String`|-
+|[[rules]]`@rules`|`Array of link:dataobjects.html#AclRule[AclRule]`|-
 |[[stage]]`@stage`|`link:enums.html#AclStageEnum[AclStageEnum]`|-
 |[[type]]`@type`|`link:enums.html#AclTypeEnum[AclTypeEnum]`|-
 |===
@@ -354,8 +355,8 @@
 [frame="topbot"]
 |===
 ^|Name | Type ^| Description
-|[[hops]]`@hops`|`Array of link:dataobjects.html#PathHop[PathHop]`|-
-|[[routeHops]]`@routeHops`|`Array of link:dataobjects.html#RouteHop[RouteHop]`|-
+|[[path]]`@path`|`Array of link:dataobjects.html#PathHop[PathHop]`|-
+|[[route]]`@route`|`Array of link:dataobjects.html#RouteHop[RouteHop]`|-
 |===
 
 [[PathHop]]

@@ -70,10 +70,13 @@ public class CypherQuery {
 		public static final String GET_BGP = "MATCH (h:Host{name: $deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr: $itfAddr})-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "RETURN c.ipAddr as localAddr, b.lAsn as localAsn, b.lId as localId, b.rAddr as remoteAddr, b.rAsn as remoteAsn, b.rId as remoteId, "
 				+ "b.holdTime as holdTime, b.keepAlive as keepAlive, b.state as state";
-		public static final String GET_HOST_ACLTABLES = "MATCH (h:Host{name:$deviceName})-[:ACL]->(a:Acl)\r\n"
-				+ "RETURN DISTINCT a.name as name, a.binding as binding, a.description as description, a.stage as stage, a.type as type";
-		public static final String GET_ACLRULES = "MATCH (h:Host{name:$deviceName})-[:ACL]->(a:Acl{name:$tableName})-[:NEXT_RULE*]->(r:AclRule)\r\n"
-				+ "RETURN DISTINCT r.name as name, r.priority as priority, r.action as action, r.matching as match";
+		public static final String GET_HOST_ACLTABLES = 
+				"MATCH (h:Host{name:$deviceName})-[:ACL]->(a:Acl)-[:NEXT_RULE*]->(r:AclRule)\r\n"
+				+ "WITH a{.*,rules:collect(r{.*})} as acl\r\n"
+				+ "RETURN acl.name as name, acl.binding as binding, acl.description as description, acl.stage as stage, "
+				+ "acl.type as type, acl.rules as rules";
+		//public static final String GET_ACLRULES = "MATCH (h:Host{name:$deviceName})-[:ACL]->(a:Acl{name:$tableName})-[:NEXT_RULE*]->(r:AclRule)\r\n"
+		//		+ "RETURN DISTINCT r.name as name, r.priority as priority, r.action as action, r.matching as match";
 		public static final String GET_HOST_IPROUTES = "MATCH (h:Host{name:$deviceName})-[:TO_ROUTE]->(r:Route)-[:EGRESS]->(:Ip4Ctp)<-[:CONTAINS*2]-(i:Ltp)\r\n"
 				+ "RETURN i.name as netInterface, r.to as to, r.via as via, r.type as type";
 		public static final String GET_HOST_ARPS = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(l:Ltp)-[:CONTAINS*2]->(lc:Ip4Ctp)-[:IP_CONN]->(rc:Ip4Ctp)<-[:CONTAINS]-(re:EtherCtp) "
@@ -122,7 +125,6 @@ public class CypherQuery {
 	
 	public static class PathSearch {
 		public static final String HOST_TO_HOST = 
-			//	"CALL {\r\n"
 				"MATCH (from:Host{hostname:$from})\r\n"
 				+ "	MATCH (to:Host{hostname:$to})\r\n"
 				+ "	WHERE from.type = 'Server' AND to.type = 'Server'\r\n"
@@ -133,20 +135,6 @@ public class CypherQuery {
 				+ "    		maxLevel: 12\r\n"
 				+ "	})\r\n"
 				+ "	YIELD path\r\n"
-		//		+ "	RETURN from,path,to\r\n"
-		//		+ "	UNION\r\n"
-		//		+ "	MATCH (from:Host{hostname:$from})\r\n"
-		//		+ "	MATCH (to:Host{hostname:$to})\r\n"
-		//		+ "	WHERE from.type ENDS WITH 'Router' AND to.type ENDS WITH 'Router'\r\n"
-		//		+ "	WITH from, to\r\n"
-		//		+ "	CALL apoc.path.expandConfig(from, {\r\n"
-		//		+ "    		sequence: \"Host,CONTAINS>,Ltp,LINKED_L3,Ltp,<CONTAINS\",\r\n"
-		//		+ "    		terminatorNodes: [to],\r\n"
-		//		+ "    		maxLevel: 6\r\n"
-		//		+ "	})\r\n"
-		//		+ "	YIELD path\r\n"
-		//		+ "	RETURN from,path,to\r\n"
-		//		+ "}\r\n"
 				+ "WITH path WHERE NONE(n in nodes(path) WHERE (n.type='Server' AND n.name<>from.name AND n.name<>to.name))\r\n"
 				+ "WITH path, [n IN nodes(path) WHERE n:Ltp] as ltps, [n IN nodes(path) WHERE n:Host] as hosts\r\n"
 				+ "UNWIND hosts as host\r\n"
@@ -155,9 +143,8 @@ public class CypherQuery {
 				+ "WITH hosts, ltps, collect({host:host.name, itf:ltp.name, type:ltp.type, adminStatus:ltp.adminStatus, "
 				+ "index:ltp.index, speed:ltp.speed, mtu:ltp.mtu, macAddr:mac.macAddr, vlan:mac.vlan, mode:mac.mode, "
 				+ "ipAddr:ip.ipAddr+ip.netMask, svi:ip.svi}) as hops\r\n"
-				+ "RETURN hops\r\n";
+				+ "RETURN hops as path\r\n";
 		public static final String IP_TO_IP = 
-				//"CALL {\r\n"
 				"MATCH (from:Host)-[:CONTAINS]->(fromItf:Ltp)-[:CONTAINS*2]->(fromIp:Ip4Ctp{ipAddr:$from})\r\n"
 				+ "	MATCH (to:Host)-[:CONTAINS]->(toItf:Ltp)-[:CONTAINS*2]->(toIp:Ip4Ctp{ipAddr:$to})\r\n"
 				+ "	WHERE from.type = 'Server' AND to.type = 'Server'\r\n"
@@ -168,34 +155,14 @@ public class CypherQuery {
 				+ "    	maxLevel: 10\r\n"
 				+ "	})\r\n"
 				+ "	YIELD path\r\n"
-		//		+ " RETURN from, path, to\r\n"
-		//		+ " UNION\r\n"
-		//		+ " MATCH (from:Host)-[:CONTAINS]->(fromItf:Ltp)-[:CONTAINS*2]->(fromIp:Ip4Ctp{ipAddr:$from})\r\n"
-		//		+ "	MATCH (to:Host)-[:CONTAINS]->(toItf:Ltp)-[:CONTAINS*2]->(toIp:Ip4Ctp{ipAddr:$to})\r\n"
-		//		+ "	WHERE from.type ENDS WITH 'Router' AND to.type ENDS WITH 'Router'\r\n"
-		//		+ "	WITH from, to, fromItf, toItf\r\n"
-		//		+ "	CALL apoc.path.expandConfig(fromItf, {\r\n"
-		//		+ "    	sequence: \"Ltp,LINKED_L3,Ltp,<CONTAINS,Host,CONTAINS>\",\r\n"
-		//		+ "    	terminatorNodes: [toItf],\r\n"
-		//		+ "    	maxLevel: 4\r\n"
-		//		+ "	})\r\n"
-		//		+ "	YIELD path\r\n"
-		//		+ " RETURN from, path, to\r\n"
-		//		+ "}\r\n"
 				+ "WITH path WHERE NONE(n in nodes(path) WHERE (n.type='Server' AND n.name<>from.name AND n.name<>to.name))\r\n"
 				+ "WITH path, [n IN nodes(path) WHERE n:Ltp] as ltps, from + [n IN nodes(path) WHERE n:Host] + to as hosts\r\n"
 				+ "UNWIND hosts as host\r\n"
 				+ "UNWIND ltps as ltp\r\n"
 				+ "MATCH (host)-[:CONTAINS]->(ltp)-[:CONTAINS]->(mac:EtherCtp)-[:BRIDGE|:CONTAINS]->(ip:Ip4Ctp)\r\n"
 				+ "WITH hosts, ltps, collect({host:host.name, itf:ltp.name, type:ltp.type, adminStatus:ltp.adminStatus, index:ltp.index, speed:ltp.speed, mtu:ltp.mtu, macAddr:mac.macAddr, vlan:mac.vlan, mode:mac.mode, ipAddr:ip.ipAddr+ip.netMask, svi:ip.svi}) as hops\r\n"
-				+ "RETURN hops";
-		private static final String P_IPPATH_FIRST_HOP = 
-				/* "MATCH (h%d:Host{name:'%s'})\r\n"
-				+ "OPTIONAL MATCH (h%d)-[:TO_ROUTE|ACL*1..2]->(r%d:Route)-[:EGRESS]->(c%d:Ip4Ctp{ipAddr:'%s'})<-[:CONTAINS*2]-(l%d:Ltp)\r\n"
-				+ "WHERE r%d.to = '0.0.0.0/0' OR r%d.to = '%s'\r\n"
-				+ "OPTIONAL MATCH (h%d)-[:ACL]->(a%d:Acl)-[:TO_ROUTE]->(r%d)\r\n"
-				+ "OPTIONAL MATCH (c%d)-[arp%d:IP_CONN]->(:Ip4Ctp{ipAddr:'%s'})<-[:CONTAINS*3]-(:Host{name:'%s'})\r\n"
-				+ "WITH collect({host:h%d{.*}, route:r%d{.*, netInterface:l%d.name}, acl:a%d{.*}, arp:arp%d IS NOT NULL}) AS hop%d"; */
+				+ "RETURN hops as path";
+		private static final String P_IPPATH_FIRST_HOP =
 				"MATCH (h%d:Host{name:'%s'})-[:CONTAINS]->(l%d:Ltp)-[:CONTAINS*2]->(c%d:Ip4Ctp{ipAddr:'%s'})\r\n"
 				+ "OPTIONAL MATCH (h%d)-[:TO_ROUTE|ACL*1..2]->(r:Route)-[:EGRESS]->(c%d)\r\n"
 				+ "WHERE r.to = '%s'\r\n"
@@ -204,16 +171,12 @@ public class CypherQuery {
 				+ "CALL apoc.when(r IS NOT NULL, 'RETURN $r as route', 'RETURN $dr as route',{r:r,dr:dr})\r\n"
 				+ "YIELD value\r\n"
 				+ "WITH h%d, l%d, c%d, value.route as r%d\r\n"
-				+ "OPTIONAL MATCH (h%d)-[:ACL]->(a%d:Acl)-[:TO_ROUTE]->(r%d)\r\n"
 				+ "OPTIONAL MATCH (c%d)-[arp%d:IP_CONN]->(:Ip4Ctp{ipAddr:'%s'})<-[:CONTAINS*3]-(:Host{name:'%s'})\r\n"
-				+ "WITH collect({host:h%d{.*}, route:r%d{.*, netInterface:l%d.name}, acl:a%d{.*}, arp:arp%d IS NOT NULL}) AS hop%d";
+				+ "OPTIONAL MATCH (h%d)-[:ACL]->(a%d:Acl)-[:TO_ROUTE]->(r%d)\r\n"
+				+ "OPTIONAL MATCH (a%d)-[:NEXT_RULE*]->(rules%d:AclRule)\r\n"
+				+ "WITH h%d, l%d, c%d, r%d, arp%d, a%d{.*,rules:collect(rules%d{.*})} as acl\r\n"
+				+ "WITH collect({host:h%d{.*}, route:r%d{.*, netInterface:l%d.name}, acl:acl, arp:arp%d IS NOT NULL}) AS hop%d";		
 		private static final String P_IPPATH_ONE_HOP = 
-			/* 	"\nMATCH (h%d:Host{name:'%s'})\r\n"
-				+ "OPTIONAL MATCH (h%d)-[:TO_ROUTE|ACL*1..2]->(r%d:Route)-[:EGRESS]->(c%d:Ip4Ctp{ipAddr:'%s'})<-[:CONTAINS*2]-(l%d:Ltp)\r\n"
-				+ "WHERE r%d.to = '0.0.0.0/0' OR r%d.to = '%s'\r\n"
-				+ "OPTIONAL MATCH (h%d)-[:ACL]->(a%d:Acl)-[:TO_ROUTE]->(r%d)\r\n"
-				+ "OPTIONAL MATCH (c%d)-[arp%d:IP_CONN]->(:Ip4Ctp{ipAddr:'%s'})<-[:CONTAINS*3]-(:Host{name:'%s'})\r\n"
-				+ "WITH hop%d + collect({host:h%d{.*}, route:r%d{.*, netInterface:l%d.name}, acl:a%d{.*}, arp:arp%d IS NOT NULL}) AS hop%d";*/
 				"\nMATCH (h%d:Host{name:'%s'})-[:CONTAINS]->(l%d:Ltp)-[:CONTAINS*2]->(c%d:Ip4Ctp{ipAddr:'%s'})\r\n"
 				+ "OPTIONAL MATCH (h%d)-[:TO_ROUTE|ACL*1..2]->(r:Route)-[:EGRESS]->(c%d)\r\n"
 				+ "WHERE r.to = '%s'\r\n"
@@ -222,10 +185,13 @@ public class CypherQuery {
 				+ "CALL apoc.when(r IS NOT NULL, 'RETURN $r as route', 'RETURN $dr as route',{r:r,dr:dr})\r\n"
 				+ "YIELD value\r\n"
 				+ "WITH hop%d, h%d, l%d, c%d, value.route as r%d\r\n"
-				+ "OPTIONAL MATCH (h%d)-[:ACL]->(a%d:Acl)-[:TO_ROUTE]->(r%d)\r\n"
 				+ "OPTIONAL MATCH (c%d)-[arp%d:IP_CONN]->(:Ip4Ctp{ipAddr:'%s'})<-[:CONTAINS*3]-(:Host{name:'%s'})\r\n"
-				+ "WITH hop%d + collect({host:h%d{.*}, route:r%d{.*, netInterface:l%d.name}, acl:a%d{.*}, arp:arp%d IS NOT NULL}) AS hop%d";
-		private static final String P_IPPATH_RETURN = "\nUNWIND hop%d as ipHop RETURN ipHop";
+				+ "OPTIONAL MATCH (h%d)-[:ACL]->(a%d:Acl)-[:TO_ROUTE]->(r%d)\r\n"
+				+ "OPTIONAL MATCH (a%d)-[:NEXT_RULE*]->(rules%d:AclRule)\r\n"
+				+ "WITH hop%d, h%d, l%d, c%d, r%d, arp%d, a%d{.*,rules:collect(rules%d{.*})} as acl\r\n"
+				+ "WITH hop%d + collect({host:h%d{.*}, route:r%d{.*, netInterface:l%d.name}, acl:acl, arp:arp%d IS NOT NULL}) AS hop%d";
+		private static final String P_IPPATH_RETURN = 
+				"\nUNWIND hop%d as route RETURN route";
 		public static String getFindIpPathQuery(List<PathHop> path) {
 			PathHop dest = path.get(path.size()-1);
 			String destSubnetAddr = Functional.parseSubnetAddress(dest.getIpAddr())+"/"+dest.getIpAddr().split("/")[1];
@@ -236,9 +202,11 @@ public class CypherQuery {
 					destSubnetAddr,
 					i,i,
 					i,i,i,i,
+					i,i, path.get(i+1).getIpAddr().split("/")[0], path.get(i+1).getHost(),
 					i,i,i,
-					i,i, path.get(i+1).getIpAddr().split("/")[0], path.get(i+1).getHost(),		
-					i,i,i,i,i,i);
+					i,i,
+					i,i,i,i,i,i,i,
+					i,i,i,i,i);
 			for (i=2; i<=path.size()-2; i+=2) {
 				query+=String.format(P_IPPATH_ONE_HOP, 
 						i, path.get(i).getHost(),i,i,path.get(i).getIpAddr().split("/")[0],
@@ -246,9 +214,11 @@ public class CypherQuery {
 						destSubnetAddr,
 						i,i,
 						i-2,i,i,i,i,
+						i,i, path.get(i+1).getIpAddr().split("/")[0], path.get(i+1).getHost(),
 						i,i,i,
-						i,i, path.get(i+1).getIpAddr().split("/")[0], path.get(i+1).getHost(),		
-						i-2,i,i,i,i,i,i);
+						i,i,
+						i-2,i,i,i,i,i,i,i,
+						i-2,i,i,i,i,i);
 			}
 			query+=String.format(P_IPPATH_RETURN, path.size()-2);
 			return query;
