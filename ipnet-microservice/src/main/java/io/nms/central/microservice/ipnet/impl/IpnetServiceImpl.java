@@ -370,7 +370,7 @@ public class IpnetServiceImpl implements IpnetService {
 	}
 	@Override
 	public void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler) {
-		digitalTwinSvcProxy().viewGenerateNetworkConfig(viewId, res -> {
+		digitalTwinSvcProxy().viewGetNetworkConfig(viewId, res -> {
 			if (res.succeeded()) {
 				JsonObject netConfig = res.result();
 				saveNetConfig(COLL_INTENDED_CONFIG, viewId, netConfig, saved -> {

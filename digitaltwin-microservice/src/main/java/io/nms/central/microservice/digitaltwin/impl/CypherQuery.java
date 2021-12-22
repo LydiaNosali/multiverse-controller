@@ -118,6 +118,7 @@ public class CypherQuery {
 				+ "AND b1.rAddr=c2.ipAddr AND b2.rAddr=c1.ipAddr AND b1.rAsn=b2.lAsn AND b2.rAsn=b1.lAsn AND b1.rId=b2.lId AND b2.rId=b1.lId\r\n"
 				+ "WITH DISTINCT b1,b2\r\n"
 				+ "CREATE (b1)-[:BGP_PEER]->(b2);";
+		public static final String CHECK_HOST = "MATCH (h:Host{name:$deviceName}) RETURN h.name";
 	}
 	
 	public static class Verify {

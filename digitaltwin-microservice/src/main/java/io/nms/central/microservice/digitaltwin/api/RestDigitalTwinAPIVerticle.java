@@ -33,10 +33,12 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 
 	private static final String API_VERSION = "/v";
 	
-	private static final String API_RUNNING = "/running";
+	private static final String API_RUNNING_STATE = "/running/state";
 	private static final String API_RUNNING_VERIFY = "/running/verify";
+	private static final String API_RUNNING_CONFIG = "/running/config-file";
 	private static final String API_RUNNING_NETWORK = "/running/network";
 	private static final String API_RUNNING_ONE_DEVICE = "/running/device/:deviceName";
+	private static final String API_RUNNING_DEVICE_CONFIG = "/running/device/:deviceName/config-file";
 	private static final String API_RUNNING_INTERFACES = "/running/device/:deviceName/interfaces";
 	private static final String API_RUNNING_ONE_INTERFACE = "/running/device/:deviceName/interface/:itfName";
 	private static final String API_RUNNING_BGPS = "/running/device/:deviceName/bgps";
@@ -44,9 +46,10 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	
 	private static final String API_ONE_VIEW = "/view/:viewId";
 	private static final String API_VIEW_VERIFY = "/view/:viewId/verify";
-	private static final String API_VIEW_NETCONFIG = "/view/:viewId/netconfig";
+	private static final String API_VIEW_CONFIG = "/view/:viewId/config-file";
 	private static final String API_VIEW_NETWORK = "/view/:viewId/network";
 	private static final String API_VIEW_ONE_DEVICE = "/view/:viewId/device/:deviceName";
+	private static final String API_VIEW_DEVICE_CONFIG = "/view/:viewId/device/:deviceName/config-file";
 	private static final String API_VIEW_INTERFACES = "/view/:viewId/device/:deviceName/interfaces";
 	private static final String API_VIEW_ONE_INTERFACE = "/view/:viewId/device/:deviceName/interface/:itfName";
 	private static final String API_VIEW_BGPS = "/view/:viewId/device/:deviceName/bgps";
@@ -71,9 +74,11 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		router.get(API_VERSION).handler(this::apiVersion);
 		
 		/* Operations on running network */
-		router.post(API_RUNNING).handler(this::checkAdminRole).handler(this::apiProcessNetworkRunningState);
+		router.post(API_RUNNING_STATE).handler(this::checkAdminRole).handler(this::apiProcessNetworkRunningState);
 
 		router.get(API_RUNNING_VERIFY).handler(this::checkAdminRole).handler(this::apiRunningVerifyNetwork);
+		router.get(API_RUNNING_CONFIG).handler(this::checkAdminRole).handler(this::apiRunningGenerateNetworkConfig);
+		
 		router.get(API_RUNNING_NETWORK).handler(this::checkAdminRole).handler(this::apiRunningGetNetwork);
 		router.get(API_RUNNING_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiRunningGetDevice);
 		router.get(API_RUNNING_INTERFACES).handler(this::checkAdminRole).handler(this::apiRunningGetDeviceInterfaces);
@@ -81,13 +86,13 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		router.get(API_RUNNING_BGPS).handler(this::checkAdminRole).handler(this::apiRunningGetDeviceBgps);
 		router.get(API_RUNNING_ONE_BGP).handler(this::checkAdminRole).handler(this::apiRunningGetBgp);
 		
+		router.get(API_RUNNING_DEVICE_CONFIG).handler(this::checkAdminRole).handler(this::apiRunningGetDeviceConfig);
+		
 		/* Operations on view network */
 		router.post(API_ONE_VIEW).handler(this::checkAdminRole).handler(this::apiCreateView);
 		router.delete(API_ONE_VIEW).handler(this::checkAdminRole).handler(this::apiDeleteView);
-		
 		router.get(API_VIEW_VERIFY).handler(this::checkAdminRole).handler(this::apiViewVerify);
-		router.get(API_VIEW_NETCONFIG).handler(this::checkAdminRole).handler(this::apiViewGenerateNetworkConfig);
-		
+		router.get(API_VIEW_CONFIG).handler(this::checkAdminRole).handler(this::apiViewGenerateNetworkConfig);
 		router.get(API_VIEW_NETWORK).handler(this::checkAdminRole).handler(this::apiViewGetNetwork);
 		
 		router.get(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewGetDevice);
@@ -102,6 +107,8 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		// router.post(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewCreateBgp);
 		router.put(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewUpdateBgp);
 		router.delete(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewDeleteBgp);
+		
+		router.get(API_VIEW_DEVICE_CONFIG).handler(this::checkAdminRole).handler(this::apiViewGetDeviceConfig);
 
 		// get HTTP host and port from configuration, or use default value
 		String host = config().getString("digitaltwin.http.address", "0.0.0.0");
@@ -131,6 +138,9 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	private void apiRunningVerifyNetwork(RoutingContext context) {
 		service.runningVerifyNetwork(resultHandlerNonEmpty(context));
 	}
+	private void apiRunningGenerateNetworkConfig(RoutingContext context) {
+		service.runningGetNetworkConfig(resultHandler(context, Json::encodePrettily));
+	}
 	private void apiRunningGetNetwork(RoutingContext context) {
 		service.runningGetNetwork(resultHandlerNonEmpty(context));
 	}
@@ -156,6 +166,10 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		service.runningGetBgp(deviceName, itfAddr, resultHandlerNonEmpty(context));
 	}
+	private void apiRunningGetDeviceConfig(RoutingContext context) {
+		String deviceName = context.request().getParam("deviceName");
+		service.runningGetDeviceConfig(deviceName, resultHandler(context, Json::encodePrettily));
+	}
 	// view
 	private void apiCreateView(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
@@ -173,7 +187,12 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	}
 	private void apiViewGenerateNetworkConfig(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
-		service.viewGenerateNetworkConfig(viewId, resultHandler(context, Json::encodePrettily));
+		service.viewGetNetworkConfig(viewId, resultHandler(context, Json::encodePrettily));
+	}
+	private void apiViewGetDeviceConfig(RoutingContext context) {
+		String viewId = context.request().getParam("viewId");
+		String deviceName = context.request().getParam("deviceName");
+		service.viewGetDeviceConfig(viewId, deviceName, resultHandler(context, Json::encodePrettily));
 	}
 	
 	// view network

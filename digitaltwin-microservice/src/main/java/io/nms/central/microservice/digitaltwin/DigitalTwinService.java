@@ -46,10 +46,12 @@ public interface DigitalTwinService {
 	DigitalTwinService processNetworkRunningState(NetworkState netState, Handler<AsyncResult<CreationReport>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<VerificationReport>> resultHandler);
-	@Fluent	
-	DigitalTwinService runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
+	@Fluent
+	DigitalTwinService runningGetNetworkConfig(Handler<AsyncResult<JsonObject>> resultHandler);
 	
 	@Fluent	
+	DigitalTwinService runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
+	@Fluent
 	DigitalTwinService runningGetDevice(String deviceName, Handler<AsyncResult<Device>> resultHandler);
 	@Fluent
 	DigitalTwinService runningGetDeviceInterfaces(String deviceName, Handler<AsyncResult<List<NetInterface>>> resultHandler);
@@ -60,17 +62,18 @@ public interface DigitalTwinService {
 	@Fluent	
 	DigitalTwinService runningGetBgp(String deviceName, String itfAddr, Handler<AsyncResult<Bgp>> resultHandler);
 	
+	@Fluent
+	DigitalTwinService runningGetDeviceConfig(String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
+	
 	/* Operations on view network */
-	// view
 	@Fluent	
 	DigitalTwinService createView(String viewId, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService deleteView(String viewId, Handler<AsyncResult<Void>> resultHandler);
-	// view config
 	@Fluent	
 	DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler);
-	@Fluent	 // TODO: replace JsonObject with NetworkConfig object
-	DigitalTwinService viewGenerateNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
+	@Fluent
+	DigitalTwinService viewGetNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
 	
 	// view network
 	@Fluent	
@@ -101,4 +104,7 @@ public interface DigitalTwinService {
 	DigitalTwinService viewUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewDeleteBgp(String viewId, String deviceName, String itfAddr, Handler<AsyncResult<Void>> resultHandler);
+	
+	@Fluent
+	DigitalTwinService viewGetDeviceConfig(String viewId, String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
 }

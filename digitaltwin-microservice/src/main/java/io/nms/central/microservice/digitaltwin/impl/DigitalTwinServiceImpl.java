@@ -75,7 +75,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	public DigitalTwinService processNetworkRunningState(NetworkState netState,
 			Handler<AsyncResult<CreationReport>> resultHandler) {
 		vertx.runOnContext(v -> {
-			processNetState(netState, resultHandler);
+			processNetworkState(netState, resultHandler);
 		});
 		return this;
 	}
@@ -83,6 +83,12 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<VerificationReport>> resultHandler) {
 		na.verifyNetwork(MAIN_DB, resultHandler);
+		return this;
+	}
+	
+	@Override
+	public DigitalTwinService runningGetNetworkConfig(Handler<AsyncResult<JsonObject>> resultHandler) {
+		generateNetworkConfig(MAIN_DB, resultHandler);
 		return this;
 	}
 
@@ -97,32 +103,34 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		getDevice(MAIN_DB, deviceName, resultHandler);
 		return this;
 	}
-
 	@Override
 	public DigitalTwinService runningGetDeviceInterfaces(String deviceName,
 			Handler<AsyncResult<List<NetInterface>>> resultHandler) {
 		getDeviceInterfaces(MAIN_DB, deviceName, resultHandler);
 		return this;
 	}
-	
 	@Override
 	public DigitalTwinService runningGetInterface(String deviceName, String itfName,
 			Handler<AsyncResult<NetInterface>> resultHandler) {
 		getInterface(MAIN_DB, deviceName, itfName, resultHandler);
 		return this;
 	}
-
 	@Override
 	public DigitalTwinService runningGetDeviceBgps(String deviceName, 
 			Handler<AsyncResult<List<Bgp>>> resultHandler) {
 		getDeviceBgps(MAIN_DB, deviceName, resultHandler);
 		return this;
 	}
-	
 	@Override
 	public DigitalTwinService runningGetBgp(String deviceName, String itfAddr,
 			Handler<AsyncResult<Bgp>> resultHandler) {
 		getBgp(MAIN_DB, deviceName, itfAddr, resultHandler);
+		return this;
+	}
+	@Override
+	public DigitalTwinService runningGetDeviceConfig(String deviceName, 
+			Handler<AsyncResult<JsonObject>> resultHandler) {
+		generateDeviceConfig(MAIN_DB, deviceName, resultHandler);
 		return this;
 	}
 
@@ -196,7 +204,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		getDevice(viewId, deviceName, resultHandler);
 		return this;
 	}
-
 	@Override
 	public DigitalTwinService viewUpdateDevice(String viewId, String deviceName, Device device, 
 			Handler<AsyncResult<Void>> resultHandler) {
@@ -218,21 +225,18 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		});
 		return this;
 	}
-
 	@Override
 	public DigitalTwinService viewGetDeviceInterfaces(String viewId, String deviceName,
 			Handler<AsyncResult<List<NetInterface>>> resultHandler) {
 		getDeviceInterfaces(viewId, deviceName, resultHandler);
 		return this;
 	}
-
 	@Override
 	public DigitalTwinService viewGetInterface(String viewId, String deviceName, String itfName,
 			Handler<AsyncResult<NetInterface>> resultHandler) {
 		getInterface(viewId, deviceName, itfName, resultHandler);
 		return this;
 	}
-
 	@Override
 	public DigitalTwinService viewUpdateInterface(String viewId, String deviceName, String itfName,
 			NetInterface netItf, Handler<AsyncResult<Void>> resultHandler) {
@@ -261,11 +265,16 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		});
 		return this;
 	}
-
 	@Override
 	public DigitalTwinService viewGetDeviceBgps(String viewId, String deviceName,
 			Handler<AsyncResult<List<Bgp>>> resultHandler) {
 		getDeviceBgps(viewId, deviceName, resultHandler);
+		return this;
+	}
+	@Override
+	public DigitalTwinService viewGetDeviceConfig(String viewId, String deviceName, 
+			Handler<AsyncResult<JsonObject>> resultHandler) {
+		generateDeviceConfig(viewId, deviceName, resultHandler);
 		return this;
 	}
 
@@ -275,14 +284,12 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		getBgp(viewId, deviceName, itfAddr, resultHandler);
 		return this;
 	}
-
 	@Override
 	public DigitalTwinService viewCreateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp,
 			Handler<AsyncResult<Void>> resultHandler) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
 	@Override
 	public DigitalTwinService viewUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp,
 			Handler<AsyncResult<Void>> resultHandler) {
@@ -314,7 +321,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		});
 		return this;
 	}
-
 	@Override
 	public DigitalTwinService viewDeleteBgp(String viewId, String deviceName, String itfAddr,
 			Handler<AsyncResult<Void>> resultHandler) {
@@ -337,79 +343,15 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		na.verifyNetwork(viewId, resultHandler);
 		return this;
 	}
-	
 	@Override
-	public DigitalTwinService viewGenerateNetworkConfig(String viewId, 
+	public DigitalTwinService viewGetNetworkConfig(String viewId, 
 			Handler<AsyncResult<JsonObject>> resultHandler) {
-		ConfigGenerator cg = new ConfigGenerator();
-		find(viewId, CypherQuery.ConfigGen.GET_DEVICES, res -> {
-			if (res.succeeded()) {
-				List<String> devices = res.result().stream()
-						.map(d -> d.getString("device"))
-						.collect(Collectors.toList());
-				List<Future<JsonObject>> futures = new ArrayList<Future<JsonObject>>();
-				for (String device: devices) {
-					Promise<JsonObject> p = Promise.promise();
-					futures.add(p.future());
-					retrieveDeviceConfig(viewId, device, p);
-				}
-				Functional.allOfFutures(futures).onComplete(done -> {
-					vertx.runOnContext(v -> {
-						if (done.succeeded()) {
-							JsonObject finalRes = cg.processNetConfig(done.result());
-							resultHandler.handle(Future.succeededFuture(finalRes));
-						} else {
-							resultHandler.handle(Future.failedFuture(done.cause()));
-						}
-					});	
-				});
-			} else {
-				resultHandler.handle(Future.failedFuture(res.cause()));
-			}
-		});
+		generateNetworkConfig(viewId, resultHandler);
 		return this;
 	}
 	
 	/* Processing functions */
-	private void retrieveDeviceConfig(String db, String deviceName, 
-			Handler<AsyncResult<JsonObject>> resultHandler) {
-
-		Map<String,String> queries = CypherQuery.ConfigGen.queryMap(deviceName);
-		List<Future<JsonObject>> futures = new ArrayList<Future<JsonObject>>();
-
-		for (Map.Entry<String,String> entry : queries.entrySet()) {
-			Promise<JsonObject> p = Promise.promise();
-			futures.add(p.future());
-            find(db, entry.getValue(), res -> {
-            	if (res.succeeded()) {
-            		JsonObject json = new JsonObject()
-            				.put("type", entry.getKey())
-            				.put("value", new JsonArray(res.result()));
-            		p.complete(json);
-            	} else {
-            		p.fail(res.cause());
-            	}
-            });
-        }
-		Functional.allOfFutures(futures).onComplete(done -> {
-			vertx.runOnContext(v -> {
-				if (done.succeeded()) {
-					JsonObject configs = new JsonObject();
-					for (JsonObject stage : done.result()) {
-						configs.put(stage.getString("type"), stage.getJsonArray("value"));
-					}
-					JsonObject deviceConfig = new JsonObject()
-        					.put("device", deviceName)
-        					.put("config", configs);
-					resultHandler.handle(Future.succeededFuture(deviceConfig));
-				} else {
-					resultHandler.handle(Future.failedFuture(done.cause()));
-				}
-			});	
-		});
-	}
-
-	private void processNetState(NetworkState netState, 
+	private void processNetworkState(NetworkState netState, 
 			Handler<AsyncResult<CreationReport>> resultHandler) {
 		CreationReport report = new CreationReport();
 		report.setTimestamp(OffsetDateTime.now().toLocalDateTime().toString());
@@ -445,6 +387,58 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				resultHandler.handle(Future.failedFuture(res.cause()));	
 			}
 		});
+	}
+	
+	private void generateNetworkConfig(String db, 
+			Handler<AsyncResult<JsonObject>> resultHandler) {
+		ConfigGenerator cg = new ConfigGenerator();
+		find(db, CypherQuery.ConfigGen.GET_DEVICES, res -> {
+			if (res.succeeded()) {
+				List<String> devices = res.result().stream()
+						.map(d -> d.getString("device"))
+						.collect(Collectors.toList());
+				List<Future<JsonObject>> futures = new ArrayList<Future<JsonObject>>();
+				for (String device: devices) {
+					Promise<JsonObject> p = Promise.promise();
+					futures.add(p.future());
+					retrieveDeviceConfig(db, device, p);
+				}
+				Functional.allOfFutures(futures).onComplete(done -> {
+					vertx.runOnContext(v -> {
+						if (done.succeeded()) {
+							JsonObject finalRes = cg.processNetConfig(done.result());
+							resultHandler.handle(Future.succeededFuture(finalRes));
+						} else {
+							resultHandler.handle(Future.failedFuture(done.cause()));
+						}
+					});	
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	
+	private void generateDeviceConfig(String db, String deviceName, 
+			Handler<AsyncResult<JsonObject>> resultHandler) {
+		findOne(db, CypherQuery.Internal.CHECK_HOST, 
+				new JsonObject().put("deviceName", deviceName), ar -> {
+        	if (ar.succeeded()) {
+        		retrieveDeviceConfig(db, deviceName, res -> {
+        			vertx.runOnContext(v -> {
+        				if (res.succeeded()) {
+        					ConfigGenerator cg = new ConfigGenerator();
+        					resultHandler.handle(Future.succeededFuture(cg
+        							.getDeviceConfig(res.result().getJsonObject("config"))));
+        				} else {
+        					resultHandler.handle(Future.failedFuture(res.cause()));
+        				}
+        			});	
+        		});
+        	} else {
+        		resultHandler.handle(Future.failedFuture(ar.cause()));
+        	}
+        });
 	}
 
 	private void getNetwork(String db, Handler<AsyncResult<Network>> resultHandler) {
@@ -554,8 +548,45 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		});
 	}
 	
+	private void retrieveDeviceConfig(String db, String deviceName, 
+			Handler<AsyncResult<JsonObject>> resultHandler) {
+		Map<String,String> queries = CypherQuery.ConfigGen.queryMap(deviceName);
+		List<Future<JsonObject>> futures = new ArrayList<Future<JsonObject>>();
+
+		for (Map.Entry<String,String> entry : queries.entrySet()) {
+			Promise<JsonObject> p = Promise.promise();
+			futures.add(p.future());
+            find(db, entry.getValue(), res -> {
+            	if (res.succeeded()) {
+            		JsonObject json = new JsonObject()
+            				.put("type", entry.getKey())
+            				.put("value", new JsonArray(res.result()));
+            		p.complete(json);
+            	} else {
+            		p.fail(res.cause());
+            	}
+            });
+        }
+		Functional.allOfFutures(futures).onComplete(done -> {
+			vertx.runOnContext(v -> {
+				if (done.succeeded()) {
+					JsonObject configs = new JsonObject();
+					for (JsonObject stage : done.result()) {
+						configs.put(stage.getString("type"), stage.getJsonArray("value"));
+					}
+					JsonObject deviceConfig = new JsonObject()
+        					.put("device", deviceName)
+        					.put("config", configs);
+					resultHandler.handle(Future.succeededFuture(deviceConfig));
+				} else {
+					resultHandler.handle(Future.failedFuture(done.cause()));
+				}
+			});	
+		});
+	}
+	
 	private void loadExampleNetwork(Handler<AsyncResult<Void>> resultHandler) {
-		InputStream is = getClass().getResourceAsStream("/config-collection.json"); 
+		InputStream is = getClass().getResourceAsStream("/state-collection.json"); 
 		InputStreamReader isr = new InputStreamReader(is);
 		BufferedReader br = new BufferedReader(isr);
 		StringBuffer sb = new StringBuffer();
