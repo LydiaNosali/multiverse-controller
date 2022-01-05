@@ -2,8 +2,10 @@ package io.nms.central.microservice.digitaltwin;
 
 import java.util.List;
 import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
+import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclRule;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclTable;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Arp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
@@ -54,7 +56,7 @@ public interface DigitalTwinService {
 	DigitalTwinService runningGetNetworkConfig(Handler<AsyncResult<JsonObject>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
-	@Fluent
+	@Fluent	
 	DigitalTwinService runningGetDevice(String deviceName, Handler<AsyncResult<Device>> resultHandler);
 	@Fluent
 	DigitalTwinService runningGetDeviceInterfaces(String deviceName, Handler<AsyncResult<List<NetInterface>>> resultHandler);
