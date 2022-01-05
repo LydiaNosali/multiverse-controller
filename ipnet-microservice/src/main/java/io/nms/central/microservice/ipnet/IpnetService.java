@@ -55,6 +55,7 @@ public interface IpnetService {
 	void configCreateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	void configUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	void configDeleteBgp(String viewId, String deviceName, String itfAddr, Handler<AsyncResult<Void>> resultHandler);
+	void configGetDeviceFile(String viewId, String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
 
 	void getAllConfigChanges(String viewId, Handler<AsyncResult<List<ConfigChange>>> resultHandler);
 	void undoConfigChange(String viewId, Handler<AsyncResult<Void>> resultHandler);
@@ -62,7 +63,10 @@ public interface IpnetService {
 	void configVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler);
 	void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler);
 	
-	void getIntendedNetConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
-	void getRunningNetConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
-	void updateRunningNetConfig(String viewId, JsonObject netConfig, Handler<AsyncResult<Void>> resultHandler);
+	void getIntendedNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
+	void getRunningNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
+	void updateRunningNetworkConfig(String viewId, JsonObject netConfig, Handler<AsyncResult<Void>> resultHandler);
+	
+	void getIntendedDeviceConfig(String viewId, String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
+	void getRunningDeviceConfig(String viewId, String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
 }

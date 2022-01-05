@@ -40,14 +40,18 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 	private static final String API_CONFIG_ONE_INTERFACE = "/config/device/:deviceName/interface/:itfName";
 	private static final String API_CONFIG_BGPS = "/config/device/:deviceName/bgps";
 	private static final String API_CONFIG_ONE_BGP = "/config/device/:deviceName/bgp/:itfAddr";
-	
+
+	private static final String API_CONFIG_DEVICE_FILE = "/config/device/:deviceName/file";
+
 	private static final String API_CONFIG_CHANGES = "/config/changes";
 	
 	private static final String API_CONFIG_VERIFY = "/config/verify";
 	private static final String API_CONFIG_APPLY = "/config/apply";
 
-	private static final String API_RUNNING_NETCONFIG = "/netconfig/running";
 	private static final String API_INTENDED_NETCONFIG = "/netconfig/intended";
+	private static final String API_RUNNING_NETCONFIG = "/netconfig/running";
+	private static final String API_INTENDED_NETCONFIG_DEVICE = "/netconfig/device/:deviceName/intended";
+	private static final String API_RUNNING_NETCONFIG_DEVICE = "/netconfig/device/:deviceName/running";
 
 	private final IpnetService service;
 
@@ -77,6 +81,7 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		router.post(API_CONFIG_ONE_BGP).handler(this::checkAdminRole).handler(this::apiConfigCreateBgp);
 		router.put(API_CONFIG_ONE_BGP).handler(this::checkAdminRole).handler(this::apiConfigUpdateBgp);
 		router.delete(API_CONFIG_ONE_BGP).handler(this::checkAdminRole).handler(this::apiConfigDeleteBgp);
+		router.get(API_CONFIG_DEVICE_FILE).handler(this::checkAdminRole).handler(this::apiConfigGetDeviceFile);
 		
 		router.get(API_CONFIG_CHANGES).handler(this::checkAdminRole).handler(this::apiConfigGetAllChanges);
 		router.delete(API_CONFIG_CHANGES).handler(this::checkAdminRole).handler(this::apiConfigUndoChange);
@@ -87,6 +92,9 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		router.get(API_INTENDED_NETCONFIG).handler(this::checkAdminRole).handler(this::apiGetIntendedNetConfig);
 		router.get(API_RUNNING_NETCONFIG).handler(this::checkAdminRole).handler(this::apiGetRunningNetConfig);
 		router.post(API_RUNNING_NETCONFIG).handler(this::checkAdminRole).handler(this::apiSaveRunningNetConfig);
+		
+		router.get(API_INTENDED_NETCONFIG_DEVICE).handler(this::checkAdminRole).handler(this::apiGetIntendedDeviceConfig);
+		router.get(API_RUNNING_NETCONFIG_DEVICE).handler(this::checkAdminRole).handler(this::apiGetRunningDeviceConfig);
 		
 		// get HTTP host and port from configuration, or use default value
 		String host = config().getString("ipnet.http.address", "0.0.0.0");
@@ -194,6 +202,12 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		service.configDeleteBgp(username, deviceName, itfAddr, deleteResultHandler(context));
 	}
+	private void apiConfigGetDeviceFile(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		String deviceName = context.request().getParam("deviceName");
+		service.configGetDeviceFile(username, deviceName, resultHandler(context, Json::encodePrettily));
+	}
 
 	private void apiConfigVerify(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
@@ -220,17 +234,30 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 	private void apiGetIntendedNetConfig(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String username = principal.getString("username");
-		service.getIntendedNetConfig(username, resultHandler(context, Json::encodePrettily));
+		service.getIntendedNetworkConfig(username, resultHandler(context, Json::encodePrettily));
 	}
 	private void apiGetRunningNetConfig(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String username = principal.getString("username");
-		service.getRunningNetConfig(username, resultHandler(context, Json::encodePrettily));
+		service.getRunningNetworkConfig(username, resultHandler(context, Json::encodePrettily));
 	}
 	private void apiSaveRunningNetConfig(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String username = principal.getString("username");
-		service.updateRunningNetConfig(username, context.getBodyAsJson(), resultVoidHandler(context, 200));
+		service.updateRunningNetworkConfig(username, context.getBodyAsJson(), resultVoidHandler(context, 200));
+	}
+	
+	private void apiGetIntendedDeviceConfig(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		String deviceName = context.request().getParam("deviceName");
+		service.getIntendedDeviceConfig(username, deviceName, resultHandler(context, Json::encodePrettily));
+	}
+	private void apiGetRunningDeviceConfig(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		String deviceName = context.request().getParam("deviceName");
+		service.getRunningDeviceConfig(username, deviceName, resultHandler(context, Json::encodePrettily));
 	}
 	
 	/* get service version */

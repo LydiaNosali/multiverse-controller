@@ -86,7 +86,6 @@ public class IpnetServiceImpl implements IpnetService {
 		digitalTwinSvcProxy().viewGetNetwork(viewId, resultHandler);
 	}
 
-	
 	/* View API: Devices */
 	@Override
 	public void configUpdateDevice(String viewId, String deviceName, Device device, 
@@ -139,7 +138,6 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
-
 	
 	/* View API: NetInterfaces */
 	@Override
@@ -198,7 +196,6 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
-
 
 	/* View API: BGP peers */
 	@Override
@@ -343,6 +340,12 @@ public class IpnetServiceImpl implements IpnetService {
 		}); 
 	}
 
+	/* API: get device config file */
+	public void configGetDeviceFile(String viewId, String deviceName, 
+			Handler<AsyncResult<JsonObject>> resultHandler) {
+		digitalTwinSvcProxy().viewGetDeviceConfig(viewId, deviceName, resultHandler);
+	}
+	
 	/* API: Verify and Apply config */
 	@Override
 	public void configVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler) {
@@ -368,13 +371,15 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
+	
 	@Override
 	public void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler) {
 		digitalTwinSvcProxy().viewGetNetworkConfig(viewId, res -> {
 			if (res.succeeded()) {
 				JsonObject netConfig = res.result();
-				saveNetConfig(COLL_INTENDED_CONFIG, viewId, netConfig, saved -> {
+				saveNetworkConfig(COLL_INTENDED_CONFIG, viewId, netConfig, saved -> {
 					if (saved.succeeded()) {
+						// WIP: push config to SSH-EMS
 						cleanProfile(viewId, done -> {
 							if (done.succeeded()) {
 								digitalTwinSvcProxy().deleteView(viewId, ignore -> {
@@ -447,19 +452,25 @@ public class IpnetServiceImpl implements IpnetService {
 		});
 	}
 	
-	/* API: Intended and Running NetConfig */
-	public void getIntendedNetConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler) {
-		findNetConfig(COLL_INTENDED_CONFIG, viewId, resultHandler);
+	/* API: Intended and Running Network Config */
+	public void getIntendedNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler) {
+		findConfig(COLL_INTENDED_CONFIG, viewId, null, resultHandler);
 	}
-	public void getRunningNetConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler) {
-		findNetConfig(COLL_RUNNING_CONFIG, viewId, resultHandler);
-		
+	public void getRunningNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler) {
+		findConfig(COLL_RUNNING_CONFIG, viewId, null, resultHandler);
 	}
-	public void updateRunningNetConfig(String viewId, JsonObject netConfig, Handler<AsyncResult<Void>> resultHandler) {
-		saveNetConfig(COLL_RUNNING_CONFIG, viewId, netConfig, resultHandler);
+	public void updateRunningNetworkConfig(String viewId, JsonObject netConfig, Handler<AsyncResult<Void>> resultHandler) {
+		saveNetworkConfig(COLL_RUNNING_CONFIG, viewId, netConfig, resultHandler);
+	}
+	
+	/* API: Intended and Running Device Config */
+	public void getIntendedDeviceConfig(String viewId, String deviceName, Handler<AsyncResult<JsonObject>> resultHandler) {
+		findConfig(COLL_INTENDED_CONFIG, viewId, deviceName, resultHandler);
+	}
+	public void getRunningDeviceConfig(String viewId, String deviceName, Handler<AsyncResult<JsonObject>> resultHandler) {
+		findConfig(COLL_RUNNING_CONFIG, viewId, deviceName, resultHandler);
 	}
 
-	
 	/* Functional: Config Changes */
 	private void undoDeviceConfig(String viewId, ConfigChange cc, 
 			Handler<AsyncResult<ConfigChange>> resultHandler) {
@@ -732,7 +743,7 @@ public class IpnetServiceImpl implements IpnetService {
 	}
 	
 	/* Functional: Network config */
-	private void saveNetConfig(String collection, String viewId, JsonObject netConfig, Handler<AsyncResult<Void>> resultHandler) {
+	private void saveNetworkConfig(String collection, String viewId, JsonObject netConfig, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject query = new JsonObject().put("_viewId", viewId);
 		UpdateOptions opts = new UpdateOptions().setUpsert(true);
 		
@@ -746,14 +757,22 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
-	private void findNetConfig(String collection, String viewId, Handler<AsyncResult<JsonObject>> resultHandler) {
+	private void findConfig(String collection, String viewId, String deviceName, Handler<AsyncResult<JsonObject>> resultHandler) {
 		JsonObject query = new JsonObject().put("_viewId", viewId);
-		client.findOne(collection, query, null, ar -> {
+		JsonObject filter = null;
+		if (deviceName != null) {
+			filter = new JsonObject().put(deviceName, 1);
+		}
+		client.findOne(collection, query, filter, ar -> {
 			if (ar.succeeded()) {
 				if (ar.result() != null) {
 					ar.result().remove("_id");
 					ar.result().remove("_viewId");
-					resultHandler.handle(Future.succeededFuture(ar.result()));
+					if (deviceName != null ) {
+						resultHandler.handle(Future.succeededFuture(ar.result().getJsonObject(deviceName)));
+					} else {
+						resultHandler.handle(Future.succeededFuture(ar.result()));
+					}
 				} else {
 					resultHandler.handle(Future.failedFuture("NOT_FOUND"));
 				}

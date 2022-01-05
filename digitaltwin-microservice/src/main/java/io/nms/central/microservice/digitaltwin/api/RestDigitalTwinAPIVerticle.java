@@ -35,10 +35,10 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	
 	private static final String API_RUNNING_STATE = "/running/state";
 	private static final String API_RUNNING_VERIFY = "/running/verify";
-	private static final String API_RUNNING_CONFIG = "/running/config-file";
+	private static final String API_RUNNING_CONFIG = "/running/config";
 	private static final String API_RUNNING_NETWORK = "/running/network";
 	private static final String API_RUNNING_ONE_DEVICE = "/running/device/:deviceName";
-	private static final String API_RUNNING_DEVICE_CONFIG = "/running/device/:deviceName/config-file";
+	private static final String API_RUNNING_DEVICE_CONFIG = "/running/device/:deviceName/config";
 	private static final String API_RUNNING_INTERFACES = "/running/device/:deviceName/interfaces";
 	private static final String API_RUNNING_ONE_INTERFACE = "/running/device/:deviceName/interface/:itfName";
 	private static final String API_RUNNING_BGPS = "/running/device/:deviceName/bgps";
@@ -46,10 +46,10 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	
 	private static final String API_ONE_VIEW = "/view/:viewId";
 	private static final String API_VIEW_VERIFY = "/view/:viewId/verify";
-	private static final String API_VIEW_CONFIG = "/view/:viewId/config-file";
+	private static final String API_VIEW_CONFIG = "/view/:viewId/config";
 	private static final String API_VIEW_NETWORK = "/view/:viewId/network";
 	private static final String API_VIEW_ONE_DEVICE = "/view/:viewId/device/:deviceName";
-	private static final String API_VIEW_DEVICE_CONFIG = "/view/:viewId/device/:deviceName/config-file";
+	private static final String API_VIEW_DEVICE_CONFIG = "/view/:viewId/device/:deviceName/config";
 	private static final String API_VIEW_INTERFACES = "/view/:viewId/device/:deviceName/interfaces";
 	private static final String API_VIEW_ONE_INTERFACE = "/view/:viewId/device/:deviceName/interface/:itfName";
 	private static final String API_VIEW_BGPS = "/view/:viewId/device/:deviceName/bgps";
