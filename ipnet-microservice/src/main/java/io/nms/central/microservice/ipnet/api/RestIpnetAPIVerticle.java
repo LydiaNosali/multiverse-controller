@@ -4,6 +4,7 @@ import io.nms.central.microservice.common.RestAPIVerticle;
 import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.ipnet.IpnetService;
 import io.vertx.core.Future;
@@ -38,6 +39,7 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 	private static final String API_CONFIG_ONE_DEVICE = "/config/device/:deviceName";
 	private static final String API_CONFIG_INTERFACES = "/config/device/:deviceName/interfaces";
 	private static final String API_CONFIG_ONE_INTERFACE = "/config/device/:deviceName/interface/:itfName";
+	private static final String API_CONFIG_ONE_LINK = "/config/link/:linkName";
 	private static final String API_CONFIG_BGPS = "/config/device/:deviceName/bgps";
 	private static final String API_CONFIG_ONE_BGP = "/config/device/:deviceName/bgp/:itfAddr";
 
@@ -74,9 +76,15 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		
 		/* Operations on configuration in-progress */
 		router.get(API_CONFIG_NETWORK).handler(this::checkAdminRole).handler(this::apiConfigGetNetwork);
+		router.post(API_CONFIG_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiConfigCreateDevice);
 		router.put(API_CONFIG_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiConfigUpdateDevice);
+		router.delete(API_CONFIG_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiConfigDeleteDevice);
 		router.get(API_CONFIG_INTERFACES).handler(this::checkAdminRole).handler(this::apiConfigGetDeviceInterfaces);
+		router.post(API_CONFIG_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiConfigCreateInterface);
 		router.put(API_CONFIG_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiConfigUpdateInterface);
+		router.delete(API_CONFIG_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiConfigDeleteInterface);
+		router.post(API_CONFIG_ONE_LINK).handler(this::checkAdminRole).handler(this::apiConfigCreateLink);
+		router.delete(API_CONFIG_ONE_LINK).handler(this::checkAdminRole).handler(this::apiConfigDeleteLink);
 		router.get(API_CONFIG_BGPS).handler(this::checkAdminRole).handler(this::apiConfigGetDeviceBgps);
 		router.post(API_CONFIG_ONE_BGP).handler(this::checkAdminRole).handler(this::apiConfigCreateBgp);
 		router.put(API_CONFIG_ONE_BGP).handler(this::checkAdminRole).handler(this::apiConfigUpdateBgp);
@@ -128,6 +136,19 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		String username = principal.getString("username");
 		service.configGetNetwork(username, resultHandlerNonEmpty(context));
 	}
+	private void apiConfigCreateDevice(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		String deviceName = context.request().getParam("deviceName");
+		try {
+			final Device device 
+					= JsonUtils.json2PojoE(context.getBodyAsString(), Device.class);
+			service.configCreateDevice(username, deviceName, device, createResultHandler(context));
+		} catch (Exception e) {
+			logger.info("API input argument exception: " + e.getMessage());
+			badRequest(context, e);
+		}
+	}
 	private void apiConfigUpdateDevice(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String username = principal.getString("username");
@@ -141,11 +162,32 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 			badRequest(context, e);
 		}
 	}
+	private void apiConfigDeleteDevice(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		String deviceName = context.request().getParam("deviceName");
+		service.configDeleteDevice(username, deviceName, deleteResultHandler(context));
+	}
+	
 	private void apiConfigGetDeviceInterfaces(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String username = principal.getString("username");
 		String deviceName = context.request().getParam("deviceName");
 		service.configGetDeviceInterfaces(username, deviceName, resultHandler(context, Json::encodePrettily));
+	}
+	private void apiConfigCreateInterface(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		String deviceName = context.request().getParam("deviceName");
+		String itfName = context.request().getParam("itfName");
+		try {
+			final NetInterface netItf 
+					= JsonUtils.json2PojoE(context.getBodyAsString(), NetInterface.class);
+			service.configCreateInterface(username, deviceName, itfName, netItf, createResultHandler(context));
+		} catch (Exception e) {
+			logger.info("API input argument exception: " + e.getMessage());
+			badRequest(context, e);
+		}
 	}
 	private void apiConfigUpdateInterface(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
@@ -161,6 +203,34 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 			badRequest(context, e);
 		}
 	}
+	private void apiConfigDeleteInterface(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		String deviceName = context.request().getParam("deviceName");
+		String itfName = context.request().getParam("itfName");
+		service.configDeleteInterface(username, deviceName, itfName, deleteResultHandler(context));
+	}
+	
+	private void apiConfigCreateLink(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		String linkName = context.request().getParam("linkName");
+		try {
+			final Link link 
+					= JsonUtils.json2PojoE(context.getBodyAsString(), Link.class);
+			service.configCreateLink(username, linkName, link, createResultHandler(context));
+		} catch (Exception e) {
+			logger.info("API input argument exception: " + e.getMessage());
+			badRequest(context, e);
+		}
+	}
+	private void apiConfigDeleteLink(RoutingContext context) {
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String username = principal.getString("username");
+		String linkName = context.request().getParam("linkName");
+		service.configDeleteLink(username, linkName, deleteResultHandler(context));
+	}
+
 	private void apiConfigGetDeviceBgps(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String username = principal.getString("username");
@@ -202,6 +272,7 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		service.configDeleteBgp(username, deviceName, itfAddr, deleteResultHandler(context));
 	}
+
 	private void apiConfigGetDeviceFile(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String username = principal.getString("username");

@@ -137,7 +137,6 @@ public class ConfigProcessor {
 		
 		// 2nd iteration over device configs
 		for (Map.Entry<String,DeviceState> device : deviceConfigs.entrySet()) {
-		// for(Iterator<String> it1 = input.keySet().iterator(); it1.hasNext();) {
 			String deviceName = device.getKey();
 			DeviceState config = device.getValue();
 			HostTypeEnum deviceType = config.getMetadata().getType();
@@ -167,6 +166,7 @@ public class ConfigProcessor {
 		    		if (deviceConfigs.keySet().contains(destHost)) {
 		    			if (! linkExists(destHost, destInterface, srcHost, srcInterface)) {
 		    				JsonObject link = new JsonObject();
+		    				link.put("name", srcHost+"."+srcInterface+"-"+destHost+"."+destInterface);
 		    				link.put("srcHost", srcHost);
 		    				link.put("srcInterface", srcInterface);
 		    				link.put("destHost", destHost);

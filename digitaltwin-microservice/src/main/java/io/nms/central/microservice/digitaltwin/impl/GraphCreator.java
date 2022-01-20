@@ -164,19 +164,20 @@ public class GraphCreator {
 				+ "WITH DISTINCT sR,tR,src,dst\r\n"
 				+ "CALL apoc.do.case([\r\n"
 				+ "(sR.type = 'LeafRouter' AND tR.type = 'LeafRouter'),\r\n"
-				+ " 'CREATE (src)-[:LINKED_VLT]->(dst)',\r\n"
+				+ " 'CREATE (src)-[:LINKED_VLT {name: '%s'}]->(dst)',\r\n"
 				+ "(sR.type = 'Server' OR tR.type ='Server'),\r\n"
-				+ " 'CREATE (src)-[:LINKED_L2]->(dst)'\r\n"
-				+ "],'CREATE (src)-[:LINKED_L3]->(dst)',{src:src, dst:dst})\r\n"
+				+ " 'CREATE (src)-[:LINKED_L2 {name: '%s'}]->(dst)'\r\n"
+				+ "],'CREATE (src)-[:LINKED_L3 {name: '%s'}]->(dst)',{src:src, dst:dst})\r\n"
 				+ "YIELD value\r\n"
 				+ "RETURN value;";
 		links.forEach(e -> {
 			JsonObject link = (JsonObject) e;
 	    	String result = String.format(q, 
-	    			link.getString("srcHost"), 
+	    			link.getString("srcHost"),
 	    			link.getString("srcInterface"),
 	    			link.getString("destHost"),
-	    			link.getString("destInterface"));
+	    			link.getString("destInterface"),
+	    			link.getString("name"));
 	    	output.add(result);
 	    });
 	}

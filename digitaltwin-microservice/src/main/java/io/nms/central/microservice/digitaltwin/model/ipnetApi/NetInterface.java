@@ -26,6 +26,14 @@ public class NetInterface extends Configurable {
 		private InterfaceStatus(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 	};
+	
+	public enum VlanMode {
+		tagged("tagged"),
+		untagged("untagged");
+		private String value;
+		private VlanMode(String value) { this.value = value; }
+		public String getValue() { return this.value; }
+	};
 
 	// In LTtp
 	private String name;
@@ -38,7 +46,7 @@ public class NetInterface extends Configurable {
 	// In EtherCtp
 	private String macAddr;
 	private String vlan;
-	private String mode;
+	private VlanMode mode;
 	
 	// In Ip4Ctp
 	// @JsonInclude(Include.NON_NULL)
@@ -52,10 +60,10 @@ public class NetInterface extends Configurable {
 		JsonUtils.fromJson(json, this, NetInterface.class);
 	}
 
-	public String getMode() {
+	public VlanMode getMode() {
 		return mode;
 	}
-	public void setMode(String mode) {
+	public void setMode(VlanMode mode) {
 		this.mode = mode;
 	}
 	public String getSvi() {

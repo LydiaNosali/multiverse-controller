@@ -10,6 +10,7 @@ import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Configurable;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
 import io.nms.central.microservice.ipnet.IpnetService;
@@ -86,7 +87,12 @@ public class IpnetServiceImpl implements IpnetService {
 		digitalTwinSvcProxy().viewGetNetwork(viewId, resultHandler);
 	}
 
-	/* View API: Devices */
+	/* View API: Device */
+	@Override
+	public void configCreateDevice(String viewId, String deviceName, Device device, 
+			Handler<AsyncResult<Void>> resultHandler) {
+		// ...
+	}
 	@Override
 	public void configUpdateDevice(String viewId, String deviceName, Device device, 
 			Handler<AsyncResult<Void>> resultHandler) {
@@ -138,8 +144,13 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
+	@Override
+	public void configDeleteDevice(String viewId, String deviceName, 
+			Handler<AsyncResult<Void>> resultHandler) {
+		// ...
+	}
 	
-	/* View API: NetInterfaces */
+	/* View API: NetInterface */
 	@Override
 	public void configGetDeviceInterfaces(String viewId, String deviceName, 
 			Handler<AsyncResult<List<NetInterface>>> resultHandler) {
@@ -196,8 +207,30 @@ public class IpnetServiceImpl implements IpnetService {
 			}
 		});
 	}
+	@Override
+	public void configCreateInterface(String viewId, String deviceName, String itfName, 
+			NetInterface netItf, Handler<AsyncResult<Void>> resultHandler) {
+		// ...
+	}
+	@Override
+	public void configDeleteInterface(String viewId, String deviceName, String itfName, 
+			Handler<AsyncResult<Void>> resultHandler) {
+		// ...
+	}
+	
+	/* View API: Link */
+	@Override
+	public void configCreateLink(String viewId, String linkName, Link link, 
+			Handler<AsyncResult<Void>> resultHandler) {
+		// ...
+	}
+	@Override
+	public void configDeleteLink(String viewId, String linkName, 
+			Handler<AsyncResult<Void>> resultHandler) {
+		// ...
+	}
 
-	/* View API: BGP peers */
+	/* View API: BGP peer */
 	@Override
 	public void configGetDeviceBgps(String viewId, String deviceName, 
 			Handler<AsyncResult<List<Bgp>>> resultHandler) {
