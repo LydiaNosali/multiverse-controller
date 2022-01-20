@@ -1,15 +1,22 @@
 package io.nms.central.microservice.digitaltwin;
 
 import java.util.List;
-
+import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
+import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
-import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclRule;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.AclTable;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Arp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.RouteHop;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpRoute;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Path;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.PathHop;
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.ProxyGen;
 import io.vertx.codegen.annotations.VertxGen;
@@ -48,10 +55,9 @@ public interface DigitalTwinService {
 	DigitalTwinService runningVerifyNetwork(Handler<AsyncResult<VerificationReport>> resultHandler);
 	@Fluent
 	DigitalTwinService runningGetNetworkConfig(Handler<AsyncResult<JsonObject>> resultHandler);
-	
 	@Fluent	
 	DigitalTwinService runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
-	@Fluent
+	@Fluent	
 	DigitalTwinService runningGetDevice(String deviceName, Handler<AsyncResult<Device>> resultHandler);
 	@Fluent
 	DigitalTwinService runningGetDeviceInterfaces(String deviceName, Handler<AsyncResult<List<NetInterface>>> resultHandler);
@@ -61,6 +67,14 @@ public interface DigitalTwinService {
 	DigitalTwinService runningGetDeviceBgps(String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningGetBgp(String deviceName, String itfAddr, Handler<AsyncResult<Bgp>> resultHandler);
+	@Fluent
+	DigitalTwinService runningGetDeviceIpRoutes(String deviceName, Handler<AsyncResult<List<IpRoute>>> resultHandler);
+	@Fluent	
+	DigitalTwinService runningGetDeviceIpRoutesTo(String deviceName, String to, Handler<AsyncResult<List<IpRoute>>> resultHandler);
+	@Fluent	
+	DigitalTwinService runningGetDeviceArps(String deviceName, Handler<AsyncResult<List<Arp>>> resultHandler);
+	@Fluent
+	DigitalTwinService runningGetDeviceAclTables(String deviceName, Handler<AsyncResult<List<AclTable>>> resultHandler);
 	
 	@Fluent
 	DigitalTwinService runningGetDeviceConfig(String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
@@ -121,4 +135,12 @@ public interface DigitalTwinService {
 	
 	@Fluent
 	DigitalTwinService viewGetDeviceConfig(String viewId, String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
+
+	// Path search
+	@Fluent	
+	DigitalTwinService runningFindPathByHostnames(String from, String to, Handler<AsyncResult<List<Path>>> resultHandler);
+	@Fluent	
+	DigitalTwinService runningFindPathByIpAddrs(String from, String to, Handler<AsyncResult<List<Path>>> resultHandler);
+	@Fluent
+	DigitalTwinService runningGetIpRoutesOfPath(List<PathHop> path, Handler<AsyncResult<List<RouteHop>>> resultHandler);
 }

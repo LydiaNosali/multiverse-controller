@@ -28,11 +28,11 @@
       <artifactId>neo4j-java-driver</artifactId>
       <version>4.3.5</version>
     </dependency>
-    
-    <dependency>
- 	  <groupId>io.vertx</groupId>
- 	  <artifactId>vertx-web-client</artifactId>
- 	  </dependency>
+
+     <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-web-graphql</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

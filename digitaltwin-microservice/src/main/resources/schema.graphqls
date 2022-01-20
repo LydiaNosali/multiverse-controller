@@ -1,0 +1,171 @@
+type Query {
+  network: Network
+  device(name: String!): Device
+  path(from: String!, to: String!): [Path]
+}
+
+type Network {
+  devices: [Device]
+  links: [Link]
+  subnets: [Subnet]
+}
+
+type Path {
+  path: [PathHop]
+  route: [RouteHop]
+}
+
+type Device {
+  name: String
+	hostname: String
+	mac: String
+	platform: String
+	type: DeviceType
+	bgpAsn: String
+	bgpStatus: String
+	hwsku: String
+  interfaces: [Interface]
+  routes(to: String): [IpRoute]
+  arps: [Arp]
+  acls: [AclTable]
+  bgps: [Bgp]
+}
+
+type Link {
+  srcDevice: String
+  srcInterface: String
+  destDevice: String
+  destInterface: String
+}
+
+type Subnet {
+  netAddress: String
+  hostAddresses: [String]
+}
+
+type Interface {
+  name: String
+	type: ItfType
+	adminStatus: ItfStatus
+	index: String
+	speed: String
+	mtu: String
+	macAddr: String
+	vlan: String
+	mode: String
+	ipAddr: String       # CIDR
+	svi: String
+  bgp: Bgp
+}
+
+type Bgp {
+  remoteAddr: String
+	localAsn: String
+	remoteAsn: String
+	localId: String
+	remoteId: String
+	holdTime: String
+	keepAlive: String
+	state: BgpState
+}
+
+type AclTable {
+  name: String
+  binding: String
+  description: String
+  stage: AclTableStage
+  type: AclTableType
+  rules: [AclRule]
+}
+
+type AclRule {
+  name: String
+  action: String
+  priority: String
+  matching: String
+}
+
+type IpRoute {
+  netInterface: String
+  to: String
+  type: String
+  via: String
+}
+
+type Arp {
+  netInterface: String
+  ipAddr: String
+  macAddr: String
+  vlan: String
+}
+
+type PathHop {
+  host: String
+  itf: String
+	type: ItfType
+	adminStatus: ItfStatus
+	index: String
+	speed: String
+	mtu: String
+	macAddr: String
+	vlan: String
+	mode: String
+	ipAddr: String       # CIDR
+	svi: String
+  # bgp: Bgp
+}
+
+type RouteHop {
+  host: Device
+	route: IpRoute
+	acl: AclTable
+	arp: Boolean
+}
+
+enum DeviceType {
+  SpineRouter
+	LeafRouter
+	BorderRouter
+	Firewall
+	Server
+	Switch
+}
+
+enum ItfType {
+	Bridge
+	Vlan
+	Other
+}
+	
+enum ItfStatus {
+	up
+	down
+	undefined
+}
+
+enum BgpStatus {
+  up
+  down
+  undefined
+}
+
+enum BgpState {
+  Idle
+	Connect
+	Active
+	OpenSent
+	OpenConfirm
+	Established
+}
+
+enum AclTableType {
+  L3
+	L3V6
+	CTRLPLANE
+	MIRROR
+}
+
+enum AclTableStage {
+  ingress
+	egress
+}

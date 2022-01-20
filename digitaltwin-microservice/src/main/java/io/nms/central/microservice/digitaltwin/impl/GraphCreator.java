@@ -64,6 +64,8 @@ public class GraphCreator {
 	    JsonArray sviCtps = input.getJsonArray("sviCtp");
 	    processIp4Ctps(sviCtps);
 	    
+	    processAutoBridge();
+	    
 	    JsonArray links = input.getJsonArray("link");
 	    processLinks(links);
 	    
@@ -154,9 +156,20 @@ public class GraphCreator {
 	}
 	
 	private void processLinks(JsonArray links) {
-		String q = "T9@MATCH (sR:Host {name:'%s'})-[:CONTAINS]->(src:Ltp{name:'%s'}) "
+		/* String q = "T9@MATCH (sR:Host {name:'%s'})-[:CONTAINS]->(src:Ltp{name:'%s'}) "
 				+ "MATCH (tR:Host {name:'%s'})-[:CONTAINS]->(dst:Ltp{name:'%s'}) "
-				+ "CREATE (src)-[:LINKED {name: '%s'}]->(dst);";
+				+ "CREATE (src)-[:LINKED]->(dst);"; */
+		String q = "T9@MATCH (sR:Host {name:'%s'})-[:CONTAINS]->(src:Ltp{name:'%s'})\r\n"
+				+ "MATCH (tR:Host {name:'%s'})-[:CONTAINS]->(dst:Ltp{name:'%s'})\r\n"
+				+ "WITH DISTINCT sR,tR,src,dst\r\n"
+				+ "CALL apoc.do.case([\r\n"
+				+ "(sR.type = 'LeafRouter' AND tR.type = 'LeafRouter'),\r\n"
+				+ " 'CREATE (src)-[:LINKED_VLT {name: '%s'}]->(dst)',\r\n"
+				+ "(sR.type = 'Server' OR tR.type ='Server'),\r\n"
+				+ " 'CREATE (src)-[:LINKED_L2 {name: '%s'}]->(dst)'\r\n"
+				+ "],'CREATE (src)-[:LINKED_L3 {name: '%s'}]->(dst)',{src:src, dst:dst})\r\n"
+				+ "YIELD value\r\n"
+				+ "RETURN value;";
 		links.forEach(e -> {
 			JsonObject link = (JsonObject) e;
 	    	String result = String.format(q, 
@@ -170,14 +183,23 @@ public class GraphCreator {
 	}
 	
 	private void processAutoLc() {
-		String q = "T10@MATCH (sC:EtherCtp)<-[:CONTAINS]-(sL:Ltp)-[:LINKED]->(dL:Ltp)-[:CONTAINS]->(dC:EtherCtp) "
+		String q = "T10@MATCH (sC:EtherCtp)<-[:CONTAINS]-(sL:Ltp)-[:LINKED_L2|:LINKED_L3|:LINKED_VLT]->(dL:Ltp)-[:CONTAINS]->(dC:EtherCtp) "
 				+ "WHERE NOT (sC)-[:LINK_CONN]-() AND NOT (dC)-[:LINK_CONN]-() "
-				+ "AND NOT (sL)-[:CONTAINS]-(:Host {type:'switch'}) AND NOT (dL)-[:CONTAINS]-(:Host {type:'switch'}) "
+				+ "AND NOT (sL)-[:CONTAINS]-(:Host {type:'Switch'}) AND NOT (dL)-[:CONTAINS]-(:Host {type:'Switch'}) "
 				+ "CREATE (sC)-[r:LINK_CONN]->(dC);";
 		// String vlan = "MATCH (c1:EtherCtp)-[:LINK_CONN]-(c2:EtherCtp) WHERE c1.vlan = 0 AND c2.vlan <> 0 "
 		// 		+ "SET c1.vlan = c2.vlan;";
     	output.add(q);
     	// output.add(vlan);
+	}
+	
+	private void processAutoBridge() {
+		String q = "T17@MATCH (h:Host)\r\n"
+				+ "MATCH (h)-[:CONTAINS*3]->(svi:Ip4Ctp) WHERE svi.svi <> '-' \r\n"
+				+ "MATCH (h)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(e:EtherCtp) WHERE e.vlan = svi.vlan AND NOT (e)-[:CONTAINS]->(:Ip4Ctp)\r\n"
+				+ "CREATE (e)-[b:BRIDGE]->(svi)\r\n"
+				+ "RETURN h, svi, b, e;";
+    	output.add(q);
 	}
 	
 	private void processIpConns(JsonArray ipConns) {
@@ -243,11 +265,15 @@ public class GraphCreator {
 	
 	private void processAclTables() {
 		// ingress
-		String qInGbl = "T14@CREATE (a:Acl{stage: '%s', name: '%s', binding: '%s', type: '%s', description: '%s'})\r\n"
+		/* String qInGbl = "T14@CREATE (a:Acl{stage: '%s', name: '%s', binding: '%s', type: '%s', description: '%s'})\r\n"
 				+ "WITH a\r\n"
 				+ "MATCH (f:Host {name:'%s'})-[:CONTAINS]->(l:Ltp)-[:CONTAINS*2]->(c:Ip4Ctp)\r\n"
 				+ "WHERE (NOT l.name STARTS WITH 'Loopback') AND (NOT (c)-[:HAS_ACL]->())\r\n"
-				+ "CREATE (c)-[:HAS_ACL]->(a);";
+				+ "CREATE (c)-[:HAS_ACL]->(a);"; */
+		String qInGbl = "T14@CREATE (a:Acl{stage: '%s', name: '%s', binding: '%s', type: '%s', description: '%s', rules:[]})\r\n"
+				+ "WITH a\r\n"
+				+ "MATCH (h:Host {name:'%s'})\r\n"
+				+ "CREATE (h)-[:ACL]->(a);";
 		aclInGlobal.forEach(e -> {
 			JsonObject table = (JsonObject) e;
 	    	String result = String.format(qInGbl, 
@@ -288,9 +314,27 @@ public class GraphCreator {
 	}
 
 	private void processAclRules(JsonArray aclRules) {
-		String q = "T15@CREATE (nr:AclRule {name:'%s', priority: %s, action:'%s', matching:'%s'})\r\n"
+		/* String q = "T15@CREATE (nr:AclRule {name:'%s', priority: %s, action:'%s', matching:'%s'})\r\n"
 				+ "WITH nr\r\n"
 				+ "MATCH (f:Host {name:'%s'})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(t:Acl{name:'%s'})\r\n"
+				+ "OPTIONAL MATCH (t)-[:NEXT_RULE*]->(r:AclRule) WHERE NOT EXISTS ((r)-[:NEXT_RULE]->())\r\n"
+				+ "WITH DISTINCT nr, t, r\r\n"
+				+ "CALL apoc.do.case([\r\n"
+				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'FORWARD'),\r\n"
+				+ "  'CREATE (r)-[:NEXT_RULE]->(nr)-[:ACCEPT]->(t)',\r\n"
+				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'DROP'),\r\n"
+				+ "  'CREATE (r)-[:NEXT_RULE]->(nr)',\r\n"
+				+ "  (t IS NOT null AND r IS null AND nr.action = 'FORWARD'),\r\n"
+				+ "  'CREATE (t)-[:NEXT_RULE]->(nr)-[:ACCEPT]->(t)',\r\n"
+				+ "  (t IS NOT null AND r IS null AND nr.action = 'DROP'),\r\n"
+				+ "  'CREATE (t)-[:NEXT_RULE]->(nr)'\r\n"
+				+ "  ],\r\n"
+				+ "  'DELETE nr',{nr:nr, t:t, r:r})\r\n"
+				+ "YIELD value\r\n"
+				+ "RETURN value;"; */
+		String q = "T15@CREATE (nr:AclRule {name:'%s', priority: %s, action:'%s', matching:'%s'})\r\n"
+				+ "WITH nr\r\n"
+				+ "MATCH (h:Host {name:'%s'})-[:ACL]->(t:Acl{name:'%s'})\r\n"
 				+ "OPTIONAL MATCH (t)-[:NEXT_RULE*]->(r:AclRule) WHERE NOT EXISTS ((r)-[:NEXT_RULE]->())\r\n"
 				+ "WITH DISTINCT nr, t, r\r\n"
 				+ "CALL apoc.do.case([\r\n"
@@ -325,6 +369,34 @@ public class GraphCreator {
 				+ "MATCH (h:Host {name:'%s'})-[:CONTAINS]->(l:Ltp{name:'%s'})-[:CONTAINS*2]->(rEx:Ip4Ctp)\r\n"
 				+ "CREATE (r)-[:EGRESS]->(rEx)\r\n"
 				+ "WITH r, h\r\n"
+				+ "OPTIONAL MATCH (h)-[:ACL]->(ag:Acl)\r\n"
+				+ "WITH DISTINCT h, ag, r\r\n"
+				+ "CALL apoc.do.case([\r\n"
+				+ "  (ag IS NOT null),\r\n"
+				+ "  'CREATE (ag)-[:TO_ROUTE]->(r)'\r\n"
+				+ "],\r\n"
+				+ "'CREATE (h)-[:TO_ROUTE]->(r)',{h:h, ag:ag, r:r})\r\n"
+				+ "YIELD value\r\n"
+				+ "RETURN value;";
+		String qSvi = "T17@CREATE(r:Route {to: '%s', via: '%s', type: '%s'}) \r\n"
+				+ "WITH r\r\n"
+				+ "MATCH (h:Host {name:'%s'})-[:CONTAINS*3]->(rEx:Ip4Ctp{svi:'%s'})\r\n"
+				+ "CREATE (r)-[:EGRESS]->(rEx)\r\n"
+				+ "WITH r, h\r\n"
+				+ "OPTIONAL MATCH (h)-[:ACL]->(ag:Acl)\r\n"
+				+ "WITH DISTINCT h, ag, r\r\n"
+				+ "CALL apoc.do.case([\r\n"
+				+ "  (ag IS NOT null),\r\n"
+				+ "  'CREATE (ag)-[:TO_ROUTE]->(r)'\r\n"
+				+ "],\r\n"
+				+ "'CREATE (h)-[:TO_ROUTE]->(r)',{h:h, ag:ag, r:r})\r\n"
+				+ "YIELD value\r\n"
+				+ "RETURN value;";
+		/* String qItf = "T16@CREATE(r:Route {to: '%s', via: '%s', type: '%s'}) \r\n"
+				+ "WITH r\r\n"
+				+ "MATCH (h:Host {name:'%s'})-[:CONTAINS]->(l:Ltp{name:'%s'})-[:CONTAINS*2]->(rEx:Ip4Ctp)\r\n"
+				+ "CREATE (r)-[:EGRESS]->(rEx)\r\n"
+				+ "WITH r, h\r\n"
 				+ "MATCH (h)-[:CONTAINS]->(lo:Ltp) WHERE lo.name <> '%s'\r\n"
 				+ "OPTIONAL MATCH (lo)-[:CONTAINS*2]->(:Ip4Ctp)-[:HAS_ACL]->(ag:Acl)\r\n"
 				+ "OPTIONAL MATCH (lo)-[:CONTAINS*2]->(co:Ip4Ctp) WHERE NOT (co)-[:HAS_ACL]->(:Acl)\r\n"
@@ -337,8 +409,8 @@ public class GraphCreator {
 				+ "],\r\n"
 				+ "'',{co:co, ag:ag, r:r})\r\n"
 				+ "YIELD value\r\n"
-				+ "RETURN value;";
-		String qSvi = "T17@CREATE(r:Route {to: '%s', via: '%s', type: '%s'}) \r\n"
+				+ "RETURN value;"; */
+		/* String qSvi = "T17@CREATE(r:Route {to: '%s', via: '%s', type: '%s'}) \r\n"
 				+ "WITH r\r\n"
 				+ "MATCH (h:Host {name:'%s'})-[:CONTAINS*3]->(rEx:Ip4Ctp{svi:'%s'})\r\n"
 				+ "CREATE (r)-[:EGRESS]->(rEx)\r\n"
@@ -355,7 +427,7 @@ public class GraphCreator {
 				+ "],\r\n"
 				+ "'',{co:co, ag:ag, r:r})\r\n"
 				+ "YIELD value\r\n"
-				+ "RETURN value;";
+				+ "RETURN value;"; */
 		ipRoutes.forEach(e -> {
 			JsonObject ipRoute = (JsonObject) e;
 	    	String itfName = ipRoute.getString("interface");
@@ -365,7 +437,7 @@ public class GraphCreator {
 		    			ipRoute.getString("via"),
 		    			ipRoute.getString("type"),
 		    			ipRoute.getString("host"),
-		    			ipRoute.getString("interface"));
+		    			itfName);
 		    	output.add(result);
 	    	} else {
 	    		String result = String.format(qItf, 
@@ -373,8 +445,7 @@ public class GraphCreator {
 		    			ipRoute.getString("via"),
 		    			ipRoute.getString("type"),
 		    			ipRoute.getString("host"),
-		    			ipRoute.getString("interface"),
-		    			ipRoute.getString("interface"));
+		    			itfName);
 		    	output.add(result);
 	    	}
 	    });

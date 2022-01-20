@@ -13,11 +13,12 @@ public class Metadata {
 	
 	public enum BgpStatusEnum {
 		up("up"),
-		down("down");
+		down("down"),
+		undefined("undefined");
 		private String value;
 		private BgpStatusEnum(String value) { this.value = value; }
 		public String getValue() { return this.value; }
-}
+	}
 
 	@JsonProperty("HOSTNAME")
 	private String hostname;
