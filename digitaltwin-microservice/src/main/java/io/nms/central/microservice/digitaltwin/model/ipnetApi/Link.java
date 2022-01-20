@@ -9,6 +9,7 @@ import io.vertx.core.json.JsonObject;
 @DataObject(generateConverter = true)
 public class Link {
 	
+	private String name;
 	private String srcDevice;
     private String srcInterface;
     private String destDevice;
@@ -16,7 +17,13 @@ public class Link {
 	
 	/*-----------------------------------------------*/
 	
-	public String getSrcDevice() {
+    public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+    public String getSrcDevice() {
 		return srcDevice;
 	}
 	public void setSrcDevice(String srcDevice) {

@@ -1,13 +1,13 @@
 package io.nms.central.microservice.digitaltwin;
 
 import java.util.List;
-import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
+
 import io.nms.central.microservice.digitaltwin.model.dt.CreationReport;
-import io.nms.central.microservice.digitaltwin.model.dt.DtQuery;
-import io.nms.central.microservice.digitaltwin.model.dt.DtQueryResult;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
+import io.nms.central.microservice.digitaltwin.model.graph.NetworkState;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
 import io.vertx.codegen.annotations.Fluent;
@@ -83,7 +83,11 @@ public interface DigitalTwinService {
 	@Fluent	
 	DigitalTwinService viewGetDevice(String viewId, String deviceName, Handler<AsyncResult<Device>> resultHandler);
 	@Fluent	
+	DigitalTwinService viewCreateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
+	@Fluent	
 	DigitalTwinService viewUpdateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
+	@Fluent	
+	DigitalTwinService viewDeleteDevice(String viewId, String deviceName, Handler<AsyncResult<Void>> resultHandler);
 	
 	// view interface
 	@Fluent	
@@ -91,7 +95,17 @@ public interface DigitalTwinService {
 	@Fluent	
 	DigitalTwinService viewGetInterface(String viewId, String deviceName, String itfName, Handler<AsyncResult<NetInterface>> resultHandler);
 	@Fluent	
+	DigitalTwinService viewCreateInterface(String viewId, String deviceName, String itfName, NetInterface netInterface, Handler<AsyncResult<Void>> resultHandler);
+	@Fluent	
 	DigitalTwinService viewUpdateInterface(String viewId, String deviceName, String itfName, NetInterface netInterface, Handler<AsyncResult<Void>> resultHandler);
+	@Fluent
+	DigitalTwinService viewDeleteInterface(String viewId, String deviceName, String itfName, Handler<AsyncResult<Void>> resultHandler);
+	
+	// view link
+	@Fluent	
+	DigitalTwinService viewCreateLink(String viewId, String linkName, Link link, Handler<AsyncResult<Void>> resultHandler);
+	@Fluent	
+	DigitalTwinService viewDeleteLink(String viewId, String linkName, Handler<AsyncResult<Void>> resultHandler);
 	
 	// view bgp
 	@Fluent	

@@ -156,14 +156,15 @@ public class GraphCreator {
 	private void processLinks(JsonArray links) {
 		String q = "T9@MATCH (sR:Host {name:'%s'})-[:CONTAINS]->(src:Ltp{name:'%s'}) "
 				+ "MATCH (tR:Host {name:'%s'})-[:CONTAINS]->(dst:Ltp{name:'%s'}) "
-				+ "CREATE (src)-[:LINKED]->(dst);";
+				+ "CREATE (src)-[:LINKED {name: '%s'}]->(dst);";
 		links.forEach(e -> {
 			JsonObject link = (JsonObject) e;
 	    	String result = String.format(q, 
-	    			link.getString("srcHost"), 
+	    			link.getString("srcHost"),
 	    			link.getString("srcInterface"),
 	    			link.getString("destHost"),
-	    			link.getString("destInterface"));
+	    			link.getString("destInterface"),
+	    			link.getString("name"));
 	    	output.add(result);
 	    });
 	}

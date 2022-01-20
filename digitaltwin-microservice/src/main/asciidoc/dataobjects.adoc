@@ -209,6 +209,7 @@
 ^|Name | Type ^| Description
 |[[destDevice]]`@destDevice`|`String`|-
 |[[destInterface]]`@destInterface`|`String`|-
+|[[name]]`@name`|`String`|-
 |[[srcDevice]]`@srcDevice`|`String`|-
 |[[srcInterface]]`@srcInterface`|`String`|-
 |===
@@ -255,7 +256,7 @@
 |[[index]]`@index`|`String`|-
 |[[ipAddr]]`@ipAddr`|`String`|-
 |[[macAddr]]`@macAddr`|`String`|-
-|[[mode]]`@mode`|`String`|-
+|[[mode]]`@mode`|`link:enums.html#VlanMode[VlanMode]`|-
 |[[mtu]]`@mtu`|`String`|-
 |[[name]]`@name`|`String`|-
 |[[speed]]`@speed`|`String`|-

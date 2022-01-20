@@ -59,6 +59,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		List<String> constraints = new ArrayList<String>();
 		// constraints.add(CypherQuery.CLEAR_DB);
 		constraints.add(CypherQuery.Constraints.UNIQUE_HOST);
+		constraints.add(CypherQuery.Constraints.UNIQUE_LINK);
 		bulkExecute(MAIN_DB, constraints, res -> {
 			if (res.succeeded()) {
 				logger.info("Neo4j DB initialized");
@@ -205,8 +206,13 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		return this;
 	}
 	@Override
-	public DigitalTwinService viewUpdateDevice(String viewId, String deviceName, Device device, 
-			Handler<AsyncResult<Void>> resultHandler) {
+	public DigitalTwinService viewCreateDevice(String viewId, String deviceName, 
+			Device device, Handler<AsyncResult<Void>> resultHandler) {
+		return this;
+	}
+	@Override
+	public DigitalTwinService viewUpdateDevice(String viewId, String deviceName, 
+			Device device, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject params = new JsonObject()
 				.put("deviceName", deviceName)
 				.put("hostname", device.getHostname())
@@ -226,6 +232,12 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		return this;
 	}
 	@Override
+	public DigitalTwinService viewDeleteDevice(String viewId, String deviceName, 
+			Handler<AsyncResult<Void>> resultHandler) {
+		return this;
+	}
+
+	@Override
 	public DigitalTwinService viewGetDeviceInterfaces(String viewId, String deviceName,
 			Handler<AsyncResult<List<NetInterface>>> resultHandler) {
 		getDeviceInterfaces(viewId, deviceName, resultHandler);
@@ -238,6 +250,11 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		return this;
 	}
 	@Override
+	public DigitalTwinService viewCreateInterface(String viewId, String deviceName, String itfName, 
+			NetInterface netInterface, Handler<AsyncResult<Void>> resultHandler) {
+		return this;
+	}
+	@Override
 	public DigitalTwinService viewUpdateInterface(String viewId, String deviceName, String itfName,
 			NetInterface netItf, Handler<AsyncResult<Void>> resultHandler) {
 		String updateQuery = CypherQuery.Api.UPDATE_INTERFACE_NOIP;
@@ -245,7 +262,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				.put("deviceName", deviceName).put("itfName", itfName)
 				.put("adminStatus", netItf.getAdminStatus().getValue()).put("index", netItf.getIndex())
 				.put("type", netItf.getType().getValue()).put("speed", netItf.getSpeed())
-				.put("mtu", netItf.getMtu()).put("mode", netItf.getMode())
+				.put("mtu", netItf.getMtu()).put("mode", netItf.getMode().getValue())
 				.put("vlan", netItf.getVlan()).put("macAddr", netItf.getMacAddr());
 		if (netItf.getIpAddr() != null) {
 			logger.info("Update interface includes IP config");
@@ -265,6 +282,23 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		});
 		return this;
 	}
+	@Override
+	public DigitalTwinService viewDeleteInterface(String viewId, String deviceName, 
+			String itfName, Handler<AsyncResult<Void>> resultHandler) {
+		return this;
+	}
+	
+	@Override
+	public DigitalTwinService viewCreateLink(String viewId, String linkName, 
+			Link link, Handler<AsyncResult<Void>> resultHandler) {
+		return this;
+	}
+	@Override
+	public DigitalTwinService viewDeleteLink(String viewId, String linkName, 
+			Handler<AsyncResult<Void>> resultHandler) {
+		return this;
+	}
+
 	@Override
 	public DigitalTwinService viewGetDeviceBgps(String viewId, String deviceName,
 			Handler<AsyncResult<List<Bgp>>> resultHandler) {

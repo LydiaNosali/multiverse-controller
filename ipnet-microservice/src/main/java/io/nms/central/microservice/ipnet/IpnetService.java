@@ -5,6 +5,7 @@ import java.util.List;
 import io.nms.central.microservice.digitaltwin.model.dt.VerificationReport;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
 import io.nms.central.microservice.ipnet.model.ApplyConfigResult;
@@ -46,12 +47,18 @@ public interface IpnetService {
 	void runningGetNetwork(Handler<AsyncResult<Network>> resultHandler);
 	void runningGetDeviceInterfaces(String deviceName, Handler<AsyncResult<List<NetInterface>>> resultHandler);
 	void runningGetDeviceBgps(String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
-	
+
 	void configGetNetwork(String viewId, Handler<AsyncResult<Network>> resultHandler);
+	void configCreateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
 	void configUpdateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
+	void configDeleteDevice(String viewId, String deviceName, Handler<AsyncResult<Void>> resultHandler);
 	void configGetDeviceInterfaces(String viewId, String deviceName, Handler<AsyncResult<List<NetInterface>>> resultHandler);
+	void configCreateInterface(String viewId, String deviceName, String itfName, NetInterface netItf, Handler<AsyncResult<Void>> resultHandler);
 	void configUpdateInterface(String viewId, String deviceName, String itfName, NetInterface netItf, Handler<AsyncResult<Void>> resultHandler);
+	void configDeleteInterface(String viewId, String deviceName, String itfName, Handler<AsyncResult<Void>> resultHandler);
 	void configGetDeviceBgps(String viewId, String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
+	void configCreateLink(String viewId, String linkName, Link link, Handler<AsyncResult<Void>> resultHandler);
+	void configDeleteLink(String viewId, String linkName, Handler<AsyncResult<Void>> resultHandler);
 	void configCreateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	void configUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	void configDeleteBgp(String viewId, String deviceName, String itfAddr, Handler<AsyncResult<Void>> resultHandler);
