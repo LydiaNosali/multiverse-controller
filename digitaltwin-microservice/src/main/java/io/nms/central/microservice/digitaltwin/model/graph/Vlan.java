@@ -11,9 +11,10 @@ import io.vertx.core.json.JsonObject;
 @DataObject(generateConverter = true)
 public class Vlan {
 	
-	public enum VlanModeEnum {
+	public static enum VlanModeEnum {
 		tagged("tagged"),
-		untagged("untagged");
+		untagged("untagged"),
+		undefined("undefined");
 		private String value;
 		private VlanModeEnum(String value) { this.value = value; }
 		public String getValue() { return this.value; }

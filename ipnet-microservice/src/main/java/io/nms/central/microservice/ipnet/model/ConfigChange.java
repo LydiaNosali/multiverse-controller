@@ -13,7 +13,8 @@ public class ConfigChange {
 	public enum ResourceTypeEnum {
 		DEVICE("DEVICE"), INTERFACE("INTERFACE"), 
 		BGP("BGP"), IPROUTE("IPROUTE"),
-		ACLTABLE("ACLTABLE"), ACLRULE("ACLRULE");
+		ACLTABLE("ACLTABLE"), ACLRULE("ACLRULE"),
+		LINK("LINK");
         private String value;
         private ResourceTypeEnum(String value) {this.value = value;}
         public String getValue() {return this.value;}

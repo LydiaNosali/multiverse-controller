@@ -91,7 +91,36 @@ public class IpnetServiceImpl implements IpnetService {
 	@Override
 	public void configCreateDevice(String viewId, String deviceName, Device device, 
 			Handler<AsyncResult<Void>> resultHandler) {
-		// ...
+		getOrCreateConfigProfile(viewId, cp -> {
+			if (cp.succeeded()) {
+				ConfigChange cc = new ConfigChange();
+				cc.setType(ResourceTypeEnum.DEVICE);
+				cc.setAction(ActionEnum.CREATE);
+				cc.setLocation(getConfigDeviceURL(deviceName));
+
+				digitalTwinSvcProxy().viewCreateDevice(viewId, deviceName, device, 
+						created -> {
+					if (created.succeeded()) {
+						cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
+						saveConfigChange(viewId, cc, done -> {
+							if (done.succeeded()) {
+								resultHandler.handle(Future.succeededFuture());
+							} else {
+								resultHandler.handle(Future.failedFuture(done.cause()));
+								// undo creation
+								digitalTwinSvcProxy()
+										.viewDeleteDevice(viewId, deviceName, 
+										ignore -> {});
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(created.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(cp.cause()));
+			}
+		});
 	}
 	@Override
 	public void configUpdateDevice(String viewId, String deviceName, Device device, 
@@ -109,7 +138,7 @@ public class IpnetServiceImpl implements IpnetService {
 						saveResourceBkp(viewId, cc.getId(), deviceBkp, saved -> {
 							if (saved.succeeded()) {
 								digitalTwinSvcProxy()
-										.viewUpdateDevice(viewId, deviceName, device, updated -> {
+										.viewCreateDevice(viewId, deviceName, device, updated -> {
 									if (updated.succeeded()) {
 										cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
 										saveConfigChange(viewId, cc, done -> {
@@ -119,7 +148,7 @@ public class IpnetServiceImpl implements IpnetService {
 												resultHandler.handle(Future.failedFuture(done.cause()));
 												// undo update, delete bkp
 												digitalTwinSvcProxy()
-														.viewUpdateDevice(viewId, deviceName, deviceBkp, 
+														.viewCreateDevice(viewId, deviceName, deviceBkp, 
 														undo -> {
 													deleteResourceBkp(cc.getId(), ignore -> {});
 												});
@@ -147,7 +176,54 @@ public class IpnetServiceImpl implements IpnetService {
 	@Override
 	public void configDeleteDevice(String viewId, String deviceName, 
 			Handler<AsyncResult<Void>> resultHandler) {
-		// ...
+		getOrCreateConfigProfile(viewId, cp -> {
+			if (cp.succeeded()) {
+				ConfigChange cc = new ConfigChange();
+				cc.setType(ResourceTypeEnum.DEVICE);
+				cc.setAction(ActionEnum.DELETE);
+				cc.setLocation(getConfigDeviceURL(deviceName));
+
+				digitalTwinSvcProxy().viewGetDevice(viewId, deviceName, res -> {
+					if (res.succeeded()) {
+						Device deviceBkp = res.result();
+						// TODO: backup links
+						saveResourceBkp(viewId, cc.getId(), deviceBkp, saved -> {
+							if (saved.succeeded()) {
+								digitalTwinSvcProxy()
+										.viewDeleteDevice(viewId, deviceName, deleted -> {
+									if (deleted.succeeded()) {
+										cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
+										saveConfigChange(viewId, cc, done -> {
+											if (done.succeeded()) {
+												resultHandler.handle(Future.succeededFuture());
+											} else {
+												resultHandler.handle(Future.failedFuture(done.cause()));
+												// undo update, delete bkp
+												digitalTwinSvcProxy()
+														.viewCreateDevice(viewId, deviceName, deviceBkp,
+														undo -> {
+													deleteResourceBkp(cc.getId(), ignore -> {});
+												});
+											}
+										});
+									} else {
+										resultHandler.handle(Future.failedFuture(deleted.cause()));
+										// delete bkp
+										deleteResourceBkp(cc.getId(), ignore -> {});
+									}
+								});
+							} else {
+								resultHandler.handle(Future.failedFuture(saved.cause()));
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(res.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(cp.cause()));
+			}
+		});
 	}
 	
 	/* View API: NetInterface */
@@ -155,6 +231,40 @@ public class IpnetServiceImpl implements IpnetService {
 	public void configGetDeviceInterfaces(String viewId, String deviceName, 
 			Handler<AsyncResult<List<NetInterface>>> resultHandler) {
 		digitalTwinSvcProxy().viewGetDeviceInterfaces(viewId, deviceName, resultHandler);
+	}
+	@Override
+	public void configCreateInterface(String viewId, String deviceName, String itfName, 
+			NetInterface netItf, Handler<AsyncResult<Void>> resultHandler) {
+		getOrCreateConfigProfile(viewId, cp -> {
+			if (cp.succeeded()) {
+				ConfigChange cc = new ConfigChange();
+				cc.setType(ResourceTypeEnum.INTERFACE);
+				cc.setAction(ActionEnum.CREATE);
+				cc.setLocation(getConfigInterfaceURL(deviceName, itfName));
+
+				digitalTwinSvcProxy().viewCreateInterface(viewId, deviceName, itfName, netItf, 
+						created -> {
+					if (created.succeeded()) {
+						cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
+						saveConfigChange(viewId, cc, done -> {
+							if (done.succeeded()) {
+								resultHandler.handle(Future.succeededFuture());
+							} else {
+								resultHandler.handle(Future.failedFuture(done.cause()));
+								// undo creation
+								digitalTwinSvcProxy()
+										.viewDeleteInterface(viewId, deviceName, itfName,
+										ignore -> {});
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(created.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(cp.cause()));
+			}
+		});
 	}
 	@Override
 	public void configUpdateInterface(String viewId, String deviceName, String itfName, 
@@ -172,7 +282,7 @@ public class IpnetServiceImpl implements IpnetService {
 						saveResourceBkp(viewId, cc.getId(), netItfBkp, saved -> {
 							if (saved.succeeded()) {
 								digitalTwinSvcProxy()
-										.viewUpdateInterface(viewId, deviceName, itfName, netItf, updated -> {
+										.viewCreateInterface(viewId, deviceName, itfName, netItf, updated -> {
 									if (updated.succeeded()) {
 										cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
 										saveConfigChange(viewId, cc, done -> {
@@ -182,7 +292,7 @@ public class IpnetServiceImpl implements IpnetService {
 												resultHandler.handle(Future.failedFuture(done.cause()));
 												// undo update, delete bkp
 												digitalTwinSvcProxy()
-														.viewUpdateInterface(viewId, deviceName, itfName, netItfBkp, 
+														.viewCreateInterface(viewId, deviceName, itfName, netItfBkp, 
 														undo -> {
 													deleteResourceBkp(cc.getId(), ignore -> {});
 												});
@@ -208,21 +318,93 @@ public class IpnetServiceImpl implements IpnetService {
 		});
 	}
 	@Override
-	public void configCreateInterface(String viewId, String deviceName, String itfName, 
-			NetInterface netItf, Handler<AsyncResult<Void>> resultHandler) {
-		// ...
-	}
-	@Override
 	public void configDeleteInterface(String viewId, String deviceName, String itfName, 
 			Handler<AsyncResult<Void>> resultHandler) {
-		// ...
+		getOrCreateConfigProfile(viewId, cp -> {
+			if (cp.succeeded()) {
+				ConfigChange cc = new ConfigChange();
+				cc.setType(ResourceTypeEnum.INTERFACE);
+				cc.setAction(ActionEnum.DELETE);
+				cc.setLocation(getConfigInterfaceURL(deviceName, itfName));
+
+				digitalTwinSvcProxy().viewGetInterface(viewId, deviceName, itfName, res -> {
+					if (res.succeeded()) {
+						NetInterface netItfBkp = res.result();
+						// TODO: backup bgp
+						saveResourceBkp(viewId, cc.getId(), netItfBkp, saved -> {
+							if (saved.succeeded()) {
+								digitalTwinSvcProxy()
+										.viewDeleteInterface(viewId, deviceName, itfName, deleted -> {
+									if (deleted.succeeded()) {
+										cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
+										saveConfigChange(viewId, cc, done -> {
+											if (done.succeeded()) {
+												resultHandler.handle(Future.succeededFuture());
+											} else {
+												resultHandler.handle(Future.failedFuture(done.cause()));
+												// undo update, delete bkp
+												digitalTwinSvcProxy()
+														.viewCreateInterface(viewId, deviceName, itfName, netItfBkp,
+														undo -> {
+													deleteResourceBkp(cc.getId(), ignore -> {});
+												});
+											}
+										});
+									} else {
+										resultHandler.handle(Future.failedFuture(deleted.cause()));
+										// delete bkp
+										deleteResourceBkp(cc.getId(), ignore -> {});
+									}
+								});
+							} else {
+								resultHandler.handle(Future.failedFuture(saved.cause()));
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(res.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(cp.cause()));
+			}
+		}); 
 	}
 	
 	/* View API: Link */
 	@Override
 	public void configCreateLink(String viewId, String linkName, Link link, 
 			Handler<AsyncResult<Void>> resultHandler) {
-		// ...
+		/* getOrCreateConfigProfile(viewId, cp -> {
+			if (cp.succeeded()) {
+				ConfigChange cc = new ConfigChange();
+				cc.setType(ResourceTypeEnum.LINK);
+				cc.setAction(ActionEnum.CREATE);
+				cc.setLocation(getConfigLinkURL(deviceName, itfName));
+
+				digitalTwinSvcProxy().viewCreateInterface(viewId, deviceName, itfName, netItf, 
+						created -> {
+					if (created.succeeded()) {
+						cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
+						saveConfigChange(viewId, cc, done -> {
+							if (done.succeeded()) {
+								resultHandler.handle(Future.succeededFuture());
+							} else {
+								resultHandler.handle(Future.failedFuture(done.cause()));
+								// undo creation
+								digitalTwinSvcProxy()
+										.viewDeleteInterface(viewId, deviceName, itfName,
+										ignore -> {});
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(created.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(cp.cause()));
+			}
+		}); */
+		resultHandler.handle(Future.failedFuture("not implemented"));
 	}
 	@Override
 	public void configDeleteLink(String viewId, String linkName, 
@@ -512,7 +694,7 @@ public class IpnetServiceImpl implements IpnetService {
 				Device deviceBkp = res.result();
 				if (cc.getAction().equals(ActionEnum.UPDATE)) {
 					digitalTwinSvcProxy()
-							.viewUpdateDevice(viewId, deviceBkp.getName(), deviceBkp, done -> {
+							.viewCreateDevice(viewId, deviceBkp.getName(), deviceBkp, done -> {
 						if (done.succeeded()) {
 							resultHandler.handle(Future.succeededFuture(cc));
 						} else {
@@ -536,7 +718,7 @@ public class IpnetServiceImpl implements IpnetService {
 				String[] urlParams = cc.getLocation().split("/");
 				if (cc.getAction().equals(ActionEnum.UPDATE)) {
 					digitalTwinSvcProxy()
-							.viewUpdateInterface(viewId, urlParams[5], urlParams[7], netItfBkp, done -> {
+							.viewCreateInterface(viewId, urlParams[5], urlParams[7], netItfBkp, done -> {
 						if (done.succeeded()) {
 							resultHandler.handle(Future.succeededFuture(cc));
 						} else {

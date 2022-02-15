@@ -65,7 +65,6 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		List<String> constraints = new ArrayList<String>();
 		// constraints.add(CypherQuery.CLEAR_DB);
 		constraints.add(CypherQuery.Constraints.UNIQUE_HOST);
-		constraints.add(CypherQuery.Constraints.UNIQUE_LINK);
 		bulkExecute(MAIN_DB, constraints, res -> {
 			if (res.succeeded()) {
 				logger.info("Neo4j DB initialized");
@@ -280,9 +279,25 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService viewCreateDevice(String viewId, String deviceName, 
 			Device device, Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName)
+				.put("hostname", device.getHostname())
+				.put("bgpStatus", device.getBgpStatus())
+				.put("bgpAsn", device.getBgpAsn())
+				.put("type", device.getType().getValue())
+				.put("platform", device.getPlatform())
+				.put("mac", device.getMac())
+				.put("hwsku", device.getHwsku());
+		execute(viewId, CypherQuery.Api.CREATE_HOST, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 		return this;
 	}
-	@Override
+	/* @Override
 	public DigitalTwinService viewUpdateDevice(String viewId, String deviceName, 
 			Device device, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject params = new JsonObject()
@@ -302,10 +317,19 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 			}
 		});
 		return this;
-	}
+	} */
 	@Override
 	public DigitalTwinService viewDeleteDevice(String viewId, String deviceName, 
 			Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName);
+		execute(viewId, CypherQuery.Api.DELETE_HOST, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 		return this;
 	}
 
@@ -323,10 +347,33 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	}
 	@Override
 	public DigitalTwinService viewCreateInterface(String viewId, String deviceName, String itfName, 
-			NetInterface netInterface, Handler<AsyncResult<Void>> resultHandler) {
+			NetInterface netItf, Handler<AsyncResult<Void>> resultHandler) {
+		String updateQuery = CypherQuery.Api.CREATE_INTERFACE_NOIP;
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName).put("itfName", itfName)
+				.put("adminStatus", netItf.getAdminStatus().getValue()).put("index", netItf.getIndex())
+				.put("type", netItf.getType().getValue()).put("speed", netItf.getSpeed())
+				.put("mtu", netItf.getMtu()).put("mode", netItf.getMode().getValue())
+				.put("vlan", netItf.getVlan()).put("macAddr", netItf.getMacAddr());
+		if (netItf.getIpAddr() != null) {
+			logger.info("Create interface includes IP config");
+			String[] cird = netItf.getIpAddr().split("/");
+			String subnetAddr = Functional.parseSubnetAddress(netItf.getIpAddr());
+			params
+					.put("ipAddr", cird[0]).put("netMask", "/"+cird[1])
+					.put("netAddr", subnetAddr).put("svi", netItf.getSvi());
+			updateQuery = CypherQuery.Api.CREATE_INTERFACE_IP;
+		}
+		execute(viewId, updateQuery, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 		return this;
 	}
-	@Override
+	/* @Override
 	public DigitalTwinService viewUpdateInterface(String viewId, String deviceName, String itfName,
 			NetInterface netItf, Handler<AsyncResult<Void>> resultHandler) {
 		String updateQuery = CypherQuery.Api.UPDATE_INTERFACE_NOIP;
@@ -353,21 +400,59 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 			}
 		});
 		return this;
-	}
+	} */
 	@Override
 	public DigitalTwinService viewDeleteInterface(String viewId, String deviceName, 
 			String itfName, Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject params = new JsonObject()
+				.put("deviceName", deviceName)
+				.put("itfName", itfName);
+		execute(viewId, CypherQuery.Api.DELETE_INTERFACE, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 		return this;
 	}
 	
 	@Override
-	public DigitalTwinService viewCreateLink(String viewId, String linkName, 
+	public DigitalTwinService viewCreateLink(String viewId, 
 			Link link, Handler<AsyncResult<Void>> resultHandler) {
+		String linkName = link.getSrcDevice()+"."+link.getSrcInterface()
+				+"-"+link.getDestDevice()+"."+link.getDestInterface();
+		JsonObject params = new JsonObject()
+				.put("srcDevice", link.getSrcDevice())
+				.put("srcInterface", link.getSrcInterface())
+				.put("destDevice", link.getDestDevice())
+				.put("destInterface", link.getDestInterface())
+				.put("linkName", linkName);
+		execute(viewId, CypherQuery.Api.CREATE_LINK, params, res -> {
+			if (res.succeeded()) {
+				if (res.result().getInteger("propertiesSet") > 0) {
+					resultHandler.handle(Future.succeededFuture());
+				} else {
+					resultHandler.handle(Future.failedFuture("CONFLICT"));
+				}
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 		return this;
 	}
 	@Override
 	public DigitalTwinService viewDeleteLink(String viewId, String linkName, 
 			Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject params = new JsonObject()
+				.put("linkName", linkName);
+		execute(viewId, CypherQuery.Api.DELETE_LINK, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 		return this;
 	}
 

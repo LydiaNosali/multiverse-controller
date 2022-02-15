@@ -133,7 +133,7 @@ public class GraphCreator {
 	    			ctp.getString("interface"), 
 	    			ctp.getString("macAddr"), 
 	    			ctp.getString("vlan"),
-	    			ctp.getString("mode", "-"));
+	    			ctp.getString("mode"));
 	    	output.add(result);
 	    });
 	}
@@ -164,10 +164,10 @@ public class GraphCreator {
 				+ "WITH DISTINCT sR,tR,src,dst\r\n"
 				+ "CALL apoc.do.case([\r\n"
 				+ "(sR.type = 'LeafRouter' AND tR.type = 'LeafRouter'),\r\n"
-				+ " 'CREATE (src)-[:LINKED_VLT {name: '%s'}]->(dst)',\r\n"
+				+ "\"CREATE (src)-[r:LINKED_VLT {name: '%s'}]->(dst)\",\r\n"
 				+ "(sR.type = 'Server' OR tR.type ='Server'),\r\n"
-				+ " 'CREATE (src)-[:LINKED_L2 {name: '%s'}]->(dst)'\r\n"
-				+ "],'CREATE (src)-[:LINKED_L3 {name: '%s'}]->(dst)',{src:src, dst:dst})\r\n"
+				+ "\"CREATE (src)-[r:LINKED_L2 {name: '%s'}]->(dst)\"],\r\n"
+				+ "\"CREATE (src)-[r:LINKED_L3 {name: '%s'}]->(dst)\", {src:src, dst:dst})\r\n"
 				+ "YIELD value\r\n"
 				+ "RETURN value;";
 		links.forEach(e -> {
@@ -177,6 +177,8 @@ public class GraphCreator {
 	    			link.getString("srcInterface"),
 	    			link.getString("destHost"),
 	    			link.getString("destInterface"),
+	    			link.getString("name"),
+	    			link.getString("name"),
 	    			link.getString("name"));
 	    	output.add(result);
 	    });

@@ -2,6 +2,8 @@ package io.nms.central.microservice.digitaltwin.model.ipnetApi;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import io.nms.central.microservice.common.functional.JsonUtils;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.core.json.JsonObject;
@@ -29,13 +31,14 @@ public class NetInterface extends Configurable {
 	
 	public enum VlanMode {
 		tagged("tagged"),
-		untagged("untagged");
+		untagged("untagged"),
+		undefined("undefined");
 		private String value;
 		private VlanMode(String value) { this.value = value; }
 		public String getValue() { return this.value; }
 	};
 
-	// In LTtp
+	// In LTP
 	private String name;
 	private InterfaceType type;
 	private InterfaceStatus adminStatus;
@@ -49,10 +52,10 @@ public class NetInterface extends Configurable {
 	private VlanMode mode;
 	
 	// In Ip4Ctp
-	// @JsonInclude(Include.NON_NULL)
+	@JsonInclude(JsonInclude.Include.ALWAYS)
 	private String ipAddr; 		// CIDR
 	
-	// @JsonInclude(Include.NON_NULL)
+	@JsonInclude(JsonInclude.Include.ALWAYS)
 	private String svi;
 
 	public NetInterface() {}

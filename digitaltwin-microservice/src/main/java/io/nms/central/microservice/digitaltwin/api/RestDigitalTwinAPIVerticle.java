@@ -46,6 +46,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	private static final String API_RUNNING_BGPS = "/running/device/:deviceName/bgps";
 	private static final String API_RUNNING_ONE_BGP = "/running/device/:deviceName/bgp/:itfAddr";
 	
+	private static final String API_VIEW = "/view";
 	private static final String API_ONE_VIEW = "/view/:viewId";
 	private static final String API_VIEW_VERIFY = "/view/:viewId/verify";
 	private static final String API_VIEW_CONFIG = "/view/:viewId/config";
@@ -54,11 +55,12 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	private static final String API_VIEW_DEVICE_CONFIG = "/view/:viewId/device/:deviceName/config";
 	private static final String API_VIEW_INTERFACES = "/view/:viewId/device/:deviceName/interfaces";
 	private static final String API_VIEW_ONE_INTERFACE = "/view/:viewId/device/:deviceName/interface/:itfName";
+	private static final String API_VIEW_LINK = "/view/:viewId/link";
 	private static final String API_VIEW_ONE_LINK = "/view/:viewId/link/:linkName";
 	private static final String API_VIEW_BGPS = "/view/:viewId/device/:deviceName/bgps";
 	private static final String API_VIEW_ONE_BGP = "/view/:viewId/device/:deviceName/bgp/:itfAddr";
 	
-	private static final String API_GRAPHQL = "/mqe";
+	private static final String API_GRAPHQL = "/nqe";
 
 	private DigitalTwinService service;
 	private NetworkQueryEngine nqe;
@@ -94,28 +96,24 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		router.get(API_RUNNING_DEVICE_CONFIG).handler(this::checkAdminRole).handler(this::apiRunningGetDeviceConfig);
 		
 		/* Operations on view network */
-		router.post(API_ONE_VIEW).handler(this::checkAdminRole).handler(this::apiCreateView);
+		router.post(API_VIEW).handler(this::checkAdminRole).handler(this::apiCreateView);
 		router.delete(API_ONE_VIEW).handler(this::checkAdminRole).handler(this::apiDeleteView);
 		router.get(API_VIEW_VERIFY).handler(this::checkAdminRole).handler(this::apiViewVerify);
 		router.get(API_VIEW_CONFIG).handler(this::checkAdminRole).handler(this::apiViewGenerateNetworkConfig);
 		router.get(API_VIEW_NETWORK).handler(this::checkAdminRole).handler(this::apiViewGetNetwork);
 		router.get(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewGetDevice);
-		router.post(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewCreateDevice);
-		router.put(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewUpdateDevice);
+		router.put(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewCreateDevice);
 		router.delete(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewDeleteDevice);
-		
 		router.get(API_VIEW_INTERFACES).handler(this::checkAdminRole).handler(this::apiViewGetDeviceInterfaces);
 		router.get(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewGetInterface);
-		router.put(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewUpdateInterface);
-		router.post(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewCreateInterface);
+		router.put(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewCreateInterface);
 		router.delete(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewDeleteInterface);
 		
-		router.post(API_VIEW_ONE_LINK).handler(this::checkAdminRole).handler(this::apiViewCreateLink);
+		router.post(API_VIEW_LINK).handler(this::checkAdminRole).handler(this::apiViewCreateLink);
 		router.delete(API_VIEW_ONE_LINK).handler(this::checkAdminRole).handler(this::apiViewDeleteLink);
 
 		router.get(API_VIEW_BGPS).handler(this::checkAdminRole).handler(this::apiViewGetDeviceBgps);
 		router.get(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewGetBgp);
-		// router.post(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewCreateBgp);
 		router.put(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewUpdateBgp);
 		router.delete(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewDeleteBgp);
 		
@@ -190,7 +188,9 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	}
 	// view
 	private void apiCreateView(RoutingContext context) {
-		String viewId = context.request().getParam("viewId");
+		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
+		String viewId = principal.getString("username");
+		// String viewId = context.request().getParam("viewId");
 		service.createView(viewId, createResultHandler(context));
 	}
 	private void apiDeleteView(RoutingContext context) {
@@ -237,18 +237,6 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 			badRequest(context, e);
 		}
 	}
-	private void apiViewUpdateDevice(RoutingContext context) {
-		String viewId = context.request().getParam("viewId");
-		String deviceName = context.request().getParam("deviceName");
-		try {
-			final Device device 
-					= JsonUtils.json2PojoE(context.getBodyAsString(), Device.class);
-			service.viewUpdateDevice(viewId, deviceName, device, updateResultHandler(context));
-		} catch (Exception e) {
-			logger.info("API input argument exception: " + e.getMessage());
-			badRequest(context, e);
-		}
-	}
 	private void apiViewDeleteDevice(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
@@ -280,19 +268,6 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 			badRequest(context, e);
 		}
 	}
-	private void apiViewUpdateInterface(RoutingContext context) {
-		String viewId = context.request().getParam("viewId");
-		String deviceName = context.request().getParam("deviceName");
-		String itfName = context.request().getParam("itfName");
-		try {
-			final NetInterface netItf
-					= JsonUtils.json2PojoE(context.getBodyAsString(), NetInterface.class);
-			service.viewUpdateInterface(viewId, deviceName, itfName, netItf, updateResultHandler(context));
-		} catch (Exception e) {
-			logger.info("API input argument exception: " + e.getMessage());
-			badRequest(context, e);
-		}
-	}
 	private void apiViewDeleteInterface(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
@@ -303,11 +278,10 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	// view link
 	private void apiViewCreateLink(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
-		String linkName = context.request().getParam("linkName");
 		try {
 			final Link link
 					= JsonUtils.json2PojoE(context.getBodyAsString(), Link.class);
-			service.viewCreateLink(viewId, linkName, link, createResultHandler(context));
+			service.viewCreateLink(viewId, link, createResultHandler(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
 			badRequest(context, e);
@@ -331,19 +305,6 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		service.viewGetBgp(viewId, deviceName, itfAddr, resultHandlerNonEmpty(context));
 	}
-	/* private void apiViewCreateBgp(RoutingContext context) {
-		String viewId = context.request().getParam("viewId");
-		String deviceName = context.request().getParam("deviceName");
-		String itfAddr = context.request().getParam("itfAddr");
-		try {
-			final Bgp bgp 
-					= JsonUtils.json2PojoE(context.getBodyAsString(), Bgp.class);
-			service.viewCreateBgp(viewId, deviceName, itfAddr, bgp, createResultHandler(context));
-		} catch (Exception e) {
-			logger.info("API input argument exception: " + e.getMessage());
-			badRequest(context, e);
-		}
-	} */
 	private void apiViewUpdateBgp(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");

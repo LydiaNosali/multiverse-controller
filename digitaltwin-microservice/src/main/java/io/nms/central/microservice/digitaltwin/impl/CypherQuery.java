@@ -31,7 +31,6 @@ public class CypherQuery {
 		public static final String UNIQUE_LTP = "";
 		public static final String UNIQUE_ETHERCTP = "";
 		public static final String UNIQUE_IP4CTP = "CREATE CONSTRAINT unique_ip_address IF NOT EXISTS ON (c:Ip4Ctp) ASSERT c.ipAddr IS UNIQUE";
-		public static final String UNIQUE_LINK = "CREATE CONSTRAINT unique_link IF NOT EXISTS ON ()-[l:LINKED]-()  ASSERT l.name IS UNIQUE";
 		public static final String UNIQUE_LINKCONN = "";
 		public static final String UNIQUE_IPCONN = "";
 		public static final String UNIQUE_BGP = "CREATE CONSTRAINT unique_bgp_peer IF NOT EXISTS ON (b:Bgp) ASSERT (b.rAddr, b.lAsn) IS NODE KEY";
@@ -41,7 +40,7 @@ public class CypherQuery {
 	}
 	
 	public static class Api {
-		public static final String CREATE_HOST = "CREATE (h:Host{name:$deviceName}) SET h.hostname=$hostname, h.bgpStatus=$bgpStatus, "
+		public static final String CREATE_HOST = "MERGE (h:Host{name:$deviceName}) SET h.hostname=$hostname, h.bgpStatus=$bgpStatus, "
 				+ "h.bgpAsn=$bgpAsn, h.type=$type, h.platform=$platform, h.mac=$mac, h.hwsku=$hwsku";
 		public static final String CREATE_INTERFACE_IP = "MATCH (h:Host{name:$deviceName})\r\n"
 				+ "MERGE (h)-[:CONTAINS]->(l:Ltp {name: $itfName})-[:CONTAINS]->(e:EtherCtp)-[:CONTAINS]->(c:Ip4Ctp)\r\n"
@@ -52,9 +51,19 @@ public class CypherQuery {
 				+ "MERGE (h)-[:CONTAINS]->(l:Ltp {name: $itfName})-[:CONTAINS]->(e:EtherCtp)\r\n"
 				+ "SET l.adminStatus=$adminStatus, l.index=$index, l.type=$type, l.speed=$speed, l.mtu=$mtu, "
 				+ "e.mode=$mode, e.vlan=$vlan, e.macAddr=$macAddr ";
-		public static final String CREATE_LINK = "MATCH (sR:Host {name:$srcDevice})-[:CONTAINS]->(src:Ltp{name:$srcInterface}) "
-				+ "MATCH (tR:Host {name:$destDevice})-[:CONTAINS]->(dst:Ltp{name:$destInterface}) "
-				+ "CREATE (src)-[:LINKED {name: $linkName}]->(dst);";
+		public static final String CREATE_LINK = "MATCH (sH:Host {name: $srcDevice})-[:CONTAINS]->(src:Ltp{name: $srcInterface})\r\n"
+				+ "WHERE NOT (src)-[:LINKED_L2|LINKED_L3|LINKED_VLT]-()\r\n"
+				+ "MATCH (dH:Host {name: $destDevice})-[:CONTAINS]->(dst:Ltp{name: $destInterface})\r\n"
+				+ "WHERE NOT (dst)-[:LINKED_L2|LINKED_L3|LINKED_VLT]-()\r\n"
+				+ "WITH DISTINCT sH,dH,src,dst\r\n"
+				+ "CALL apoc.do.case([\r\n"
+				+ "(sH.type = 'LeafRouter' AND dH.type = 'LeafRouter'),\r\n"
+				+ "\"CREATE (src)-[r:LINKED_VLT]->(dst) RETURN r\",\r\n"
+				+ "(sH.type = 'Server' OR dH.type ='Server'),\r\n"
+				+ "\"CREATE (src)-[r:LINKED_L2]->(dst) RETURN r\"],\r\n"
+				+ "\"CREATE (src)-[r:LINKED_L3]->(dst) RETURN r\", {src:src, dst:dst})\r\n"
+				+ "YIELD value\r\n"
+				+ "WITH value.r as link SET link.name = $linkName";
 		public static final String CREATE_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})\r\n"
 				+ "MERGE (c)-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "SET b.lAsn=$localAsn, b.lId=$localId, b.rAddr=$remoteAddr, b.rAsn=$remoteAsn, b.rId=$remoteId, "
@@ -110,19 +119,24 @@ public class CypherQuery {
 				+ "SET l.adminStatus=$adminStatus, l.index=$index, l.type=$type, l.speed=$speed, l.mtu=$mtu, "
 				+ "e.mode=$mode, e.vlan=$vlan, e.macAddr=$macAddr "
 				+ "DETACH DELETE c";
-		
-		public static final String DELETE_HOST = "MATCH (h:Host{name:$deviceName}) WITH h\r\n"
+
+		public static final String DELETE_HOST = "MATCH (h:Host{name:$deviceName})\r\n"
+				+ "OPTIONAL MATCH (h)-[:ACL]->(a:Acl)-[:NEXT_RULE*]->(r:AclRule)\r\n"
+				+ "DETACH DELETE a,r \r\n"
+				+ "WITH h \r\n"
 				+ "CALL apoc.path.subgraphAll(h, \r\n"
 				+ "{maxLevel: 4, \r\n"
-				+ "labelFilter:'+Ltp|EtherCtp|Ip4Ctp|Bgp|Acl|AclRule|Route',\r\n"
-				+ "relationshipFilter:'CONTAINS>|HAS_CONFIG>|HAS_ACL>|TO_ROUTE>'\r\n"
+				+ "labelFilter:'+Ltp|EtherCtp|Ip4Ctp|Bgp|Route',\r\n"
+				+ "relationshipFilter:'CONTAINS|HAS_CONFIG|EGRESS|TO_ROUTE'\r\n"
 				+ "}) YIELD nodes, relationships\r\n"
 				+ "UNWIND nodes as x\r\n"
 				+ "DETACH DELETE x";
 		public static final String DELETE_INTERFACE = "MATCH (h:Host{name:$deviceName})-[:CONTAINS]->(l:Ltp{name:$itfName})-[:CONTAINS]->(e:EtherCtp)\r\n"
 				+ "OPTIONAL MATCH (e)-[:CONTAINS]->(c:Ip4Ctp)-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "DETACH DELETE l, e, c, b";
-		public static final String DELETE_LINK = "MATCH ()-[l:LINKED{name:$linkName}]-() DETACH DELETE l";
+		public static final String DELETE_LINK = "MATCH ()-[l:LINKED_VLT|LINKED_L2|LINKED_L3]-() \r\n"
+				+ "WHERE l.name = $linkName\r\n"
+				+ "DELETE l";
 		public static final String DELETE_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "DETACH DELETE b";
 	}

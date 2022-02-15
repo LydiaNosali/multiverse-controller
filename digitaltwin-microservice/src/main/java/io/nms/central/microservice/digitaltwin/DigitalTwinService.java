@@ -98,8 +98,8 @@ public interface DigitalTwinService {
 	DigitalTwinService viewGetDevice(String viewId, String deviceName, Handler<AsyncResult<Device>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewCreateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
-	@Fluent	
-	DigitalTwinService viewUpdateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
+	// @Fluent	
+	// DigitalTwinService viewUpdateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewDeleteDevice(String viewId, String deviceName, Handler<AsyncResult<Void>> resultHandler);
 	
@@ -109,15 +109,15 @@ public interface DigitalTwinService {
 	@Fluent	
 	DigitalTwinService viewGetInterface(String viewId, String deviceName, String itfName, Handler<AsyncResult<NetInterface>> resultHandler);
 	@Fluent	
-	DigitalTwinService viewCreateInterface(String viewId, String deviceName, String itfName, NetInterface netInterface, Handler<AsyncResult<Void>> resultHandler);
-	@Fluent	
-	DigitalTwinService viewUpdateInterface(String viewId, String deviceName, String itfName, NetInterface netInterface, Handler<AsyncResult<Void>> resultHandler);
+	DigitalTwinService viewCreateInterface(String viewId, String deviceName, String itfName, NetInterface netItf, Handler<AsyncResult<Void>> resultHandler);
+	// @Fluent	
+	// DigitalTwinService viewUpdateInterface(String viewId, String deviceName, String itfName, NetInterface netItf, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent
 	DigitalTwinService viewDeleteInterface(String viewId, String deviceName, String itfName, Handler<AsyncResult<Void>> resultHandler);
 	
 	// view link
 	@Fluent	
-	DigitalTwinService viewCreateLink(String viewId, String linkName, Link link, Handler<AsyncResult<Void>> resultHandler);
+	DigitalTwinService viewCreateLink(String viewId, Link link, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewDeleteLink(String viewId, String linkName, Handler<AsyncResult<Void>> resultHandler);
 	

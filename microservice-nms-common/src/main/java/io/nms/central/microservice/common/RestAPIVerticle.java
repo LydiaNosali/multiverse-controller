@@ -219,6 +219,8 @@ public abstract class RestAPIVerticle extends BaseMicroserviceVerticle {
 		} else if (cause.getMessage().toUpperCase().contains("INVALID")) {
 			badRequest(context, cause);
 			// cause.printStackTrace();
+		} else if (cause.getMessage().toUpperCase().contains("NO_CHANGE")) {
+			notChanged(context);
 		} else {
 			internalError(context, cause);
 		}

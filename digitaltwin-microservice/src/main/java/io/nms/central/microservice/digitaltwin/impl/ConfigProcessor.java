@@ -287,10 +287,9 @@ public class ConfigProcessor {
 		    	});
 		    }
 		}
-		Instant end = Instant.now();
-		Duration timeElapsed = Duration.between(start, end);
+		// Instant end = Instant.now();
+		// Duration timeElapsed = Duration.between(start, end);
 		// logger.info("Config processing: " + timeElapsed.getNano() / 1000000 + " ms.");
-
 		return true;
 	}
 	
@@ -324,6 +323,7 @@ public class ConfigProcessor {
 		    	etherCtp.put("interface", itfName);
 		    	etherCtp.put("macAddr", e.getMacAddr());
 		    	etherCtp.put("vlan", "0");
+		    	etherCtp.put("mode", Vlan.VlanModeEnum.undefined);
 		    	etherCtps.add(etherCtp);
 		    	
 		    	// Ip4Ctp
@@ -406,6 +406,7 @@ public class ConfigProcessor {
 		   	etherCtp.put("interface", e.getName());
 		   	etherCtp.put("macAddr", e.getMacAddr());
 	    	etherCtp.put("vlan", "0");
+	    	etherCtp.put("mode", Vlan.VlanModeEnum.undefined);
 	    	etherCtps.add(etherCtp);
 		    	
 		    // Ip4Ctp
@@ -454,6 +455,7 @@ public class ConfigProcessor {
 				JsonObject obj = etherCtps.getJsonObject(i);
 				obj.put("vlan", vid);
 				obj.put("mode", mode);
+				etherCtps.set(i, obj);
 				return;
 	    	}
 		}
