@@ -1,6 +1,5 @@
 package io.nms.central.microservice.qnet.impl;
 
-import io.nms.central.microservice.common.service.JdbcRepositoryWrapper;
 import io.nms.central.microservice.qnet.QnetService;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -13,12 +12,11 @@ import io.vertx.core.logging.LoggerFactory;
 /**
  *
  */
-public class QnetServiceImpl extends JdbcRepositoryWrapper implements QnetService {
+public class QnetServiceImpl implements QnetService {
 
 	private static final Logger logger = LoggerFactory.getLogger(QnetServiceImpl.class);
 
 	public QnetServiceImpl(Vertx vertx, JsonObject config) {
-		super(vertx, config);
 	}
 
 	@Override

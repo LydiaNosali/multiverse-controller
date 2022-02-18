@@ -35,6 +35,9 @@ sleep 1
 # ndnet
 java -Djava.net.preferIPv4Stack=true -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../ndnet-microservice/target/ndnet-microservice-fat.jar -cluster -ha -conf ../ndnet-microservice/src/config/local.json multiverse.log &
 sleep 1
+# qconnection
+java -Djava.net.preferIPv4Stack=true -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../qconnection-microservice/target/qconnection-microservice-fat.jar -cluster -ha -conf ../qconnection-microservice/src/config/local.json multiverse.log &
+sleep 1
 # qnet
 java -Djava.net.preferIPv4Stack=true -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../qnet-microservice/target/qnet-microservice-fat.jar -cluster -ha -conf ../qnet-microservice/src/config/local.json multiverse.log &
 sleep 1

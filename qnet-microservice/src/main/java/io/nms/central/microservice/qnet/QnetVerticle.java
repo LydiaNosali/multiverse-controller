@@ -41,10 +41,10 @@ public class QnetVerticle extends BaseMicroserviceVerticle {
   }
 
   private Future<Void> deployRestVerticle(QnetService service) {
-    Promise<String> promise = Promise.promise();
-    vertx.deployVerticle(new RestQnetAPIVerticle(service),
-      new DeploymentOptions().setConfig(config()), promise);
-    return promise.future().map(r -> null);
+	  Promise<String> promise = Promise.promise();
+	  vertx.deployVerticle(new RestQnetAPIVerticle(service),
+			  new DeploymentOptions().setConfig(config()), promise);
+	  return promise.future().map(r -> null);
   }
 
 }

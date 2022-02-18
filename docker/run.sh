@@ -44,6 +44,10 @@ sleep 5
 docker-compose -f $DIR/docker-compose.yml up -d ndnet-microservice
 sleep 5
 
+# qconnection
+docker-compose -f $DIR/docker-compose.yml up -d qconnection-microservice
+sleep 5
+
 # qnet
 docker-compose -f $DIR/docker-compose.yml up -d qnet-microservice
 sleep 5

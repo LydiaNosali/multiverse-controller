@@ -1,4 +1,4 @@
-package io.nms.central.microservice.qnet;
+package io.nms.central.microservice.qconnection;
 
 import io.nms.central.microservice.common.BaseMicroserviceVerticle;
 import io.nms.central.microservice.topology.TopologyService;
@@ -12,18 +12,19 @@ public class EventHandler extends BaseMicroserviceVerticle {
 
 	private static final Logger logger = LoggerFactory.getLogger(EventHandler.class);
 	
-	private final QnetService qnetService;
-	private WebClient webClient;
+	private final QconnectionService qconnectionService;
+	// private WebClient webClient;
 
-	public EventHandler(QnetService qnetService) {
-		this.qnetService = qnetService;
-		webClient = WebClient.create(vertx);
+	public EventHandler(QconnectionService qconnectionService) {
+		this.qconnectionService = qconnectionService;
+		// this.webClient = WebClient.create(vertx);
 	}
 
 	@Override
 	public void start(Promise<Void> promise) throws Exception {
 		super.start(promise);
 		vertx.eventBus().consumer(TopologyService.EVENT_ADDRESS, ar -> {
+			// TODO: process topology events
 		});
 	}
 
@@ -31,10 +32,10 @@ public class EventHandler extends BaseMicroserviceVerticle {
 	}
 	
 	private void notifyFrontend() {
-		vertx.eventBus().publish(QnetService.FROTNEND_ADDRESS, new JsonObject());
+		vertx.eventBus().publish(QconnectionService.FROTNEND_ADDRESS, new JsonObject());
 	}
 	 
-	private void notifyQnetChange() {
-		vertx.eventBus().publish(QnetService.EVENT_ADDRESS, new JsonObject());
+	private void notifyQconnectionChange() {
+		vertx.eventBus().publish(QconnectionService.EVENT_ADDRESS, new JsonObject());
 	}
 }

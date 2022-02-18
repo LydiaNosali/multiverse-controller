@@ -21,6 +21,7 @@
     <module>ndnet-microservice</module>
     <module>account-microservice</module>
     <module>qnet-microservice</module>
+    <module>qconnection-microservice</module>
     <module>ipnet-microservice</module>
     <module>digitaltwin-microservice</module>
   </modules>

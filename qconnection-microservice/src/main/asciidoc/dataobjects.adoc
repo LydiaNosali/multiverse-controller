@@ -1,0 +1,36 @@
+= Cheatsheets
+
+[[CrossConnect]]
+== CrossConnect
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[egressPortId]]`@egressPortId`|`Number (int)`|-
+|[[id]]`@id`|`Number (int)`|-
+|[[ingressPortId]]`@ingressPortId`|`Number (int)`|-
+|[[status]]`@status`|`link:enums.html#StatusEnum[StatusEnum]`|-
+|[[switchId]]`@switchId`|`Number (int)`|-
+|===
+
+[[Trail]]
+== Trail
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[created]]`@created`|`String`|-
+|[[description]]`@description`|`String`|-
+|[[id]]`@id`|`Number (int)`|-
+|[[label]]`@label`|`String`|-
+|[[name]]`@name`|`String`|-
+|[[oxcs]]`@oxcs`|`Array of link:dataobjects.html#CrossConnect[CrossConnect]`|-
+|[[status]]`@status`|`link:enums.html#StatusEnum[StatusEnum]`|-
+|[[updated]]`@updated`|`String`|-
+|[[vsubnetId]]`@vsubnetId`|`Number (int)`|-
+|===
+

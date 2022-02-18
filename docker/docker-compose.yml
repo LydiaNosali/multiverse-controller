@@ -104,10 +104,22 @@ services:
       - "8084"
     networks: 
       - nms
+  qconnection-microservice:
+    image: qconnection-microservice
+    links:
+      - topology-microservice
+      - notification-microservice
+    depends_on:
+      - topology-microservice
+      - notification-microservice
+    expose:
+      - "8090"
+    networks:
+      - nms
   qnet-microservice:
     image: qnet-microservice
     links:
-      - mysql
+      - qconnection-microservice
       - topology-microservice
       - notification-microservice
     depends_on:

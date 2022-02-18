@@ -11,6 +11,7 @@ import io.vertx.core.json.JsonObject;
 public class Status {
 
 	public enum StatusEnum {
+		PENDING("PENDING"),
 		UP("UP"),
 		DOWN("DOWN"),
 		ERROR("ERROR"),
@@ -28,7 +29,7 @@ public class Status {
 		CTP("CTP"),
 		LINK("LINK"),
 		LC("LC"),
-		CONNECTION("CONECTION"),
+		CONNECTION("CONNECTION"),
 		TRAIL("TRAIL"),
 		XC("XC");
 

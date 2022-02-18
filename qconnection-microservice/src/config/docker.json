@@ -1,0 +1,6 @@
+{
+  "api.name": "qconnection",
+  "qconnection.http.address": "qconnection-microservice",
+  "qconnection.http.port": 8090,
+  "host": "mongo"
+}

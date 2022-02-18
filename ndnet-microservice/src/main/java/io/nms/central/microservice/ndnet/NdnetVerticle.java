@@ -34,7 +34,6 @@ public class NdnetVerticle extends BaseMicroserviceVerticle {
 			.register(NdnetService.class, ndnetService);
 
 		initConfigDatabase(ndnetService)
-	//		.compose(databaseOkay -> publishEventBusService(SERVICE_NAME, SERVICE_ADDRESS, ConfigurationService.class))
 			.compose(databaseOkay -> deployHandler(ndnetService))
 			.compose(handlerPrepared -> deployRestVerticle(ndnetService))
 			.onComplete(future);
