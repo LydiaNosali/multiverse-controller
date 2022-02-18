@@ -22,6 +22,7 @@ import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 
 /**
  * A service interface managing topology.
@@ -49,7 +50,7 @@ public interface TopologyService {
 	
 	
 	@Fluent	
-	TopologyService initializePersistence(Handler<AsyncResult<Void>> resultHandler);
+	TopologyService initializePersistence(JsonObject baseTopology, Handler<AsyncResult<Void>> resultHandler);
 
 	
 	/* Vsubnet */
@@ -221,7 +222,10 @@ public interface TopologyService {
 	
 	@Fluent	
 	TopologyService getVcrossConnectsByNode(String nodeId, Handler<AsyncResult<List<VcrossConnect>>> resultHandler);
-	
+
+	@Fluent	
+	TopologyService getVcrossConnectsByTrail(String trailId, Handler<AsyncResult<List<VcrossConnect>>> resultHandler);
+
 	@Fluent	
 	TopologyService deleteVcrossConnect(String vcrossConnectId, Handler<AsyncResult<Void>> resultHandler);
 	

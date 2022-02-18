@@ -3,7 +3,10 @@ package io.nms.central.microservice.topology.impl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import io.nms.central.microservice.common.functional.Functional;
@@ -49,7 +52,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	}
 
 	@Override
-	public TopologyService initializePersistence(Handler<AsyncResult<Void>> resultHandler) {
+	public TopologyService initializePersistence(JsonObject data, Handler<AsyncResult<Void>> resultHandler) {
 		List<String> statements = new ArrayList<String>();
 		statements.add(ApiSql.CREATE_TABLE_VSUBNET);
 		statements.add(ApiSql.CREATE_TABLE_VNODE);
@@ -68,7 +71,13 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 					if (r.succeeded()) {
 						createDefaultSubnets(sn -> {
 							if (sn.succeeded()) {
-								initializeStatus(resultHandler);
+								initializeStatus(res -> {
+									if (res.succeeded()) {
+										loadBaseTopology(data, resultHandler);
+									} else {
+										resultHandler.handle(Future.failedFuture(res.cause()));
+									}
+								});
 							} else {
 								resultHandler.handle(Future.failedFuture(r.cause()));
 							}
@@ -95,6 +104,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		statements.add(InternalSql.INIT_TRAIL_STATUS);
 		statements.add(InternalSql.INIT_CROSSCONNECT_STATUS);
 		statements.add(InternalSql.INIT_PREFIX_STATUS);
+		// statements.add("DELETE FROM Vsubnet WHERE name = 'ex-net'");
 		client.getConnection(conn -> {
 			if (conn.succeeded()) {
 				conn.result().batch(statements, r -> {
@@ -118,7 +128,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		defaultNdnSubnet.setDescription("Automatically created NDN subnet");
 		defaultNdnSubnet.setType(SubnetTypeEnum.NDN);
 		defaultNdnSubnet.setInfo(new HashMap<String,Object>());
-		JsonArray params1 = new JsonArray()
+		JsonArray paramsNdn = new JsonArray()
 				.add(defaultNdnSubnet.getName())
 				.add(defaultNdnSubnet.getLabel())
 				.add(defaultNdnSubnet.getDescription())
@@ -131,16 +141,16 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		defaultQnetSubnet.setDescription("Automatically created Qnet subnet");
 		defaultQnetSubnet.setType(SubnetTypeEnum.QNET);
 		defaultQnetSubnet.setInfo(new HashMap<String,Object>());
-		JsonArray params2 = new JsonArray()
-				.add(defaultNdnSubnet.getName())
-				.add(defaultNdnSubnet.getLabel())
-				.add(defaultNdnSubnet.getDescription())
-				.add(defaultNdnSubnet.getType().getValue())
-				.add(JsonUtils.pojo2Json(defaultNdnSubnet.getInfo(), false));
+		JsonArray paramsQnet = new JsonArray()
+				.add(defaultQnetSubnet.getName())
+				.add(defaultQnetSubnet.getLabel())
+				.add(defaultQnetSubnet.getDescription())
+				.add(defaultQnetSubnet.getType().getValue())
+				.add(JsonUtils.pojo2Json(defaultQnetSubnet.getInfo(), false));
 
-		execute(InternalSql.INSERT_IGNORE_VSUBNET, params1, sn1 -> {
+		execute(InternalSql.INSERT_IGNORE_VSUBNET, paramsNdn, sn1 -> {
 			if (sn1.succeeded()) {
-				execute(InternalSql.INSERT_IGNORE_VSUBNET, params1, sn2 -> {
+				execute(InternalSql.INSERT_IGNORE_VSUBNET, paramsQnet, sn2 -> {
 					if (sn2.succeeded()) {
 						resultHandler.handle(Future.succeededFuture());
 					} else {
@@ -211,17 +221,20 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	/********** Vnode **********/
 	@Override
 	public TopologyService addVnode(Vnode vnode, Handler<AsyncResult<Integer>> resultHandler) {
-		String macAddr = Functional.validateAndConvertMAC(vnode.getHwaddr());
-		if (macAddr.isEmpty()) {
+		if (!vnode.getHwaddr().isEmpty()) {
+			String macAddr = Functional.validateAndConvertMAC(vnode.getHwaddr());
+			if (macAddr.isEmpty()) {
 				resultHandler.handle(Future.failedFuture("MAC address not valid"));
 				return this;
+			}
+			vnode.setHwaddr(macAddr);
 		}
-		vnode.setHwaddr(macAddr);
 
-		if (!Functional.checkCidrIp(vnode.getMgmtIp())) {
+		if (!Functional.isValidHostIp(vnode.getMgmtIp())) {
 			resultHandler.handle(Future.failedFuture("IP address not valid"));
 			return this;
 		}
+
 		JsonArray params = new JsonArray()
 				.add(vnode.getName())
 				.add(vnode.getLabel())
@@ -819,8 +832,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vtrail.getDescription())
 				.add(JsonUtils.pojo2Json(vtrail.getInfo(), false))
 				.add(vtrail.getStatus().getValue())
-				.add(vtrail.getSrcVnodeId())
-				.add(vtrail.getTrgtVnodeId());
+				.add(vtrail.getVsubnetId());
 		insert(ApiSql.INSERT_VTRAIL, pVtrail, resultHandler);
 		return this;
 	}
@@ -864,13 +876,13 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	/********** CrossConnect **********/
 	@Override
 	public TopologyService addVcrossConnect(VcrossConnect vcrossConnect, Handler<AsyncResult<Integer>> resultHandler) {
-		JsonArray checkParams = new JsonArray()
+		JsonArray verifyParams = new JsonArray()
 				.add(vcrossConnect.getSwitchId())
-				.add(Vnode.NodeTypeEnum.SWITCH.getValue())
+				.add(Vnode.NodeTypeEnum.OPTSWITCH.getValue())
 				.add(vcrossConnect.getIngressPortId())
 				.add(vcrossConnect.getEgressPortId());
 		
-		findOne(ApiSql.XC_CHECK_AND_GET_INFO, checkParams)
+		findOne(ApiSql.XC_VERIFY, verifyParams)
 			.onComplete(res -> {
 				if (res.succeeded()) {
 					JsonArray params = new JsonArray()
@@ -907,17 +919,19 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
 	}
+	
+	@Override
+	public TopologyService getVcrossConnectsByTrail(String trailId, Handler<AsyncResult<List<VcrossConnect>>> resultHandler) {
+		JsonArray params = new JsonArray().add(trailId);
+		find(ApiSql.FETCH_VCROSS_CONNECTS_BY_TRAIL, params).map(rawList -> rawList.stream().map(row -> {
+			return JsonUtils.json2Pojo(row.encode(), VcrossConnect.class);
+		}).collect(Collectors.toList())).onComplete(resultHandler);
+		return this;
+	}
 
 	@Override
 	public TopologyService deleteVcrossConnect(String vcrossConnectId, Handler<AsyncResult<Void>> resultHandler) {		
-		findOne(ApiSql.XC_GET_INFO, new JsonArray().add(vcrossConnectId))
-			.onComplete(res -> {
-				if (res.succeeded()) {
-					delete(ApiSql.DELETE_VCROSS_CONNECT, new JsonArray().add(vcrossConnectId), resultHandler);
-				} else {
-					resultHandler.handle(Future.failedFuture(res.cause()));
-				}
-		});
+		delete(ApiSql.DELETE_VCROSS_CONNECT, new JsonArray().add(vcrossConnectId), resultHandler);
 		return this;
 	}
 	
@@ -1352,5 +1366,150 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 			}
 		});
 		return this;
+	}
+	
+	private void loadBaseTopology(JsonObject baseTopology, Handler<AsyncResult<Void>> resultHandler) {
+		// logger.info("Load example topology: " + baseTopology.encodePrettily());
+		getVnodesByType(NodeTypeEnum.OPTSWITCH, res -> {
+			if (res.succeeded()) {
+				if (res.result().isEmpty()) {
+					Vsubnet vsubnet = new Vsubnet();
+					vsubnet.setName("ex-net");
+					vsubnet.setLabel("example-quantum-network");
+					vsubnet.setDescription("example-quantum-network");
+					vsubnet.setType(SubnetTypeEnum.QNET);
+					addVsubnet(vsubnet, sn -> {
+						if (sn.succeeded()) {
+							Promise<Void> pNetworkDone = Promise.promise();
+							int subnetId = sn.result();
+							JsonArray nodes = baseTopology.getJsonArray("nodes");
+							JsonArray links = baseTopology.getJsonArray("links");
+							JsonArray caps = baseTopology.getJsonArray("capabilities");
+							HashMap<String,Integer> nodeIds = new HashMap<String,Integer>();
+							HashMap<String,Integer> ltpIds = new HashMap<String,Integer>();
+							HashMap<String,Integer> linkIds = new HashMap<String,Integer>();
+							
+							List<Future> allNodesAdded = new ArrayList<Future>();
+							nodes.forEach(e -> {
+								Promise<Void> pNodeAdded = Promise.promise();
+								allNodesAdded.add(pNodeAdded.future());
+								JsonObject jNode = (JsonObject) e;
+								String switchName = jNode.getString("name");
+								Vnode vnode = new Vnode();
+								vnode.setName(switchName);
+								vnode.setVsubnetId(subnetId);
+								vnode.setLabel("");
+								vnode.setDescription("");
+								vnode.setLocation("");
+								vnode.setHwaddr("");
+								vnode.setType(NodeTypeEnum.OPTSWITCH);
+								vnode.setMgmtIp(jNode.getString("mgmtAddr"));
+								vnode.setPosx(jNode.getJsonObject("position").getInteger("x"));
+								vnode.setPosy(jNode.getJsonObject("position").getInteger("y"));
+								vnode.setStatus(StatusEnum.DOWN);
+								HashMap<String,Object> info = new HashMap<String,Object>();
+								caps.forEach(c -> {
+									JsonObject jCap = (JsonObject) c;
+									if (jCap.getJsonObject("location").getString("node").equals(switchName)) {
+										info.put(jCap.getString("name"), jCap.encode());
+									}
+								});
+								vnode.setInfo(info);
+								addVnode(vnode, ar -> {
+									if (ar.succeeded()) {
+										nodeIds.put(vnode.getName(), ar.result());
+										List<Future> allPortsAdded = new ArrayList<Future>();
+										jNode.getJsonArray("ports").forEach(el -> {
+											String portName = (String) el;
+											Promise<Void> pPortAdded = Promise.promise();
+											allPortsAdded.add(pPortAdded.future());
+											String fullPortName = vnode.getName() + "." + ((String) portName);
+											Vltp vltp = new Vltp();
+											vltp.setName(fullPortName);
+											vltp.setVnodeId(ar.result());
+											vltp.setPort(portName.substring(1));
+											vltp.setStatus(StatusEnum.DOWN);
+											vltp.setLabel("");
+											vltp.setDescription("");
+											vltp.setBandwidth("");
+											vltp.setMtu(0);	
+											addVltp(vltp, ar2 -> {
+												if (ar2.succeeded()) {
+													ltpIds.put(vltp.getName(), ar2.result());
+													pPortAdded.complete();
+												} else {
+													pPortAdded.fail(ar2.cause());
+												}
+											});
+										});
+										CompositeFuture.all(allPortsAdded).map((Void)null).onComplete(pNodeAdded);
+									} else {
+										pNodeAdded.fail(ar.cause());
+									}
+								});
+							});
+							CompositeFuture.all(allNodesAdded).onComplete(res2 -> {
+								if (res2.succeeded()) {
+									CompletableFuture<Void> stage = CompletableFuture.completedFuture(null);
+									for (Object e: links) {
+										stage = stage.thenCompose(r -> createLink((JsonObject) e, ltpIds));
+									}
+									stage.whenComplete((result, error) -> {
+						            	if (error != null) {
+						            		pNetworkDone.fail(error.getCause());
+						                } else {
+						                	pNetworkDone.complete();
+						                }
+						            });
+								} else {
+									pNetworkDone.fail(res2.cause());
+								}
+							});
+							// remove subnet if any error
+							pNetworkDone.future().onComplete(done -> {
+								if (done.succeeded()) {
+									logger.info("Example network loaded.");
+									resultHandler.handle(Future.succeededFuture());
+								} else {
+									logger.info("Failed to load example network.");
+									resultHandler.handle(Future.failedFuture(done.cause()));
+									deleteVsubnet(String.valueOf(subnetId), ignore -> {});
+								}
+							});
+						} else {
+							logger.info("Failed to create Vsubnet.");
+							resultHandler.handle(Future.failedFuture(sn.cause()));
+						}
+					});
+				} else {
+					logger.info("An optical network already exists.");
+					resultHandler.handle(Future.succeededFuture());
+				}
+			} else {
+				logger.info("Failed to get existing optical switches.");
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	
+	private CompletableFuture<Void> createLink(JsonObject jLink, HashMap<String,Integer> ltpIds) {
+		CompletableFuture<Void> cs = new CompletableFuture<>();
+		String srcPortName = jLink.getString("srcSwitch")+"."+jLink.getString("srcPort");
+		String dstPortName = jLink.getString("dstSwitch")+"."+jLink.getString("dstPort");
+		Vlink vlink = new Vlink();
+		vlink.setName(srcPortName+"-"+dstPortName);
+		vlink.setLabel("");
+		vlink.setDescription("");
+		vlink.setSrcVltpId(ltpIds.get(srcPortName));
+		vlink.setDestVltpId(ltpIds.get(dstPortName));
+		vlink.setStatus(StatusEnum.DOWN);
+		addVlink(vlink, ar3 -> {
+			if (ar3.succeeded()) {
+				cs.complete(null);
+			} else {
+				cs.completeExceptionally(ar3.cause());
+			}
+		});
+		return cs;
 	}
 }

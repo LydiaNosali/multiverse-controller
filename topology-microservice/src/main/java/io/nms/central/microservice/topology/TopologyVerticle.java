@@ -8,6 +8,7 @@ import io.nms.central.microservice.topology.impl.TopologyServiceImpl;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.json.JsonObject;
 import io.vertx.serviceproxy.ServiceBinder;
 
 
@@ -25,18 +26,19 @@ public class TopologyVerticle extends BaseMicroserviceVerticle {
 
 		// register the service proxy on event bus
 		new ServiceBinder(vertx)
-		.setAddress(SERVICE_ADDRESS)
-		.register(TopologyService.class, topologyService);
+				.setAddress(SERVICE_ADDRESS)
+				.register(TopologyService.class, topologyService);
 
 		initTopologyDatabase(topologyService)
-		.compose(r -> deployHandler(topologyService))
-		.compose(handlerDeployed -> deployRestVerticle(topologyService))
-		.onComplete(future);
+				.compose(r -> deployHandler(topologyService))
+				.compose(handlerDeployed -> deployRestVerticle(topologyService))
+				.onComplete(future);
 	}
 
 	private Future<Void> initTopologyDatabase(TopologyService service) {
 		Promise<Void> initPromise = Promise.promise();
-		service.initializePersistence(initPromise);
+		JsonObject baseTopology = vertx.fileSystem().readFileBlocking("qtopology.json").toJsonObject();
+		service.initializePersistence(baseTopology, initPromise);
 		return initPromise.future();
 	}
 

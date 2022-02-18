@@ -32,7 +32,7 @@ public final class Functional {
         .map(Future::result)
         .collect(Collectors.toList())
       );
-  }
+    }
 
 	public static List<Byte> bytesToList(byte[] bytes) {
 		final List<Byte> list = new ArrayList<>();

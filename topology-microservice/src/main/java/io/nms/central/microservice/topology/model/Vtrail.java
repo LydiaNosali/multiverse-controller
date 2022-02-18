@@ -16,11 +16,10 @@ public class Vtrail {
     private String name;
 	private String label;
 	private String description;
-    private int srcVnodeId;
-    private int trgtVnodeId;
     private String created;
 	private String updated;
 	private StatusEnum status;
+	private int vsubnetId;
 	private Map<String, Object> info = new HashMap<String, Object>();
     
     /*-----------------------------------------------*/
@@ -58,19 +57,6 @@ public class Vtrail {
 	}
 	public void setId(int id) {
 		this.id = id;
-	}
-
-	public int getSrcVnodeId() {
-		return srcVnodeId;
-	}
-	public void setSrcVnodeId(int srcVnodeId) {
-		this.srcVnodeId = srcVnodeId;
-	}
-	public int getTrgtVnodeId() {
-		return trgtVnodeId;
-	}
-	public void setTrgtVnodeId(int trgtVnodeId) {
-		this.trgtVnodeId = trgtVnodeId;
 	}
 	public String getCreated() {
 		return created;
@@ -114,5 +100,11 @@ public class Vtrail {
 	}
 	public void setStatus(StatusEnum status) {
 		this.status = status;
+	}
+	public int getVsubnetId() {
+		return vsubnetId;
+	}
+	public void setVsubnetId(int vsubnetId) {
+		this.vsubnetId = vsubnetId;
 	}
 }

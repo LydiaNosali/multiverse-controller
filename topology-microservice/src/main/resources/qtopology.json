@@ -1,0 +1,80 @@
+{
+    "nodes": [
+        { 
+            "name": "A", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], 
+            "position": { "x": 300, "y": 50 },
+            "mgmtAddr": "172.0.0.1"
+        },
+        { 
+            "name": "B", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
+            "position": { "x": 250, "y": 350 },
+            "mgmtAddr": "172.0.0.1"
+        },
+        { 
+            "name": "C", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], 
+            "position": { "x": 350, "y": 250 },
+            "mgmtAddr": "172.0.0.1" 
+        },
+        {
+            "name": "D", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], 
+            "position": { "x": 400, "y": 0 },
+            "mgmtAddr": "172.0.0.1" 
+        },
+        { 
+            "name": "E", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
+            "position": { "x": 350, "y": 370 },
+            "mgmtAddr": "172.0.0.1"
+        },
+        { 
+            "name": "F", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
+            "position": { "x": 420, "y": 150 },
+            "mgmtAddr": "172.0.0.1"
+        },
+        { 
+            "name": "G", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
+            "position": { "x": 500, "y": 320 },
+            "mgmtAddr": "172.0.0.1"
+        },
+        { 
+            "name": "H", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
+            "position": { "x": 600, "y": 370 },
+            "mgmtAddr": "172.0.0.1"
+        },
+        { 
+            "name": "I", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
+            "position": { "x": 700, "y": 300 },
+            "mgmtAddr": "172.0.0.1"
+        }
+    ],
+    "links": [
+        { "srcSwitch": "A", "srcPort": "p1", "dstSwitch": "B", "dstPort": "p3" },
+        { "srcSwitch": "A", "srcPort": "p2", "dstSwitch": "C", "dstPort": "p3" },
+        { "srcSwitch": "A", "srcPort": "p3", "dstSwitch": "D", "dstPort": "p3" },
+        { "srcSwitch": "B", "srcPort": "p2", "dstSwitch": "E", "dstPort": "p6" },
+        { "srcSwitch": "B", "srcPort": "p4", "dstSwitch": "C", "dstPort": "p1" },
+        { "srcSwitch": "C", "srcPort": "p4", "dstSwitch": "F", "dstPort": "p3" },
+        { "srcSwitch": "C", "srcPort": "p5", "dstSwitch": "G", "dstPort": "p1" },
+        { "srcSwitch": "D", "srcPort": "p4", "dstSwitch": "F", "dstPort": "p1" },
+        { "srcSwitch": "D", "srcPort": "p2", "dstSwitch": "I", "dstPort": "p4" },
+        { "srcSwitch": "E", "srcPort": "p1", "dstSwitch": "G", "dstPort": "p2" },
+        { "srcSwitch": "F", "srcPort": "p4", "dstSwitch": "G", "dstPort": "p3" },
+        { "srcSwitch": "G", "srcPort": "p4", "dstSwitch": "H", "dstPort": "p1" },
+        { "srcSwitch": "G", "srcPort": "p5", "dstSwitch": "I", "dstPort": "p2" },
+        { "srcSwitch": "H", "srcPort": "p2", "dstSwitch": "I", "dstPort": "p3" }
+    ],
+    "capabilities": [
+        { "name": "C-NIST", "location": { "node": "A", "port": "p8" }, "description": "C-NIST - at D.p8" },
+        { "name": "C-ARL", "location": { "node": "B", "port": "p8" }, "description": "C-ARL at B.p8" },
+        { "name": "C-NRL", "location": { "node": "E", "port": "p4" }, "description": "C-NRL at E.p4" },
+        { "name": "C-NASA", "location": { "node": "E", "port": "p3" }, "description": "C-NASA - E.p3" }
+    ]
+}

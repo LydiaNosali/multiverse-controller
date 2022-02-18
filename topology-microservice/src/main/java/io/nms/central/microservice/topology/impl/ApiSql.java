@@ -28,8 +28,8 @@ public class ApiSql {
 			"    `location` VARCHAR(50),\n" + 
 			"    `type` VARCHAR(50) NOT NULL,\n" +
 			"    `vsubnetId` INT NOT NULL,\n" +
-			"    `hwaddr` VARCHAR(50) NOT NULL UNIQUE,\n" + 
-			"    `mgmtIp` VARCHAR(20) NOT NULL UNIQUE,\n" + 
+			"    `hwaddr` VARCHAR(50) NOT NULL,\n" + 
+			"    `mgmtIp` VARCHAR(20) NOT NULL,\n" + 
 			"    PRIMARY KEY (`id`),\n" +
 			"    UNIQUE KEY (`name`, `vsubnetId`),\n" +
 			"    FOREIGN KEY (`vsubnetId`)\n" + 
@@ -162,19 +162,15 @@ public class ApiSql {
 			"    `description` VARCHAR(255),\n" +
 			"	 `info` JSON DEFAULT NULL,\n" +
 			"    `status` VARCHAR(10) NOT NULL,\n" +
+			"    `vsubnetId` INT NOT NULL,\n" +
 			"    `created` DATETIME DEFAULT CURRENT_TIMESTAMP,\n" + 
 			"    `updated` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n" +
-			"    `srcVnodeId` INT NOT NULL UNIQUE,\n" + 
-			"    `trgtVnodeId` INT NOT NULL UNIQUE,\n" + 
-			"    PRIMARY KEY (`id`),\n" + 
-			"    FOREIGN KEY (`srcVnodeId`) \n" + 
-			"        REFERENCES Vnode(`id`)\n" + 
-			"        ON DELETE CASCADE\n" + 
-			"        ON UPDATE CASCADE,\n" + 
-			"    FOREIGN KEY (`trgtVnodeId`) \n" + 
-			"        REFERENCES Vnode(`id`)\n" + 
-			"        ON DELETE CASCADE\n" + 
-			"        ON UPDATE CASCADE\n" +
+			"    PRIMARY KEY (`id`),\n" +
+			"    UNIQUE KEY (`name`, `vsubnetId`),\n" +
+			"    FOREIGN KEY (`vsubnetId`)\n" + 
+			"    	REFERENCES Vsubnet(`id`)\n" + 
+			"       ON DELETE CASCADE\n" + 
+			"		ON UPDATE CASCADE\n" + 
 			")";
 	public static final String CREATE_TABLE_VCROSS_CONNECT = "CREATE TABLE IF NOT EXISTS `VcrossConnect` (\n" +
 			"    `id` INT NOT NULL AUTO_INCREMENT,\n" +
@@ -232,7 +228,7 @@ public class ApiSql {
 	public static final String INSERT_VLINK = "INSERT INTO Vlink (name, label, description, info, status, srcVltpId, destVltpId) VALUES (?, ?, ?, ?, ?, ?, ?) ";
 	public static final String INSERT_VLINKCONN = "INSERT INTO VlinkConn (name, label, description, info, status, srcVctpId, destVctpId, vlinkId) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ";
 	public static final String INSERT_VCONNECTION = "INSERT INTO Vconnection (name, label, description, info, status, srcVctpId, destVctpId) VALUES (?, ?, ?, ?, ?, ?, ?) ";
-	public static final String INSERT_VTRAIL = "INSERT INTO Vtrail (name, label, description, info, status, srcVnodeId, trgtVnodeId) VALUES (?, ?, ?, ?, ?, ?, ?) ";
+	public static final String INSERT_VTRAIL = "INSERT INTO Vtrail (name, label, description, info, status, vsubnetId) VALUES (?, ?, ?, ?, ?, ?) ";
 	public static final String INSERT_VCROSS_CONNECT = "INSERT INTO VcrossConnect (name, label, description, info, status, trailId, switchId, ingressPortId, egressPortId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ";
 
 	// insert ignore for PUT
@@ -347,23 +343,21 @@ public class ApiSql {
 			+ "INNER JOIN Vctp AS dCtp ON VlinkConn.destVctpId=dCtp.id INNER JOIN Vltp AS dLtp ON dCtp.vltpId=dLtp.id) "
 			+ "WHERE VlinkConn.vlinkId = ?";
 	public static final String FETCH_VTRAILS_BY_VSUBNET = "SELECT "
-			+ "Vtrail.id, Vtrail.name, Vtrail.label, Vtrail.description, Vtrail.info, Vtrail.status, Vtrail.created, Vtrail.updated, "
-			+ "Vtrail.srcVnodeId, Vtrail.trgtVnodeId " 
-			+ "FROM Vtrail "
-			+ "INNER JOIN Vnode ON Vnode.id=Vtrail.srcVnodeId "
-			+ "WHERE Vnode.vsubnetId = ?";
+			+ "Vtrail.id, Vtrail.name, Vtrail.label, Vtrail.description, Vtrail.info, Vtrail.status, "
+			+ "Vtrail.created, Vtrail.updated, Vtrail.vsubnetId " 
+			+ "FROM Vtrail WHERE Vtrail.vsubnetId = ?";
 	public static final String FETCH_VCROSS_CONNECTS_BY_NODE = "SELECT "
 			+ "VcrossConnect.id, VcrossConnect.name, VcrossConnect.label, VcrossConnect.description, "
 			+ "VcrossConnect.info, VcrossConnect.status, VcrossConnect.trailId, "
-			+ "VcrossConnect.switchId, Vnode.mgmtIp as switchIpAddr, VcrossConnect.ingressPortId, VcrossConnect.egressPortId, "
+			+ "VcrossConnect.switchId, VcrossConnect.ingressPortId, VcrossConnect.egressPortId, "
 			+ "VcrossConnect.created, VcrossConnect.updated "
 			+ "FROM VcrossConnect INNER JOIN Vnode ON VcrossConnect.switchId = Vnode.id WHERE Vnode.id = ?";
 	public static final String FETCH_VCROSS_CONNECTS_BY_TRAIL = "SELECT "
 			+ "VcrossConnect.id, VcrossConnect.name, VcrossConnect.label, VcrossConnect.description, "
 			+ "VcrossConnect.info, VcrossConnect.status, VcrossConnect.trailId, "
-			+ "VcrossConnect.switchId, Vnode.mgmtIp as switchIpAddr, VcrossConnect.ingressPortId, VcrossConnect.egressPortId, "
+			+ "VcrossConnect.switchId, VcrossConnect.ingressPortId, VcrossConnect.egressPortId, "
 			+ "VcrossConnect.created, VcrossConnect.updated "
-			+ "FROM VcrossConnect INNER JOIN Vnode ON VcrossConnect.switchId = Vnode.id WHERE VcrossConnect.trailId = ?";
+			+ "FROM VcrossConnect WHERE VcrossConnect.trailId = ?";
 	public static final String FETCH_PREFIXES_BY_NODE = "SELECT "
 			+ "Prefix.id, Prefix.name, Prefix.originId, Prefix.available, Prefix.created, Prefix.updated "
 			+ "FROM Prefix "
@@ -406,16 +400,15 @@ public class ApiSql {
 			+ "INNER JOIN Vctp AS dCtp ON Vconnection.destVctpId=dCtp.id) "
 			+ "WHERE Vconnection.id = ?";
 	public static final String FETCH_VTRAIL_BY_ID = "SELECT "
-			+ "Vtrail.id, Vtrail.name, Vtrail.label, Vtrail.description, Vtrail.info, Vtrail.status, Vtrail.created, Vtrail.updated, "
-			+ "Vtrail.srcVnodeId, Vtrail.trgtVnodeId " 
-			+ "FROM Vtrail "
-			+ "WHERE id = ?";
+			+ "Vtrail.id, Vtrail.name, Vtrail.label, Vtrail.description, Vtrail.info, Vtrail.status, "
+			+ "Vtrail.created, Vtrail.updated, Vtrail.vsubnetId " 
+			+ "FROM Vtrail WHERE id = ?";
 	public static final String FETCH_VCROSS_CONNECT_BY_ID = "SELECT "
 			+ "VcrossConnect.id, VcrossConnect.name, VcrossConnect.label, VcrossConnect.description, "
 			+ "VcrossConnect.info, VcrossConnect.status, VcrossConnect.trailId, "
-			+ "VcrossConnect.switchId, Vnode.mgmtIp as switchIpAddr, VcrossConnect.ingressPortId, VcrossConnect.egressPortId, "
+			+ "VcrossConnect.switchId, VcrossConnect.ingressPortId, VcrossConnect.egressPortId, "
 			+ "VcrossConnect.created, VcrossConnect.updated "
-			+ "FROM VcrossConnect INNER JOIN Vnode ON VcrossConnect.switchId = Vnode.id WHERE VcrossConnect.id = ?";
+			+ "FROM VcrossConnect WHERE VcrossConnect.id = ?";
 	public static final String FETCH_PREFIX_BY_ID = "SELECT "
 			+ "id, name, originId, available, created, updated "
 			+ "FROM Prefix WHERE id=?";
@@ -465,7 +458,7 @@ public class ApiSql {
 			+ "WHERE id = ?";
 
 	/*-------------------- CROSSCONNECT GET AND CHECK INFO --------------------*/
-	public static final String XC_CHECK_AND_GET_INFO = "SELECT "
+	public static final String XC_VERIFY = "SELECT "
 			+ "Vnode.mgmtIp AS switchIpAddr, ingress.port AS ingressPort, egress.port AS egressPort "
 			+ "FROM ((Vnode "
 			+ "INNER JOIN Vltp AS ingress ON Vnode.id = ingress.vnodeId) "

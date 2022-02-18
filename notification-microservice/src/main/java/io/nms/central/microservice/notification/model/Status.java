@@ -13,6 +13,7 @@ public class Status {
 	public enum StatusEnum {
 		UP("UP"),
 		DOWN("DOWN"),
+		ERROR("ERROR"),
 		DISCONN("DISCONN"),
 		ADMIN_DOWN("ADMIN_DOWN");
 
@@ -27,7 +28,9 @@ public class Status {
 		CTP("CTP"),
 		LINK("LINK"),
 		LC("LC"),
-		CONNECTION("CONECTION");
+		CONNECTION("CONECTION"),
+		TRAIL("TRAIL"),
+		XC("XC");
 
 		private String value;
 		private ResTypeEnum(String value) { this.value = value; }

@@ -129,7 +129,6 @@
 |[[name]]`@name`|`String`|-
 |[[status]]`@status`|`link:enums.html#StatusEnum[StatusEnum]`|-
 |[[switchId]]`@switchId`|`Number (int)`|-
-|[[switchIpAddr]]`@switchIpAddr`|`String`|-
 |[[trailId]]`@trailId`|`Number (int)`|-
 |[[updated]]`@updated`|`String`|-
 |===
@@ -275,10 +274,9 @@
 |[[id]]`@id`|`Number (int)`|-
 |[[label]]`@label`|`String`|-
 |[[name]]`@name`|`String`|-
-|[[srcVnodeId]]`@srcVnodeId`|`Number (int)`|-
 |[[status]]`@status`|`link:enums.html#StatusEnum[StatusEnum]`|-
-|[[trgtVnodeId]]`@trgtVnodeId`|`Number (int)`|-
 |[[updated]]`@updated`|`String`|-
+|[[vsubnetId]]`@vsubnetId`|`Number (int)`|-
 |===
 
 [[VxlanConnInfo]]

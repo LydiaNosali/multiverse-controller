@@ -47,7 +47,6 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private static final String API_ONE_NODE = "/node/:nodeId";
 	private static final String API_ALL_NODES = "/node";
 	private static final String API_NODES_BY_SUBNET = "/subnet/:subnetId/nodes";
-	// private static final String API_NODES_BY_SUBNET_BY_TYPE = "/subnet/:subnetId/nodes/type/:type";
 
 	private static final String API_ONE_LTP = "/ltp/:ltpId";
 	private static final String API_ALL_LTPS = "/ltp";
@@ -58,7 +57,6 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private static final String API_CTPS_BY_LTP = "/ltp/:ltpId/ctps";
 	private static final String API_CTPS_BY_CTP = "/ctp/:ctpId/ctps";
 	private static final String API_CTPS_BY_NODE = "/node/:nodeId/ctps";
-	// private static final String API_CTPS_BY_SUBNET_BY_TYPE = "/subnet/:subnetId/ctps/type/:type";
 
 	private static final String API_ONE_LINK = "/link/:linkId";
 	private static final String API_ALL_LINKS = "/link";
@@ -78,9 +76,10 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private static final String API_ALL_TRAILS = "/trail";
 	private static final String API_TRAILS_BY_SUBNET = "/subnet/:subnetId/trails";
 
-	private static final String API_ONE_CROSS_CONNECT = "/cross-connect/:xcId";
-	private static final String API_ALL_CROSS_CONNECTS = "/cross-connect";
-	private static final String API_CROSS_CONNECTS_BY_NODE = "/node/:nodeId/cross-connects";
+	private static final String API_ONE_CROSS_CONNECT = "/oxc/:xcId";
+	private static final String API_ALL_CROSS_CONNECTS = "/oxc";
+	private static final String API_CROSS_CONNECTS_BY_NODE = "/node/:nodeId/oxcs";
+	private static final String API_CROSS_CONNECTS_BY_TRAIL = "/trail/:trailId/oxcs";
 
 	private static final String API_PREFIX = "/prefix";
 	private static final String API_ONE_PREFIX = "/prefix/:prefixId";
@@ -158,6 +157,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 
 		router.post(API_ALL_CROSS_CONNECTS).handler(this::checkAdminRole).handler(this::apiAddCrossConnect);
 		router.get(API_CROSS_CONNECTS_BY_NODE).handler(this::checkAdminRole).handler(this::apiGetCrossConnectsByNode);
+		router.get(API_CROSS_CONNECTS_BY_TRAIL).handler(this::checkAdminRole).handler(this::apiGetCrossConnectsByTrail);
 		router.get(API_ONE_CROSS_CONNECT).handler(this::checkAdminRole).handler(this::apiGetCrossConnectById);
 		router.delete(API_ONE_CROSS_CONNECT).handler(this::checkAdminRole).handler(this::apiDeleteCrossConnect);
 		router.put(API_ONE_CROSS_CONNECT).handler(this::checkAdminRole).handler(this::apiUpdateCrossConnect);
@@ -448,7 +448,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		service.getVtrail(trailId, resultHandlerNonEmpty(context));
 	}
 	private void apiGetTrailsBySubnet(RoutingContext context) {	
-		String subnetId = context.request().getParam("subnetId");		
+		String subnetId = context.request().getParam("subnetId");
 		service.getVtrailsByVsubnet(subnetId, resultHandler(context, Json::encodePrettily));
 	}
 	private void apiDeleteTrail(RoutingContext context) {
@@ -475,7 +475,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 			if (res.succeeded()) {
 				notifyTopologyChange();
 			}
-			createResultHandler(context, "/cross-connect").handle(res);
+			createResultHandler(context, "/oxc").handle(res);
 		});
 	}
 	private void apiGetCrossConnectById(RoutingContext context) {
@@ -485,6 +485,10 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private void apiGetCrossConnectsByNode(RoutingContext context) {
 		String nodeId = context.request().getParam("nodeId");
 		service.getVcrossConnectsByNode(nodeId, resultHandler(context, Json::encodePrettily));
+	}
+	private void apiGetCrossConnectsByTrail(RoutingContext context) {
+		String trailId = context.request().getParam("trailId");
+		service.getVcrossConnectsByTrail(trailId, resultHandler(context, Json::encodePrettily));
 	}
 	private void apiDeleteCrossConnect(RoutingContext context) {
 		String xcId = context.request().getParam("xcId");

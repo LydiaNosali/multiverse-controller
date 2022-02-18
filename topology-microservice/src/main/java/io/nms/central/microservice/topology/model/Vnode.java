@@ -14,6 +14,7 @@ public class Vnode {
 
 	public enum NodeTypeEnum {
 		SWITCH("SWITCH"),
+		OPTSWITCH("OPTSWITCH"),
 		ROUTER("ROUTER"),
 		NDNFWD("NDNFWD"),
 		ENDSYS("ENDSYS");

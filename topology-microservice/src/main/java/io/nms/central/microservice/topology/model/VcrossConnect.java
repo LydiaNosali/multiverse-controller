@@ -24,9 +24,6 @@ public class VcrossConnect {
 	private String updated;
 	private StatusEnum status;
 	private Map<String, Object> info = new HashMap<String, Object>();
-	
-	// in object
-	private String switchIpAddr;
     
     /*-----------------------------------------------*/
 
@@ -77,13 +74,6 @@ public class VcrossConnect {
 	}
 	public void setSwitchId(int switchId) {
 		this.switchId = switchId;
-	}
-	
-	public String getSwitchIpAddr() {
-		return switchIpAddr;
-	}
-	public void setSwitchIpAddr(String switchIpAddr) {
-		this.switchIpAddr = switchIpAddr;
 	}
 
 	public int getIngressPortId() {

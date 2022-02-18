@@ -73,6 +73,7 @@ public class JdbcRepositoryWrapper {
 					}
 				} else {
 					resultHandler.handle(Future.failedFuture(convertError(r.cause())));
+					logger.info(r.cause());
 					// resultHandler.handle(Future.failedFuture(r.cause()));
 				}
 				connection.close();
