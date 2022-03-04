@@ -12,12 +12,16 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 
 /**
  * This verticle exposes a HTTP endpoint to process telemetry operations with REST APIs.
  */
 public class RestTelemetryAPIVerticle extends RestAPIVerticle {
+
+	private static final Logger logger = LoggerFactory.getLogger(RestTelemetryAPIVerticle.class);
 
 	public static final String SERVICE_NAME = "telemetry-rest-api";
 
@@ -31,7 +35,7 @@ public class RestTelemetryAPIVerticle extends RestAPIVerticle {
 
 	private static final String API_RECEIPT = "/receipt";
 
-	private static final String API_ALL_OPERATIONS = "/result/:type";
+	private static final String API_ALL_OPERATIONS = "/results/:type";
 	private static final String API_ONE_OPERATION = "/operation/:opId";
 	private static final String API_RESULTS_BY_OPS = "/operation/:opId/results";
 	
