@@ -41,21 +41,11 @@ public class TelemetryServiceImpl implements TelemetryService {
 	private final MongoClient client;
 	private final Vertx vertx;
 
-	private final long capsLifetimeMs = 60000 * 30;
+	private final long capsLifetimeMs = 50000;
 
 	public TelemetryServiceImpl(Vertx vertx, JsonObject config) {
 		this.vertx = vertx;
 		this.client = MongoClient.create(vertx, config);
-		
-		/* this.client.removeDocuments(SPECIFICATIONS, new JsonObject(), ar -> {
-			return;
-		});
-		this.client.removeDocuments(RECEIPTS, new JsonObject(), ar -> {
-			return;
-		});
-		this.client.removeDocuments(RESULTS, new JsonObject(), ar -> {
-			return;
-		}); */
 	}
 
 	/* ------------ capability ------------ */
