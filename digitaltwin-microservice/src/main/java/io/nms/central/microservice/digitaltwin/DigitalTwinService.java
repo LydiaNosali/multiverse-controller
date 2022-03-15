@@ -11,6 +11,8 @@ import io.nms.central.microservice.digitaltwin.model.ipnetApi.Arp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Bgp;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Device;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.RouteHop;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Vlan;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.VlanMember;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.IpRoute;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Link;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.NetInterface;
@@ -40,14 +42,14 @@ public interface DigitalTwinService {
 	 * The address on which the service is published.
 	 */
 	String SERVICE_ADDRESS = "service.digitaltwin";
-	
+
 	String FROTNEND_ADDRESS = "mvs.to.frontend";
 
 	String EVENT_ADDRESS = "digitaltwin.event";
-	
+
 	@Fluent	
 	DigitalTwinService initializePersistence(Handler<AsyncResult<Void>> resultHandler);
-	
+
 	/* Operations on running network */
 	@Fluent	
 	DigitalTwinService processNetworkRunningState(NetworkState netState, Handler<AsyncResult<CreationReport>> resultHandler);
@@ -68,6 +70,10 @@ public interface DigitalTwinService {
 	@Fluent	
 	DigitalTwinService runningGetBgp(String deviceName, String itfAddr, Handler<AsyncResult<Bgp>> resultHandler);
 	@Fluent
+	DigitalTwinService runningGetDeviceVlans(String deviceName, Handler<AsyncResult<List<Vlan>>> resultHandler);
+	@Fluent
+	DigitalTwinService runningGetVlanMembers(String deviceName,String vid,  Handler<AsyncResult<List<VlanMember>>> resultHandler);
+	@Fluent
 	DigitalTwinService runningGetDeviceIpRoutes(String deviceName, Handler<AsyncResult<List<IpRoute>>> resultHandler);
 	@Fluent	
 	DigitalTwinService runningGetDeviceIpRoutesTo(String deviceName, String to, Handler<AsyncResult<List<IpRoute>>> resultHandler);
@@ -75,10 +81,10 @@ public interface DigitalTwinService {
 	DigitalTwinService runningGetDeviceArps(String deviceName, Handler<AsyncResult<List<Arp>>> resultHandler);
 	@Fluent
 	DigitalTwinService runningGetDeviceAclTables(String deviceName, Handler<AsyncResult<List<AclTable>>> resultHandler);
-	
+
 	@Fluent
 	DigitalTwinService runningGetDeviceConfig(String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
-	
+
 	/* Operations on view network */
 	@Fluent	
 	DigitalTwinService createView(String viewId, Handler<AsyncResult<Void>> resultHandler);
@@ -88,11 +94,11 @@ public interface DigitalTwinService {
 	DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler);
 	@Fluent
 	DigitalTwinService viewGetNetworkConfig(String viewId, Handler<AsyncResult<JsonObject>> resultHandler);
-	
+
 	// view network
 	@Fluent	
 	DigitalTwinService viewGetNetwork(String viewId, Handler<AsyncResult<Network>> resultHandler);
-	
+
 	// view device
 	@Fluent	
 	DigitalTwinService viewGetDevice(String viewId, String deviceName, Handler<AsyncResult<Device>> resultHandler);
@@ -102,7 +108,7 @@ public interface DigitalTwinService {
 	// DigitalTwinService viewUpdateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewDeleteDevice(String viewId, String deviceName, Handler<AsyncResult<Void>> resultHandler);
-	
+
 	// view interface
 	@Fluent	
 	DigitalTwinService viewGetDeviceInterfaces(String viewId, String deviceName, Handler<AsyncResult<List<NetInterface>>> resultHandler);
@@ -114,25 +120,41 @@ public interface DigitalTwinService {
 	// DigitalTwinService viewUpdateInterface(String viewId, String deviceName, String itfName, NetInterface netItf, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent
 	DigitalTwinService viewDeleteInterface(String viewId, String deviceName, String itfName, Handler<AsyncResult<Void>> resultHandler);
-	
+
 	// view link
 	@Fluent	
-	DigitalTwinService viewCreateLink(String viewId, Link link, Handler<AsyncResult<Void>> resultHandler);
+	DigitalTwinService viewCreateLink(String viewId, String linkName, Link link, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewDeleteLink(String viewId, String linkName, Handler<AsyncResult<Void>> resultHandler);
-	
+
 	// view bgp
 	@Fluent	
 	DigitalTwinService viewGetDeviceBgps(String viewId, String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewGetBgp(String viewId, String deviceName, String itfAddr, Handler<AsyncResult<Bgp>> resultHandler);
-	@Fluent	
-	DigitalTwinService viewCreateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
+	// @Fluent	
+	// DigitalTwinService viewCreateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewDeleteBgp(String viewId, String deviceName, String itfAddr, Handler<AsyncResult<Void>> resultHandler);
+
+	// view vlan
+	@Fluent	
+	DigitalTwinService viewGetDeviceVlans(String viewId, String deviceName, Handler<AsyncResult<List<Vlan>>> resultHandler);
+	@Fluent	
+	DigitalTwinService viewCreateVlan(String viewId, String deviceName, String vid, Vlan vlan, Handler<AsyncResult<Void>> resultHandler);
+	@Fluent	
+	DigitalTwinService viewDeleteVlan(String viewId, String deviceName, String vid, Handler<AsyncResult<Void>> resultHandler);
 	
+	// view vlan-member
+	@Fluent
+	DigitalTwinService viewGetVlanMembers(String viewId, String deviceName,String vid,  Handler<AsyncResult<List<VlanMember>>> resultHandler);
+	@Fluent
+	DigitalTwinService viewAddVlanMember(String viewId, String deviceName, String vid, String itfName, VlanMember vlanMember, Handler<AsyncResult<Void>> resultHandler);
+	@Fluent
+	DigitalTwinService viewRemoveVlanMember(String viewId, String deviceName, String vid, String itfName, Handler<AsyncResult<Void>> resultHandler);
+
 	@Fluent
 	DigitalTwinService viewGetDeviceConfig(String viewId, String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
 

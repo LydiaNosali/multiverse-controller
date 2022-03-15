@@ -422,3 +422,28 @@
 |[[vid]]`@vid`|`String`|-
 |===
 
+[[Vlan]]
+== Vlan
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[name]]`@name`|`String`|-
+|[[netAddr]]`@netAddr`|`String`|-
+|[[vid]]`@vid`|`Number (int)`|-
+|===
+
+[[VlanMember]]
+== VlanMember
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[itfName]]`@itfName`|`Number (int)`|-
+|[[mode]]`@mode`|`link:enums.html#VlanModeEnum[VlanModeEnum]`|-
+|===
+

@@ -63,11 +63,13 @@ public class CypherQuery {
 				+ "\"CREATE (src)-[r:LINKED_L2]->(dst) RETURN r\"],\r\n"
 				+ "\"CREATE (src)-[r:LINKED_L3]->(dst) RETURN r\", {src:src, dst:dst})\r\n"
 				+ "YIELD value\r\n"
-				+ "WITH value.r as link SET link.name = $linkName";
+				+ "WITH value.r as link SET link.name = $srcDevice + '.' + $srcInterface + '-' + $destDevice + '.' + $destInterface";
 		public static final String CREATE_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})\r\n"
 				+ "MERGE (c)-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "SET b.lAsn=$localAsn, b.lId=$localId, b.rAddr=$remoteAddr, b.rAsn=$remoteAsn, b.rId=$remoteId, "
 				+ "b.holdTime=$holdTime, b.keepAlive=$keepAlive, b.state=$state";
+		public static final String CREATE_VLAN = "";
+		public static final String ADD_VLAN_MEMBER = "";
 
 		public static final String GET_NETWORK_HOSTS = "MATCH (h:Host) RETURN h.name as name, "
 				+ "h.hostname as hostname, h.bgpStatus as bgpStatus, h.bgpAsn as bgpAsn, "
@@ -90,6 +92,8 @@ public class CypherQuery {
 		public static final String GET_HOST_BGPS = "MATCH (h:Host{name: $deviceName})-[:CONTAINS*3]->(c:Ip4Ctp)-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "RETURN c.ipAddr as localAddr, b.lAsn as localAsn, b.lId as localId, b.rAddr as remoteAddr, b.rAsn as remoteAsn, b.rId as remoteId, "
 				+ "b.holdTime as holdTime, b.keepAlive as keepAlive, b.state as state";
+		public static final String GET_HOST_VLANS = "";
+		public static final String GET_VLAN_MEMBERS = "";
 		public static final String GET_BGP = "MATCH (h:Host{name: $deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr: $itfAddr})-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "RETURN c.ipAddr as localAddr, b.lAsn as localAsn, b.lId as localId, b.rAddr as remoteAddr, b.rAsn as remoteAsn, b.rId as remoteId, "
 				+ "b.holdTime as holdTime, b.keepAlive as keepAlive, b.state as state";
@@ -139,8 +143,10 @@ public class CypherQuery {
 				+ "DELETE l";
 		public static final String DELETE_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "DETACH DELETE b";
+		public static final String DELETE_VLAN = "";
+		public static final String REMOVE_VLAN_MEMBER = "";
 	}
-	
+
 	public static class View {
 		public static final String CREATE_VIEW = "CREATE DATABASE $viewId";
 		public static final String IMPORT_VIEW_JSON = "CALL apoc.import.json(\"file:///view.json\")";

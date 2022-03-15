@@ -35,6 +35,8 @@ import io.nms.central.microservice.digitaltwin.model.ipnetApi.Network;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.Path;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.PathHop;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.RouteHop;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.Vlan;
+import io.nms.central.microservice.digitaltwin.model.ipnetApi.VlanMember;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -131,6 +133,17 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	public DigitalTwinService runningGetBgp(String deviceName, String itfAddr,
 			Handler<AsyncResult<Bgp>> resultHandler) {
 		getBgp(MAIN_DB, deviceName, itfAddr, resultHandler);
+		return this;
+	}
+	@Override
+	public DigitalTwinService runningGetDeviceVlans(String deviceName, Handler<AsyncResult<List<Vlan>>> resultHandler) {
+		getDeviceVlans(MAIN_DB, deviceName, resultHandler);
+		return this;
+	}
+	@Override
+	public DigitalTwinService runningGetVlanMembers(String deviceName, String vid,
+			Handler<AsyncResult<List<VlanMember>>> resultHandler) {
+		getVlanMembers(MAIN_DB, deviceName, vid, resultHandler);
 		return this;
 	}
 	@Override
@@ -418,10 +431,10 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	}
 	
 	@Override
-	public DigitalTwinService viewCreateLink(String viewId, 
+	public DigitalTwinService viewCreateLink(String viewId, String linkName,
 			Link link, Handler<AsyncResult<Void>> resultHandler) {
-		String linkName = link.getSrcDevice()+"."+link.getSrcInterface()
-				+"-"+link.getDestDevice()+"."+link.getDestInterface();
+		// String linkName = link.getSrcDevice()+"."+link.getSrcInterface()
+		//		+"-"+link.getDestDevice()+"."+link.getDestInterface();
 		JsonObject params = new JsonObject()
 				.put("srcDevice", link.getSrcDevice())
 				.put("srcInterface", link.getSrcInterface())
@@ -442,8 +455,7 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		return this;
 	}
 	@Override
-	public DigitalTwinService viewDeleteLink(String viewId, String linkName, 
-			Handler<AsyncResult<Void>> resultHandler) {
+	public DigitalTwinService viewDeleteLink(String viewId, String linkName, Handler<AsyncResult<Void>> resultHandler) {
 		JsonObject params = new JsonObject()
 				.put("linkName", linkName);
 		execute(viewId, CypherQuery.Api.DELETE_LINK, params, res -> {
@@ -475,12 +487,12 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		getBgp(viewId, deviceName, itfAddr, resultHandler);
 		return this;
 	}
-	@Override
+	/* @Override
 	public DigitalTwinService viewCreateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp,
 			Handler<AsyncResult<Void>> resultHandler) {
 		// TODO Auto-generated method stub
-		return null;
-	}
+		return this;
+	} */
 	@Override
 	public DigitalTwinService viewUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp,
 			Handler<AsyncResult<Void>> resultHandler) {
@@ -528,6 +540,77 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		return this;
 	}
 	
+	@Override
+	public DigitalTwinService viewGetDeviceVlans(String viewId, String deviceName,
+			Handler<AsyncResult<List<Vlan>>> resultHandler) {
+		getDeviceVlans(viewId, deviceName, resultHandler);
+		return this;
+	}
+
+	@Override
+	public DigitalTwinService viewCreateVlan(String viewId, String deviceName, String vid, Vlan vlan,
+			Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject params = new JsonObject();
+		execute(viewId, CypherQuery.Api.CREATE_VLAN, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
+	}
+
+	@Override
+	public DigitalTwinService viewDeleteVlan(String viewId, String deviceName, String vid,
+			Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject params = new JsonObject();
+		execute(viewId, CypherQuery.Api.DELETE_VLAN, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
+	}
+
+	@Override
+	public DigitalTwinService viewGetVlanMembers(String viewId, String deviceName, String vid,
+			Handler<AsyncResult<List<VlanMember>>> resultHandler) {
+		getVlanMembers(viewId, deviceName, vid, resultHandler);
+		return this;
+	}
+
+	@Override
+	public DigitalTwinService viewAddVlanMember(String viewId, String deviceName, String vid, String itfName,
+			VlanMember vlanMember, Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject params = new JsonObject();
+		execute(viewId, CypherQuery.Api.ADD_VLAN_MEMBER, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
+	}
+
+	@Override
+	public DigitalTwinService viewRemoveVlanMember(String viewId, String deviceName, String vid, String itfName,
+			Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject params = new JsonObject();
+		execute(viewId, CypherQuery.Api.REMOVE_VLAN_MEMBER, params, res -> {
+			if (res.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+		return this;
+	}
+	
+	/* ---------------------------------------------------------------------------- */
 	@Override
 	public DigitalTwinService viewVerify(String viewId, 
 			Handler<AsyncResult<VerificationReport>> resultHandler) {
@@ -802,6 +885,34 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 				} else {
 					resultHandler.handle(Future.succeededFuture(null));
 				}
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	
+	private void getDeviceVlans(String db, String deviceName, Handler<AsyncResult<List<Vlan>>> resultHandler) {
+		JsonObject params = new JsonObject().put("deviceName", deviceName);
+		find(db, CypherQuery.Api.GET_HOST_VLANS, params, res -> {
+			if (res.succeeded()) {
+				List<Vlan> vlans = res.result().stream()
+						.map(o -> {return new Vlan(o);})
+						.collect(Collectors.toList());
+				resultHandler.handle(Future.succeededFuture(vlans));
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	
+	private void getVlanMembers(String db, String deviceName, String vid, Handler<AsyncResult<List<VlanMember>>> resultHandler) {
+		JsonObject params = new JsonObject().put("deviceName", deviceName);
+		find(db, CypherQuery.Api.GET_VLAN_MEMBERS, params, res -> {
+			if (res.succeeded()) {
+				List<VlanMember> vlanMembers = res.result().stream()
+						.map(o -> {return new VlanMember(o);})
+						.collect(Collectors.toList());
+				resultHandler.handle(Future.succeededFuture(vlanMembers));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
 			}
