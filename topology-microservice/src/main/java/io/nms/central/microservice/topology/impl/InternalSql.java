@@ -26,6 +26,7 @@ public class InternalSql {
 	public static final String UPDATE_LC_STATUS = "UPDATE VlinkConn SET status=IFNULL(?, status) WHERE id = ?";
 	public static final String UPDATE_CONNECTION_STATUS = "UPDATE Vconnection SET status=IFNULL(?, status) WHERE id = ?";
 	public static final String UPDATE_PREFIX_STATUS_BY_NODE = "UPDATE Prefix SET available=IFNULL(?, available) WHERE originId = ?";
+	public static final String UPDATE_TRAIL_STATUS = "UPDATE Vtrail SET status=IFNULL(?, status) WHERE id = ?";
 	
 	// get node status
 	public static final String GET_NODE_STATUS = "SELECT status FROM Vnode WHERE id = ?";

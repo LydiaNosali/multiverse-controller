@@ -127,6 +127,16 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 					}
 				});
 			break;
+			case TRAIL:
+				topologyService.updateTrailStatus(resId, resStatus, null, ar -> {
+					if (ar.succeeded()) {
+						notifyFrontend();
+						notifyTopologyChange();
+					} else {
+						ar.cause().printStackTrace();
+					}
+				});
+			break;
 			default:
 			break;
 		  }

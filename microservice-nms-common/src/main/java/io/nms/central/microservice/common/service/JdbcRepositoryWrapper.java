@@ -32,7 +32,9 @@ public class JdbcRepositoryWrapper {
 	    LINK,
 		LC,
 		CONNECTION,
-	    PA
+	    PA,
+	    XC,
+	    TRAIL
 	}
 	private Entity currEntity = Entity.NONE;
 	private UUID currUUID = null;

@@ -274,4 +274,7 @@ public interface TopologyService {
 
 	@Fluent
 	TopologyService updateConnectionStatus(int id, StatusEnum status, String op, Handler<AsyncResult<Void>> resultHandler);
+	
+	@Fluent
+	TopologyService updateTrailStatus(int id, StatusEnum status, String op, Handler<AsyncResult<Void>> resultHandler);
 }
