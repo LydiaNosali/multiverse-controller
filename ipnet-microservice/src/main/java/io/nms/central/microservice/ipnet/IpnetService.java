@@ -65,7 +65,7 @@ public interface IpnetService {
 	void configGetDeviceFile(String viewId, String deviceName, Handler<AsyncResult<JsonObject>> resultHandler);
 
 	void getAllConfigChanges(String viewId, Handler<AsyncResult<List<ConfigChange>>> resultHandler);
-	void undoConfigChange(String viewId, Handler<AsyncResult<Void>> resultHandler);
+	// void undoConfigChange(String viewId, Handler<AsyncResult<Void>> resultHandler);
 	
 	void configVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler);
 	void configApply(String viewId, Handler<AsyncResult<ApplyConfigResult>> resultHandler);

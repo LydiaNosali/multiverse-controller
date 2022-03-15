@@ -92,7 +92,7 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		router.get(API_CONFIG_DEVICE_FILE).handler(this::checkAdminRole).handler(this::apiConfigGetDeviceFile);
 		
 		router.get(API_CONFIG_CHANGES).handler(this::checkAdminRole).handler(this::apiConfigGetAllChanges);
-		router.delete(API_CONFIG_CHANGES).handler(this::checkAdminRole).handler(this::apiConfigUndoChange);
+		// router.delete(API_CONFIG_CHANGES).handler(this::checkAdminRole).handler(this::apiConfigUndoChange);
 
 		router.get(API_CONFIG_VERIFY).handler(this::checkAdminRole).handler(this::apiConfigVerify);
 		router.get(API_CONFIG_APPLY).handler(this::checkAdminRole).handler(this::apiConfigApply);
@@ -296,11 +296,11 @@ public class RestIpnetAPIVerticle extends RestAPIVerticle {
 		String username = principal.getString("username");
 		service.getAllConfigChanges(username, resultHandler(context, Json::encodePrettily));
 	}
-	private void apiConfigUndoChange(RoutingContext context) {
+	/* private void apiConfigUndoChange(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String username = principal.getString("username");
 		service.undoConfigChange(username, deleteResultHandler(context));
-	}
+	} */
 	
 	private void apiGetIntendedNetConfig(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
