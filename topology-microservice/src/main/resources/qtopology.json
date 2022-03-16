@@ -72,7 +72,7 @@
         { "srcSwitch": "H", "srcPort": "p2", "dstSwitch": "I", "dstPort": "p3" }
     ],
     "capabilities": [
-        { "name": "C-NIST", "location": { "node": "A", "port": "p8" }, "description": "C-NIST - at D.p8" },
+        { "name": "C-NIST", "location": { "node": "A", "port": "p8" }, "description": "C-NIST - at A.p8" },
         { "name": "C-ARL", "location": { "node": "B", "port": "p8" }, "description": "C-ARL at B.p8" },
         { "name": "C-NRL", "location": { "node": "E", "port": "p4" }, "description": "C-NRL at E.p4" },
         { "name": "C-NASA", "location": { "node": "E", "port": "p3" }, "description": "C-NASA - E.p3" }
