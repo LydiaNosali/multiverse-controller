@@ -42,7 +42,7 @@ public class RestQconnectionAPIVerticle extends RestAPIVerticle {
 		// API route handler
 		router.get(API_VERSION).handler(this::apiVersion);
 
-		router.post(API_ALL_PATHS).handler(this::checkAdminRole).handler(this::apiCreatePath);
+		router.put(API_ALL_PATHS).handler(this::checkAdminRole).handler(this::apiCreatePath);
 		router.delete(API_ONE_PATH).handler(this::checkAdminRole).handler(this::apiDeletePath);
 
 		// get HTTP host and port from configuration, or use default value
