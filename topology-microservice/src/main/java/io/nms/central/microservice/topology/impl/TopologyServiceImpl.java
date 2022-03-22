@@ -1408,9 +1408,11 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 							JsonArray nodes = baseTopology.getJsonArray("nodes");
 							JsonArray links = baseTopology.getJsonArray("links");
 							JsonArray caps = baseTopology.getJsonArray("capabilities");
+							JsonArray trails = baseTopology.getJsonArray("trails");
 							HashMap<String,Integer> nodeIds = new HashMap<String,Integer>();
 							HashMap<String,Integer> ltpIds = new HashMap<String,Integer>();
-							HashMap<String,Integer> linkIds = new HashMap<String,Integer>();
+							// HashMap<String,Integer> linkIds = new HashMap<String,Integer>();
+							HashMap<String,Integer> trailIds = new HashMap<String,Integer>();
 							
 							List<Future> allNodesAdded = new ArrayList<Future>();
 							nodes.forEach(e -> {
@@ -1481,7 +1483,59 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 						            	if (error != null) {
 						            		pNetworkDone.fail(error.getCause());
 						                } else {
-						                	pNetworkDone.complete();
+						                	// create Trails
+						                	List<Future> allTrailsAdded = new ArrayList<Future>();
+											trails.forEach(e -> {
+												Promise<Void> pTrailAdded = Promise.promise();
+												allTrailsAdded.add(pTrailAdded.future());
+												JsonObject jTrail = (JsonObject) e;
+												String trailName = jTrail.getString("name");
+												Vtrail vtrail = new Vtrail();
+												vtrail.setName(trailName);
+												vtrail.setVsubnetId(subnetId);
+												vtrail.setLabel("");
+												vtrail.setDescription(jTrail.getString("description"));
+												vtrail.setStatus(StatusEnum.UP);
+												addVtrail(vtrail, ar -> {
+													if (ar.succeeded()) {
+														trailIds.put(vtrail.getName(), ar.result());
+														List<Future> allOxcsAdded = new ArrayList<Future>();
+														jTrail.getJsonArray("oxcs").forEach(el -> {
+															JsonObject xc = (JsonObject) el;
+															Promise<Void> pOxcAdded = Promise.promise();
+															allOxcsAdded.add(pOxcAdded.future());
+															String ingressPortName = xc.getString("switch") + "." + xc.getString("ingressPort");
+															String egressPortName = xc.getString("switch") + "." + xc.getString("egressPort");
+															VcrossConnect vxc = new VcrossConnect();
+															vxc.setName(vtrail.getName());
+															vxc.setLabel("");
+															vxc.setDescription("");
+															vxc.setStatus(StatusEnum.UP);
+															vxc.setTrailId(ar.result());
+															vxc.setSwitchId(nodeIds.get(xc.getString("switch")));
+															vxc.setIngressPortId(ltpIds.get(ingressPortName));
+															vxc.setEgressPortId(ltpIds.get(egressPortName));
+															addVcrossConnect(vxc, ar2 -> {
+																if (ar2.succeeded()) {
+																	pOxcAdded.complete();
+																} else {
+																	pOxcAdded.fail(ar2.cause());
+																}
+															});
+														});
+														CompositeFuture.all(allOxcsAdded).map((Void)null).onComplete(pTrailAdded);
+													} else {
+														pTrailAdded.fail(ar.cause());
+													}
+												});
+											});
+											CompositeFuture.all(allTrailsAdded).onComplete(res3 -> {
+												if (res3.succeeded()) {
+													pNetworkDone.complete();
+												} else {
+													pNetworkDone.fail(res3.cause());
+												}
+											});
 						                }
 						            });
 								} else {

@@ -73,8 +73,23 @@
     ],
     "capabilities": [
         { "name": "C-NIST", "location": { "node": "A", "port": "p8" }, "description": "C-NIST - at A.p8" },
+        { "name": "C-NIST-2", "location": { "node": "A", "port": "p7" }, "description": "C-NIST-2 - at A.p7" },
         { "name": "C-ARL", "location": { "node": "B", "port": "p8" }, "description": "C-ARL at B.p8" },
+        { "name": "C-ARL-2", "location": { "node": "B", "port": "p7" }, "description": "C-ARL at B.p7" },
         { "name": "C-NRL", "location": { "node": "E", "port": "p4" }, "description": "C-NRL at E.p4" },
         { "name": "C-NASA", "location": { "node": "E", "port": "p3" }, "description": "C-NASA - E.p3" }
+    ],
+    "trails": [
+        { "name": "T-1", "description": "C-NIST to C-ARL via C,G,E", "oxcs": [
+            {"switch": "A", "ingressPort": "p8", "egressPort": "p2"},
+            {"switch": "C", "ingressPort": "p3", "egressPort": "p5"},
+            {"switch": "G", "ingressPort": "p1", "egressPort": "p2"},
+            {"switch": "E", "ingressPort": "p1", "egressPort": "p6"},
+            {"switch": "B", "ingressPort": "p2", "egressPort": "p8"}
+        ]},
+        { "name": "T-2", "description": "C-NIST-2 to C-ARL-2 direct", "oxcs": [
+            {"switch": "A", "ingressPort": "p7", "egressPort": "p1"},
+            {"switch": "B", "ingressPort": "p3", "egressPort": "p7"}
+        ]}
     ]
 }
