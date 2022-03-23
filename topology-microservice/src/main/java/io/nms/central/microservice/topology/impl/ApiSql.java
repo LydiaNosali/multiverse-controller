@@ -239,8 +239,10 @@ public class ApiSql {
 			+ "id, name, label, description, type, info, created, updated FROM Vsubnet";
 	// public static final String FETCH_ALL_VNODES = "SELECT "
 	//		+ "id, name, label, description, info, status, created, updated, posx, posy, location, type, vsubnetId, hwaddr, mgmtIp FROM Vnode";
-	// public static final String FETCH_ALL_VLTPS = "SELECT "
-	//		+ "id, name, label, description, info, status, created, updated, vnodeId, port, bandwidth, mtu, busy FROM Vltp";
+	public static final String FETCH_VLTPS_BY_VSUBNET = "SELECT "
+			+ "Vltp.id, Vltp.name, Vltp.label, Vltp.description, Vltp.info, Vltp.status, Vltp.created, Vltp.updated, "
+			+ "Vltp.vnodeId, Vltp.port, Vltp.bandwidth, Vltp.mtu, Vltp.busy FROM Vltp "
+			+ "INNER JOIN Vnode ON Vltp.vnodeId=Vnode.id WHERE Vnode.vsubnetId = ?";
 	// public static final String FETCH_ALL_VCTPS = "SELECT "
 	//		+ "id, name, label, description, info, created, updated, connType, connInfo, status, vltpId, vctpId, vnodeId FROM Vctp"; 
 	// public static final String FETCH_ALL_VLINKS = "SELECT "

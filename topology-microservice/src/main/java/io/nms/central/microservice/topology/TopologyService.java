@@ -104,6 +104,9 @@ public interface TopologyService {
 	TopologyService getVltpsByVnode(String vnodeId, Handler<AsyncResult<List<Vltp>>> resultHandler);
 	
 	@Fluent	
+	TopologyService getVltpsByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vltp>>> resultHandler);
+	
+	@Fluent	
 	TopologyService deleteVltp(String vltpId, Handler<AsyncResult<Void>> resultHandler);
 	
 	@Fluent 

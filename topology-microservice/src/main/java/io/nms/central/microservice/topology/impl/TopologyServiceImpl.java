@@ -326,7 +326,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		}
 		vnode.setHwaddr(macAddr);
 
-		if (!Functional.checkCidrIp(vnode.getMgmtIp())) {
+		if (!Functional.isValidHostIp(vnode.getMgmtIp())) {
 			resultHandler.handle(Future.failedFuture("IP address not valid"));
 			return this;
 		}
@@ -376,6 +376,15 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService getVltpsByVnode(String vnodeId, Handler<AsyncResult<List<Vltp>>> resultHandler) {
 		JsonArray params = new JsonArray().add(vnodeId);
 		find(ApiSql.FETCH_VLTPS_BY_VNODE, params).map(rawList -> rawList.stream().map(row -> {
+			return JsonUtils.json2Pojo(row.encode(), Vltp.class);
+		}).collect(Collectors.toList())).onComplete(resultHandler);
+		return this;
+	}
+	
+	@Override
+	public TopologyService getVltpsByVsubnet(String vsubnetId, Handler<AsyncResult<List<Vltp>>> resultHandler) {
+		JsonArray params = new JsonArray().add(vsubnetId);
+		find(ApiSql.FETCH_VLTPS_BY_VSUBNET, params).map(rawList -> rawList.stream().map(row -> {
 			return JsonUtils.json2Pojo(row.encode(), Vltp.class);
 		}).collect(Collectors.toList())).onComplete(resultHandler);
 		return this;
@@ -492,7 +501,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 							.add(vctp.getStatus().getValue())
 							.add(vctp.getParentId())
 							.add(parentCtp.getVnodeId());
-					insert(ApiSql.INSERT_VCTP_VLTP, params, resultHandler);
+					insert(ApiSql.INSERT_VCTP_VCTP, params, resultHandler);
 				} else {
 					resultHandler.handle(Future.failedFuture(ar.cause()));
 				}

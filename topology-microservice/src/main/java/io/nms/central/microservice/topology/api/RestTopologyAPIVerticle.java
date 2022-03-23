@@ -51,6 +51,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private static final String API_ONE_LTP = "/ltp/:ltpId";
 	private static final String API_ALL_LTPS = "/ltp";
 	private static final String API_LTPS_BY_NODE = "/node/:nodeId/ltps";
+	private static final String API_LTPS_BY_SUBNET = "/subnet/:subnetId/ltps";
 
 	private static final String API_ONE_CTP = "/ctp/:ctpId";
 	private static final String API_ALL_CTPS = "/ctp";
@@ -117,6 +118,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 
 		router.post(API_ALL_LTPS).handler(this::checkAdminRole).handler(this::apiAddLtp);
 		router.get(API_LTPS_BY_NODE).handler(this::checkAdminRole).handler(this::apiGetLtpsByNode);
+		router.get(API_LTPS_BY_SUBNET).handler(this::checkAdminRole).handler(this::apiGetLtpsBySubnet);
 		router.get(API_ONE_LTP).handler(this::checkAdminRole).handler(this::apiGetLtp);
 		router.delete(API_ONE_LTP).handler(this::checkAdminRole).handler(this::apiDeleteLtp);
 		router.put(API_ONE_LTP).handler(this::checkAdminRole).handler(this::apiUpdateLtp);
@@ -274,6 +276,10 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private void apiGetLtpsByNode(RoutingContext context) {
 		String nodeId = context.request().getParam("nodeId");
 		service.getVltpsByVnode(nodeId, resultHandler(context, Json::encodePrettily));
+	}
+	private void apiGetLtpsBySubnet(RoutingContext context) {
+		String subnetId = context.request().getParam("subnetId");
+		service.getVltpsByVsubnet(subnetId, resultHandler(context, Json::encodePrettily));
 	}
 	private void apiDeleteLtp(RoutingContext context) {
 		String ltpId = context.request().getParam("ltpId");
