@@ -97,7 +97,7 @@ public class IpnetServiceImpl implements IpnetService {
 				cc.setAction(ActionEnum.CREATE);
 				cc.setLocation(getConfigDeviceURL(deviceName));
 
-				digitalTwinSvcProxy().viewCreateDevice(viewId, deviceName, device, 
+				digitalTwinSvcProxy().viewUpsertDevice(viewId, deviceName, device, 
 						created -> {
 					if (created.succeeded()) {
 						resultHandler.handle(Future.succeededFuture());
@@ -123,7 +123,7 @@ public class IpnetServiceImpl implements IpnetService {
 				cc.setLocation(getConfigDeviceURL(deviceName));
 
 				digitalTwinSvcProxy()
-						.viewCreateDevice(viewId, deviceName, device, updated -> {
+						.viewUpsertDevice(viewId, deviceName, device, updated -> {
 					if (updated.succeeded()) {
 						resultHandler.handle(Future.succeededFuture());
 						cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
@@ -313,7 +313,7 @@ public class IpnetServiceImpl implements IpnetService {
 				cc.setAction(ActionEnum.CREATE);
 				cc.setLocation(getConfigBgpURL(deviceName, itfAddr));
 
-				digitalTwinSvcProxy().viewUpdateBgp(viewId, deviceName, itfAddr, bgp, 
+				digitalTwinSvcProxy().viewUpsertBgp(viewId, deviceName, itfAddr, bgp, 
 						created -> {
 					if (created.succeeded()) {
 						resultHandler.handle(Future.succeededFuture());
@@ -339,7 +339,7 @@ public class IpnetServiceImpl implements IpnetService {
 				cc.setLocation(getConfigBgpURL(deviceName, itfAddr));
 
 				digitalTwinSvcProxy()
-						.viewUpdateBgp(viewId, deviceName, itfAddr, bgp, updated -> {
+						.viewUpsertBgp(viewId, deviceName, itfAddr, bgp, updated -> {
 					if (updated.succeeded()) {
 						resultHandler.handle(Future.succeededFuture());
 						cc.setDatetime(OffsetDateTime.now().toLocalDateTime().toString());
