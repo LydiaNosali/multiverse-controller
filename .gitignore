@@ -4,6 +4,7 @@
 .settings/
 .vscode/
 *.factorypath
+*.cypher
 
 # build files
 build
