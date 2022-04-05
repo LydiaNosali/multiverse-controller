@@ -89,6 +89,8 @@ public interface DigitalTwinService {
 	@Fluent	
 	DigitalTwinService createView(String viewId, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
+	DigitalTwinService createView2(String viewId, Handler<AsyncResult<Void>> resultHandler);
+	@Fluent	
 	DigitalTwinService deleteView(String viewId, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewVerify(String viewId, Handler<AsyncResult<VerificationReport>> resultHandler);
@@ -103,9 +105,7 @@ public interface DigitalTwinService {
 	@Fluent	
 	DigitalTwinService viewGetDevice(String viewId, String deviceName, Handler<AsyncResult<Device>> resultHandler);
 	@Fluent	
-	DigitalTwinService viewCreateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
-	// @Fluent	
-	// DigitalTwinService viewUpdateDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
+	DigitalTwinService viewUpsertDevice(String viewId, String deviceName, Device device, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewDeleteDevice(String viewId, String deviceName, Handler<AsyncResult<Void>> resultHandler);
 
@@ -116,8 +116,8 @@ public interface DigitalTwinService {
 	DigitalTwinService viewGetInterface(String viewId, String deviceName, String itfName, Handler<AsyncResult<NetInterface>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewCreateInterface(String viewId, String deviceName, String itfName, NetInterface netItf, Handler<AsyncResult<Void>> resultHandler);
-	// @Fluent	
-	// DigitalTwinService viewUpdateInterface(String viewId, String deviceName, String itfName, NetInterface netItf, Handler<AsyncResult<Void>> resultHandler);
+	@Fluent	
+	DigitalTwinService viewUpdateInterface(String viewId, String deviceName, String itfName, NetInterface netItf, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent
 	DigitalTwinService viewDeleteInterface(String viewId, String deviceName, String itfName, Handler<AsyncResult<Void>> resultHandler);
 
@@ -132,10 +132,8 @@ public interface DigitalTwinService {
 	DigitalTwinService viewGetDeviceBgps(String viewId, String deviceName, Handler<AsyncResult<List<Bgp>>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewGetBgp(String viewId, String deviceName, String itfAddr, Handler<AsyncResult<Bgp>> resultHandler);
-	// @Fluent	
-	// DigitalTwinService viewCreateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
-	DigitalTwinService viewUpdateBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
+	DigitalTwinService viewUpsertBgp(String viewId, String deviceName, String itfAddr, Bgp bgp, Handler<AsyncResult<Void>> resultHandler);
 	@Fluent	
 	DigitalTwinService viewDeleteBgp(String viewId, String deviceName, String itfAddr, Handler<AsyncResult<Void>> resultHandler);
 

@@ -287,9 +287,9 @@ public class ConfigProcessor {
 		    	});
 		    }
 		}
-		// Instant end = Instant.now();
-		// Duration timeElapsed = Duration.between(start, end);
-		// logger.info("Config processing: " + timeElapsed.getNano() / 1000000 + " ms.");
+		Instant end = Instant.now();
+		Duration timeElapsed = Duration.between(start, end);
+		logger.info("1- Config processing time: " + timeElapsed.getNano() / 1000000 + " ms.");
 		return true;
 	}
 	

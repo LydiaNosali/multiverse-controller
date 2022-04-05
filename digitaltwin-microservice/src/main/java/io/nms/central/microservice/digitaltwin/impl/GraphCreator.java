@@ -64,7 +64,7 @@ public class GraphCreator {
 	    JsonArray sviCtps = input.getJsonArray("sviCtp");
 	    processIp4Ctps(sviCtps);
 	    
-	    processAutoBridge();
+	    processAutoVlanMembers();
 	    
 	    JsonArray links = input.getJsonArray("link");
 	    processLinks(links);
@@ -91,16 +91,15 @@ public class GraphCreator {
 	    
 	    Instant end = Instant.now();
 		Duration timeElapsed = Duration.between(start, end);
-		logger.info("Graph queries creation: " + timeElapsed.getNano() / 1000000 + " ms.");
+		logger.info("2- Queries creation time: " + timeElapsed.getNano() / 1000000 + " ms.");
 	    return true;
 	}
 
 	private void processHosts(JsonArray hosts) {
-		String query = "T4@CREATE (:Host {name: '%s', hostname: '%s', type: '%s', mac: '%s', platform: '%s', "
-				+ "bgpAsn: '%s', bgpStatus: '%s', hwsku: '%s'});";
+		String query = "T4@" + CypherQuery.Graph.CREATE_HOST;
 		hosts.forEach(e -> {
 	    	JsonObject host = (JsonObject) e;
-	    	String result = String.format(query, 
+	    	String result = String.format(query, host.getString("type"),
 	    			host.getString("name"), host.getString("hostname"),
     				host.getString("type"), host.getString("mac"),
     				host.getString("platform"),
@@ -110,9 +109,7 @@ public class GraphCreator {
 	}
 	
 	private void processLtps(JsonArray ltps) {
-		String query = "T5@MATCH (r:Host) WHERE r.name = '%s' "
-				+ "CREATE (r)-[:CONTAINS]->(:Ltp {name: '%s', type: '%s', adminStatus: '%s', "
-				+ "index: '%s', speed: '%s', mtu: '%s'});";
+		String query = "T5@" + CypherQuery.Graph.CREATE_LTP;
 		ltps.forEach(e -> {
 			JsonObject ltp = (JsonObject) e;
 	    	String result = String.format(query, 
@@ -124,8 +121,7 @@ public class GraphCreator {
 	}
 
 	private void processEtherCtps(JsonArray ctps) {
-		String q = "T6@MATCH (h:Host {name:'%s'})-[:CONTAINS]->(l:Ltp{name:'%s'}) "
-				+ "CREATE (l)-[:CONTAINS]->(c:EtherCtp {macAddr: '%s', vlan: '%s', mode: '%s'});";
+		String q = "T6@" + CypherQuery.Graph.CREATE_ETHERCTP;
 		ctps.forEach(e -> {
 			JsonObject ctp = (JsonObject) e;
 	    	String result = String.format(q, 
@@ -139,8 +135,7 @@ public class GraphCreator {
 	}
 	 
 	private void processIp4Ctps(JsonArray ctps) {
-		String q = "T7@MATCH (r:Host {name:'%s'})-[:CONTAINS]->(:Ltp{name:'%s'})-[:CONTAINS]->(c:EtherCtp) "
-				+ "CREATE (c)-[:CONTAINS]->(ipc:Ip4Ctp {ipAddr:'%s', netMask:'%s', netAddr: '%s', svi:'%s', vlan:'%s'});";
+		String q = "T7@" + CypherQuery.Graph.CREATE_IP4CTP;
 		ctps.forEach(e -> {
 			JsonObject ctp = (JsonObject) e;
 	    	String result = String.format(q, 
@@ -156,20 +151,7 @@ public class GraphCreator {
 	}
 	
 	private void processLinks(JsonArray links) {
-		/* String q = "T9@MATCH (sR:Host {name:'%s'})-[:CONTAINS]->(src:Ltp{name:'%s'}) "
-				+ "MATCH (tR:Host {name:'%s'})-[:CONTAINS]->(dst:Ltp{name:'%s'}) "
-				+ "CREATE (src)-[:LINKED]->(dst);"; */
-		String q = "T9@MATCH (sR:Host {name:'%s'})-[:CONTAINS]->(src:Ltp{name:'%s'})\r\n"
-				+ "MATCH (tR:Host {name:'%s'})-[:CONTAINS]->(dst:Ltp{name:'%s'})\r\n"
-				+ "WITH DISTINCT sR,tR,src,dst\r\n"
-				+ "CALL apoc.do.case([\r\n"
-				+ "(sR.type = 'LeafRouter' AND tR.type = 'LeafRouter'),\r\n"
-				+ "\"CREATE (src)-[r:LINKED_VLT {name: '%s'}]->(dst)\",\r\n"
-				+ "(sR.type = 'Server' OR tR.type ='Server'),\r\n"
-				+ "\"CREATE (src)-[r:LINKED_L2 {name: '%s'}]->(dst)\"],\r\n"
-				+ "\"CREATE (src)-[r:LINKED_L3 {name: '%s'}]->(dst)\", {src:src, dst:dst})\r\n"
-				+ "YIELD value\r\n"
-				+ "RETURN value;";
+		String q = "T9@" + CypherQuery.Graph.CREATE_LINK;
 		links.forEach(e -> {
 			JsonObject link = (JsonObject) e;
 	    	String result = String.format(q, 
@@ -185,29 +167,17 @@ public class GraphCreator {
 	}
 	
 	private void processAutoLc() {
-		String q = "T10@MATCH (sC:EtherCtp)<-[:CONTAINS]-(sL:Ltp)-[:LINKED_L2|:LINKED_L3|:LINKED_VLT]->(dL:Ltp)-[:CONTAINS]->(dC:EtherCtp) "
-				+ "WHERE NOT (sC)-[:LINK_CONN]-() AND NOT (dC)-[:LINK_CONN]-() "
-				+ "AND NOT (sL)-[:CONTAINS]-(:Host {type:'Switch'}) AND NOT (dL)-[:CONTAINS]-(:Host {type:'Switch'}) "
-				+ "CREATE (sC)-[r:LINK_CONN]->(dC);";
-		// String vlan = "MATCH (c1:EtherCtp)-[:LINK_CONN]-(c2:EtherCtp) WHERE c1.vlan = 0 AND c2.vlan <> 0 "
-		// 		+ "SET c1.vlan = c2.vlan;";
+		String q = "T10@" + CypherQuery.Graph.AUTO_LINKCONN;
     	output.add(q);
-    	// output.add(vlan);
 	}
 	
-	private void processAutoBridge() {
-		String q = "T17@MATCH (h:Host)\r\n"
-				+ "MATCH (h)-[:CONTAINS*3]->(svi:Ip4Ctp) WHERE svi.svi <> '-' \r\n"
-				+ "MATCH (h)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(e:EtherCtp) WHERE e.vlan = svi.vlan AND NOT (e)-[:CONTAINS]->(:Ip4Ctp)\r\n"
-				+ "CREATE (e)-[b:BRIDGE]->(svi)\r\n"
-				+ "RETURN h, svi, b, e;";
+	private void processAutoVlanMembers() {
+		String q = "T17@" + CypherQuery.Graph.AUTO_VLAN_MEMBER;
     	output.add(q);
 	}
 	
 	private void processIpConns(JsonArray ipConns) {
-		String q = "T11@MATCH (r:Host {name:'%s'})-[:CONTAINS]->(sL:Ltp{name:'%s'})-[:CONTAINS*2]->(s:Ip4Ctp) "
-				+ "MATCH (dC:EtherCtp{macAddr:'%s'})-[:CONTAINS]->(d:Ip4Ctp{ipAddr:'%s'}) "
-				+ "CREATE (s)-[ip:IP_CONN]->(d);";
+		String q = "T11@" + CypherQuery.Graph.CREATE_IPCONN;
 		ipConns.forEach(e -> {
 			JsonObject ipConn = (JsonObject) e;
 	    	String result = String.format(q, 
@@ -220,9 +190,7 @@ public class GraphCreator {
 	}
 	
 	private void processBgpNeighbors(JsonArray bgpNeighbors) {
-		String q = "T12@MATCH(r:Host {name:'%s'})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:'%s'})\r\n"
-				+ "CREATE (c)-[:HAS_CONFIG]->(b:Bgp {lId: '%s', lAsn: '%s', rAddr:'%s', rId:'%s', rAsn:'%s', "
-				+ "state: '%s', holdTime: '%s', keepAlive: '%s'});";
+		String q = "T12@" + CypherQuery.Graph.CREATE_BGP;
 		bgpNeighbors.forEach(e -> {
 			JsonObject bgpN = (JsonObject) e;
 	    	String result = String.format(q, 
@@ -241,19 +209,13 @@ public class GraphCreator {
 	}
 	
 	private void connectBgpNeighbors() {
-		String q = "T13@MATCH (b1:Bgp)<-[:HAS_CONFIG]-(c1:Ip4Ctp)-[:IP_CONN]->(c2:Ip4Ctp)-[:HAS_CONFIG]->(b2:Bgp)\r\n"
-				+ "WHERE EXISTS((c2)-[:IP_CONN]->(c1))\r\n"
-				+ "AND b1.rAddr=c2.ipAddr AND b2.rAddr=c1.ipAddr AND b1.rAsn=b2.lAsn AND b2.rAsn=b1.lAsn AND b1.rId=b2.lId AND b2.rId=b1.lId\r\n"
-				+ "WITH DISTINCT b1,b2\r\n"
-				+ "CREATE (b1)-[:BGP_PEER]->(b2);";
-		// TODO: consider status
+		String q = "T13@" + CypherQuery.Graph.AUTO_BGP_NEIGHBORS;
     	output.add(q);
 	}
 	
 	// ACL table
 	private void sortAclTables(JsonArray aclTables) {
 		// TODO: egress ACL
-		// aclInInterface = new JsonArray();
 		aclInGlobal = new JsonArray();
 		aclTables.forEach(e -> {
 			JsonObject table = (JsonObject) e;
@@ -266,16 +228,8 @@ public class GraphCreator {
 	}
 	
 	private void processAclTables() {
-		// ingress
-		/* String qInGbl = "T14@CREATE (a:Acl{stage: '%s', name: '%s', binding: '%s', type: '%s', description: '%s'})\r\n"
-				+ "WITH a\r\n"
-				+ "MATCH (f:Host {name:'%s'})-[:CONTAINS]->(l:Ltp)-[:CONTAINS*2]->(c:Ip4Ctp)\r\n"
-				+ "WHERE (NOT l.name STARTS WITH 'Loopback') AND (NOT (c)-[:HAS_ACL]->())\r\n"
-				+ "CREATE (c)-[:HAS_ACL]->(a);"; */
-		String qInGbl = "T14@CREATE (a:Acl{stage: '%s', name: '%s', binding: '%s', type: '%s', description: '%s', rules:[]})\r\n"
-				+ "WITH a\r\n"
-				+ "MATCH (h:Host {name:'%s'})\r\n"
-				+ "CREATE (h)-[:ACL]->(a);";
+		// ingress only
+		String qInGbl = "T14@" + CypherQuery.Graph.CREATE_ACLTABLE;
 		aclInGlobal.forEach(e -> {
 			JsonObject table = (JsonObject) e;
 	    	String result = String.format(qInGbl, 
@@ -316,42 +270,7 @@ public class GraphCreator {
 	}
 
 	private void processAclRules(JsonArray aclRules) {
-		/* String q = "T15@CREATE (nr:AclRule {name:'%s', priority: %s, action:'%s', matching:'%s'})\r\n"
-				+ "WITH nr\r\n"
-				+ "MATCH (f:Host {name:'%s'})-[:CONTAINS*3]->(:Ip4Ctp)-[:HAS_ACL]->(t:Acl{name:'%s'})\r\n"
-				+ "OPTIONAL MATCH (t)-[:NEXT_RULE*]->(r:AclRule) WHERE NOT EXISTS ((r)-[:NEXT_RULE]->())\r\n"
-				+ "WITH DISTINCT nr, t, r\r\n"
-				+ "CALL apoc.do.case([\r\n"
-				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'FORWARD'),\r\n"
-				+ "  'CREATE (r)-[:NEXT_RULE]->(nr)-[:ACCEPT]->(t)',\r\n"
-				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'DROP'),\r\n"
-				+ "  'CREATE (r)-[:NEXT_RULE]->(nr)',\r\n"
-				+ "  (t IS NOT null AND r IS null AND nr.action = 'FORWARD'),\r\n"
-				+ "  'CREATE (t)-[:NEXT_RULE]->(nr)-[:ACCEPT]->(t)',\r\n"
-				+ "  (t IS NOT null AND r IS null AND nr.action = 'DROP'),\r\n"
-				+ "  'CREATE (t)-[:NEXT_RULE]->(nr)'\r\n"
-				+ "  ],\r\n"
-				+ "  'DELETE nr',{nr:nr, t:t, r:r})\r\n"
-				+ "YIELD value\r\n"
-				+ "RETURN value;"; */
-		String q = "T15@CREATE (nr:AclRule {name:'%s', priority: %s, action:'%s', matching:'%s'})\r\n"
-				+ "WITH nr\r\n"
-				+ "MATCH (h:Host {name:'%s'})-[:ACL]->(t:Acl{name:'%s'})\r\n"
-				+ "OPTIONAL MATCH (t)-[:NEXT_RULE*]->(r:AclRule) WHERE NOT EXISTS ((r)-[:NEXT_RULE]->())\r\n"
-				+ "WITH DISTINCT nr, t, r\r\n"
-				+ "CALL apoc.do.case([\r\n"
-				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'FORWARD'),\r\n"
-				+ "  'CREATE (r)-[:NEXT_RULE]->(nr)-[:ACCEPT]->(t)',\r\n"
-				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'DROP'),\r\n"
-				+ "  'CREATE (r)-[:NEXT_RULE]->(nr)',\r\n"
-				+ "  (t IS NOT null AND r IS null AND nr.action = 'FORWARD'),\r\n"
-				+ "  'CREATE (t)-[:NEXT_RULE]->(nr)-[:ACCEPT]->(t)',\r\n"
-				+ "  (t IS NOT null AND r IS null AND nr.action = 'DROP'),\r\n"
-				+ "  'CREATE (t)-[:NEXT_RULE]->(nr)'\r\n"
-				+ "  ],\r\n"
-				+ "  'DELETE nr',{nr:nr, t:t, r:r})\r\n"
-				+ "YIELD value\r\n"
-				+ "RETURN value;";
+		String q = "T15@" + CypherQuery.Graph.CREATE_ACLRULE;
 		aclRules.forEach(e -> {
 			JsonObject table = (JsonObject) e;
 	    	String result = String.format(q, 
@@ -366,70 +285,8 @@ public class GraphCreator {
 	}
 	
 	private void processIpRoutes(JsonArray ipRoutes) {		 
-		String qItf = "T16@CREATE(r:Route {to: '%s', via: '%s', type: '%s'}) \r\n"
-				+ "WITH r\r\n"
-				+ "MATCH (h:Host {name:'%s'})-[:CONTAINS]->(l:Ltp{name:'%s'})-[:CONTAINS*2]->(rEx:Ip4Ctp)\r\n"
-				+ "CREATE (r)-[:EGRESS]->(rEx)\r\n"
-				+ "WITH r, h\r\n"
-				+ "OPTIONAL MATCH (h)-[:ACL]->(ag:Acl)\r\n"
-				+ "WITH DISTINCT h, ag, r\r\n"
-				+ "CALL apoc.do.case([\r\n"
-				+ "  (ag IS NOT null),\r\n"
-				+ "  'CREATE (ag)-[:TO_ROUTE]->(r)'\r\n"
-				+ "],\r\n"
-				+ "'CREATE (h)-[:TO_ROUTE]->(r)',{h:h, ag:ag, r:r})\r\n"
-				+ "YIELD value\r\n"
-				+ "RETURN value;";
-		String qSvi = "T17@CREATE(r:Route {to: '%s', via: '%s', type: '%s'}) \r\n"
-				+ "WITH r\r\n"
-				+ "MATCH (h:Host {name:'%s'})-[:CONTAINS*3]->(rEx:Ip4Ctp{svi:'%s'})\r\n"
-				+ "CREATE (r)-[:EGRESS]->(rEx)\r\n"
-				+ "WITH r, h\r\n"
-				+ "OPTIONAL MATCH (h)-[:ACL]->(ag:Acl)\r\n"
-				+ "WITH DISTINCT h, ag, r\r\n"
-				+ "CALL apoc.do.case([\r\n"
-				+ "  (ag IS NOT null),\r\n"
-				+ "  'CREATE (ag)-[:TO_ROUTE]->(r)'\r\n"
-				+ "],\r\n"
-				+ "'CREATE (h)-[:TO_ROUTE]->(r)',{h:h, ag:ag, r:r})\r\n"
-				+ "YIELD value\r\n"
-				+ "RETURN value;";
-		/* String qItf = "T16@CREATE(r:Route {to: '%s', via: '%s', type: '%s'}) \r\n"
-				+ "WITH r\r\n"
-				+ "MATCH (h:Host {name:'%s'})-[:CONTAINS]->(l:Ltp{name:'%s'})-[:CONTAINS*2]->(rEx:Ip4Ctp)\r\n"
-				+ "CREATE (r)-[:EGRESS]->(rEx)\r\n"
-				+ "WITH r, h\r\n"
-				+ "MATCH (h)-[:CONTAINS]->(lo:Ltp) WHERE lo.name <> '%s'\r\n"
-				+ "OPTIONAL MATCH (lo)-[:CONTAINS*2]->(:Ip4Ctp)-[:HAS_ACL]->(ag:Acl)\r\n"
-				+ "OPTIONAL MATCH (lo)-[:CONTAINS*2]->(co:Ip4Ctp) WHERE NOT (co)-[:HAS_ACL]->(:Acl)\r\n"
-				+ "WITH DISTINCT co, ag, r\r\n"
-				+ "CALL apoc.do.case([\r\n"
-				+ "  (ag IS NOT null),\r\n"
-				+ "  'CREATE (ag)-[:TO_ROUTE]->(r)',\r\n"
-				+ "  (co IS NOT null),\r\n"
-				+ "  'CREATE (co)-[:TO_ROUTE]->(r)'\r\n"
-				+ "],\r\n"
-				+ "'',{co:co, ag:ag, r:r})\r\n"
-				+ "YIELD value\r\n"
-				+ "RETURN value;"; */
-		/* String qSvi = "T17@CREATE(r:Route {to: '%s', via: '%s', type: '%s'}) \r\n"
-				+ "WITH r\r\n"
-				+ "MATCH (h:Host {name:'%s'})-[:CONTAINS*3]->(rEx:Ip4Ctp{svi:'%s'})\r\n"
-				+ "CREATE (r)-[:EGRESS]->(rEx)\r\n"
-				+ "WITH r, h\r\n"
-				+ "MATCH (h)-[:CONTAINS]->(lo:Ltp) WHERE lo.name <> 'Bridge'\r\n"
-				+ "OPTIONAL MATCH (lo)-[:CONTAINS*2]->(:Ip4Ctp)-[:HAS_ACL]->(ag:Acl)\r\n"
-				+ "OPTIONAL MATCH (lo)-[:CONTAINS*2]->(co:Ip4Ctp) WHERE NOT (co)-[:HAS_ACL]->(:Acl)\r\n"
-				+ "WITH DISTINCT co, ag, r\r\n"
-				+ "CALL apoc.do.case([\r\n"
-				+ "  (ag IS NOT null),\r\n"
-				+ "  'CREATE (ag)-[:TO_ROUTE]->(r)',\r\n"
-				+ "  (co IS NOT null),\r\n"
-				+ "  'CREATE (co)-[:TO_ROUTE]->(r)'\r\n"
-				+ "],\r\n"
-				+ "'',{co:co, ag:ag, r:r})\r\n"
-				+ "YIELD value\r\n"
-				+ "RETURN value;"; */
+		String qItf = "T16@" + CypherQuery.Graph.CREATE_ROUTE_ITF;
+		String qSvi = "T17@" + CypherQuery.Graph.CREATE_ROUTE_SVI;
 		ipRoutes.forEach(e -> {
 			JsonObject ipRoute = (JsonObject) e;
 	    	String itfName = ipRoute.getString("interface");

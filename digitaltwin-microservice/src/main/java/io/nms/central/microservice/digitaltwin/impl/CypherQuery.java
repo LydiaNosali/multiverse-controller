@@ -9,20 +9,100 @@ import io.nms.central.microservice.common.functional.Functional;
 import io.nms.central.microservice.digitaltwin.model.ipnetApi.PathHop;
 
 public class CypherQuery {
-	public static final String CLEAR_DB = "MATCH (n) DETACH DELETE n";
+	public static final String CLEAR_DB = "MATCH (n) DETACH DELETE n;";
 	
 	public static class Graph {
-		public static final String CREATE_HOST = "";
-		public static final String CREATE_LTP = "";
-		public static final String CREATE_ETHERCTP = "";
-		public static final String CREATE_IP4CTP = "";
-		public static final String CREATE_LINK = "";
-		public static final String CREATE_LINKCONN = "";
-		public static final String CREATE_IPCONN = "";
-		public static final String CREATE_BGP = "";
-		public static final String CREATE_ROUTE = "";
-		public static final String CREATE_ACLTABLE = "";
-		public static final String CREATE_ACLRULE = "";
+		public static final String CREATE_HOST = "CREATE (:Host:%s {name: '%s', hostname: '%s', type: '%s', mac: '%s', platform: '%s', "
+				+ "bgpAsn: '%s', bgpStatus: '%s', hwsku: '%s'});";
+		public static final String CREATE_LTP = "MATCH (r:Host) WHERE r.name = '%s' "
+				+ "CREATE (r)-[:CONTAINS]->(:Ltp {name: '%s', type: '%s', adminStatus: '%s', "
+				+ "index: '%s', speed: '%s', mtu: '%s'});";
+		public static final String CREATE_ETHERCTP = "MATCH (h:Host {name:'%s'})-[:CONTAINS]->(l:Ltp{name:'%s'}) "
+				+ "CREATE (l)-[:CONTAINS]->(c:EtherCtp {macAddr: '%s', vlan: '%s', mode: '%s'});";
+		public static final String CREATE_IP4CTP = "MATCH (r:Host {name:'%s'})-[:CONTAINS]->(:Ltp{name:'%s'})-[:CONTAINS]->(c:EtherCtp) "
+				+ "CREATE (c)-[:CONTAINS]->(ipc:Ip4Ctp {ipAddr:'%s', netMask:'%s', netAddr: '%s', svi:'%s', vlan:'%s'});";
+		public static final String CREATE_LINK = "MATCH (sR:Host {name:'%s'})-[:CONTAINS]->(src:Ltp{name:'%s'})\r\n"
+				+ "MATCH (tR:Host {name:'%s'})-[:CONTAINS]->(dst:Ltp{name:'%s'})\r\n"
+				+ "WITH DISTINCT sR,tR,src,dst\r\n"
+				+ "CALL apoc.do.case([\r\n"
+				+ "(sR.type = 'LeafRouter' AND tR.type = 'LeafRouter'),\r\n"
+				+ "\"CREATE (src)-[r:LINKED_VLT {name: '%s'}]->(dst)\",\r\n"
+				+ "(sR.type = 'Server' OR tR.type ='Server'),\r\n"
+				+ "\"CREATE (src)-[r:LINKED_L2 {name: '%s'}]->(dst)\"],\r\n"
+				+ "\"CREATE (src)-[r:LINKED_L3 {name: '%s'}]->(dst)\", {src:src, dst:dst})\r\n"
+				+ "YIELD value\r\n"
+				+ "RETURN value;";
+		public static final String CREATE_IPCONN = "MATCH (r:Host {name:'%s'})-[:CONTAINS]->(sL:Ltp{name:'%s'})-[:CONTAINS*2]->(s:Ip4Ctp) "
+				+ "MATCH (dC:EtherCtp{macAddr:'%s'})-[:CONTAINS]->(d:Ip4Ctp{ipAddr:'%s'}) "
+				+ "CREATE (s)-[ip:IP_CONN]->(d);";
+		public static final String CREATE_BGP = "MATCH(r:Host {name:'%s'})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:'%s'})\r\n"
+				+ "CREATE (c)-[:HAS_CONFIG]->(b:Bgp {lId: '%s', lAsn: '%s', rAddr:'%s', rId:'%s', rAsn:'%s', "
+				+ "state: '%s', holdTime: '%s', keepAlive: '%s'});";
+		public static final String CREATE_ACLTABLE = "CREATE (a:Acl{stage: '%s', name: '%s', binding: '%s', type: '%s', description: '%s', rules:[]})\r\n"
+				+ "WITH a\r\n"
+				+ "MATCH (h:Host {name:'%s'})\r\n"
+				+ "CREATE (h)-[:ACL]->(a);";
+		public static final String CREATE_ACLRULE = "CREATE (nr:AclRule {name:'%s', priority: %s, action:'%s', matching:'%s'})\r\n"
+				+ "WITH nr\r\n"
+				+ "MATCH (h:Host {name:'%s'})-[:ACL]->(t:Acl{name:'%s'})\r\n"
+				+ "OPTIONAL MATCH (t)-[:NEXT_RULE*]->(r:AclRule) WHERE NOT EXISTS ((r)-[:NEXT_RULE]->())\r\n"
+				+ "WITH DISTINCT nr, t, r\r\n"
+				+ "CALL apoc.do.case([\r\n"
+				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'FORWARD'),\r\n"
+				+ "  'CREATE (r)-[:NEXT_RULE]->(nr)-[:ACCEPT]->(t)',\r\n"
+				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'DROP'),\r\n"
+				+ "  'CREATE (r)-[:NEXT_RULE]->(nr)',\r\n"
+				+ "  (t IS NOT null AND r IS null AND nr.action = 'FORWARD'),\r\n"
+				+ "  'CREATE (t)-[:NEXT_RULE]->(nr)-[:ACCEPT]->(t)',\r\n"
+				+ "  (t IS NOT null AND r IS null AND nr.action = 'DROP'),\r\n"
+				+ "  'CREATE (t)-[:NEXT_RULE]->(nr)'\r\n"
+				+ "  ],\r\n"
+				+ "  'DELETE nr',{nr:nr, t:t, r:r})\r\n"
+				+ "YIELD value\r\n"
+				+ "RETURN value;";
+		public static final String CREATE_ROUTE_ITF = "CREATE(r:Route {to: '%s', via: '%s', type: '%s'}) \r\n"
+				+ "WITH r\r\n"
+				+ "MATCH (h:Host {name:'%s'})-[:CONTAINS]->(l:Ltp{name:'%s'})-[:CONTAINS*2]->(rEx:Ip4Ctp)\r\n"
+				+ "CREATE (r)-[:EGRESS]->(rEx)\r\n"
+				+ "WITH r, h\r\n"
+				+ "OPTIONAL MATCH (h)-[:ACL]->(ag:Acl)\r\n"
+				+ "WITH DISTINCT h, ag, r\r\n"
+				+ "CALL apoc.do.case([\r\n"
+				+ "  (ag IS NOT null),\r\n"
+				+ "  'CREATE (ag)-[:TO_ROUTE]->(r)'\r\n"
+				+ "],\r\n"
+				+ "'CREATE (h)-[:TO_ROUTE]->(r)',{h:h, ag:ag, r:r})\r\n"
+				+ "YIELD value\r\n"
+				+ "RETURN value;";
+		public static final String CREATE_ROUTE_SVI = "CREATE(r:Route {to: '%s', via: '%s', type: '%s'}) \r\n"
+				+ "WITH r\r\n"
+				+ "MATCH (h:Host {name:'%s'})-[:CONTAINS*3]->(rEx:Ip4Ctp{svi:'%s'})\r\n"
+				+ "CREATE (r)-[:EGRESS]->(rEx)\r\n"
+				+ "WITH r, h\r\n"
+				+ "OPTIONAL MATCH (h)-[:ACL]->(ag:Acl)\r\n"
+				+ "WITH DISTINCT h, ag, r\r\n"
+				+ "CALL apoc.do.case([\r\n"
+				+ "  (ag IS NOT null),\r\n"
+				+ "  'CREATE (ag)-[:TO_ROUTE]->(r)'\r\n"
+				+ "],\r\n"
+				+ "'CREATE (h)-[:TO_ROUTE]->(r)',{h:h, ag:ag, r:r})\r\n"
+				+ "YIELD value\r\n"
+				+ "RETURN value;";
+
+		public static final String AUTO_LINKCONN = "MATCH (sC:EtherCtp)<-[:CONTAINS]-(sL:Ltp)-[:LINKED_L2|:LINKED_L3|:LINKED_VLT]->(dL:Ltp)-[:CONTAINS]->(dC:EtherCtp) "
+				+ "WHERE NOT (sC)-[:LINK_CONN]-() AND NOT (dC)-[:LINK_CONN]-() "
+				+ "AND NOT (sL)-[:CONTAINS]-(:Switch) AND NOT (dL)-[:CONTAINS]-(:Switch) "
+				+ "CREATE (sC)-[r:LINK_CONN]->(dC);";
+		public static final String AUTO_VLAN_MEMBER = "MATCH (h:Host)\r\n"
+				+ "MATCH (h)-[:CONTAINS*3]->(svi:Ip4Ctp) WHERE svi.svi <> '-' \r\n"
+				+ "MATCH (h)-[:CONTAINS]->(l:Ltp)-[:CONTAINS]->(e:EtherCtp) WHERE e.vlan = svi.vlan AND NOT (e)-[:CONTAINS]->(:Ip4Ctp)\r\n"
+				+ "CREATE (e)-[b:VLAN_MEMBER]->(svi)\r\n"
+				+ "RETURN h, svi, b, e;";
+		public static final String AUTO_BGP_NEIGHBORS = "MATCH (b1:Bgp)<-[:HAS_CONFIG]-(c1:Ip4Ctp)-[:IP_CONN]->(c2:Ip4Ctp)-[:HAS_CONFIG]->(b2:Bgp)\r\n"
+				+ "WHERE EXISTS((c2)-[:IP_CONN]->(c1))\r\n"
+				+ "AND b1.rAddr=c2.ipAddr AND b2.rAddr=c1.ipAddr AND b1.rAsn=b2.lAsn AND b2.rAsn=b1.lAsn AND b1.rId=b2.lId AND b2.rId=b1.lId\r\n"
+				+ "WITH DISTINCT b1,b2\r\n"
+				+ "CREATE (b1)-[:BGP_PEER]->(b2);";
 	}
 	
 	public static class Constraints {
@@ -40,15 +120,17 @@ public class CypherQuery {
 	}
 	
 	public static class Api {
-		public static final String CREATE_HOST = "MERGE (h:Host{name:$deviceName}) SET h.hostname=$hostname, h.bgpStatus=$bgpStatus, "
+		public static final String UPSERT_HOST = "MERGE (h:Host:%s {name:$deviceName}) SET h.hostname=$hostname, h.bgpStatus=$bgpStatus, "
 				+ "h.bgpAsn=$bgpAsn, h.type=$type, h.platform=$platform, h.mac=$mac, h.hwsku=$hwsku";
 		public static final String CREATE_INTERFACE_IP = "MATCH (h:Host{name:$deviceName})\r\n"
-				+ "MERGE (h)-[:CONTAINS]->(l:Ltp {name: $itfName})-[:CONTAINS]->(e:EtherCtp)-[:CONTAINS]->(c:Ip4Ctp)\r\n"
+				+ "WHERE NOT (h)-[:CONTAINS]->(:Ltp {name: $itfName})\r\n"
+				+ "CREATE (h)-[:CONTAINS]->(l:Ltp {name: $itfName})-[:CONTAINS]->(e:EtherCtp)-[:CONTAINS]->(c:Ip4Ctp)\r\n"
 				+ "SET l.adminStatus=$adminStatus, l.index=$index, l.type=$type, l.speed=$speed, l.mtu=$mtu, "
 				+ "e.mode=$mode, e.vlan=$vlan, e.macAddr=$macAddr, "
 				+ "c.ipAddr=$ipAddr, c.netMask=$netMask, c.netAddr=$netAddr, c.svi=$svi";
 		public static final String CREATE_INTERFACE_NOIP = "MATCH (h:Host{name:$deviceName})\r\n"
-				+ "MERGE (h)-[:CONTAINS]->(l:Ltp {name: $itfName})-[:CONTAINS]->(e:EtherCtp)\r\n"
+				+ "WHERE NOT (h)-[:CONTAINS]->(:Ltp {name: $itfName})\r\n"
+				+ "CREATE (h)-[:CONTAINS]->(l:Ltp {name: $itfName})-[:CONTAINS]->(e:EtherCtp)\r\n"
 				+ "SET l.adminStatus=$adminStatus, l.index=$index, l.type=$type, l.speed=$speed, l.mtu=$mtu, "
 				+ "e.mode=$mode, e.vlan=$vlan, e.macAddr=$macAddr ";
 		public static final String CREATE_LINK = "MATCH (sH:Host {name: $srcDevice})-[:CONTAINS]->(src:Ltp{name: $srcInterface})\r\n"
@@ -64,7 +146,7 @@ public class CypherQuery {
 				+ "\"CREATE (src)-[r:LINKED_L3]->(dst) RETURN r\", {src:src, dst:dst})\r\n"
 				+ "YIELD value\r\n"
 				+ "WITH value.r as link SET link.name = $srcDevice + '.' + $srcInterface + '-' + $destDevice + '.' + $destInterface";
-		public static final String CREATE_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})\r\n"
+		public static final String UPSERT_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})\r\n"
 				+ "MERGE (c)-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "SET b.lAsn=$localAsn, b.lId=$localId, b.rAddr=$remoteAddr, b.rAsn=$remoteAsn, b.rId=$remoteId, "
 				+ "b.holdTime=$holdTime, b.keepAlive=$keepAlive, b.state=$state";
@@ -174,9 +256,9 @@ public class CypherQuery {
 	
 	public static class PathSearch {
 		public static final String HOST_TO_HOST = 
-				"MATCH (from:Host{hostname:$from})\r\n"
-				+ "	MATCH (to:Host{hostname:$to})\r\n"
-				+ "	WHERE from.type = 'Server' AND to.type = 'Server'\r\n"
+				"MATCH (from:Sever{hostname:$from})\r\n"
+				+ "	MATCH (to:Sever{hostname:$to})\r\n"
+			//	+ "	WHERE from.type = 'Server' AND to.type = 'Server'\r\n"
 				+ "	WITH from, to\r\n"
 				+ "	CALL apoc.path.expandConfig(from, {\r\n"
 				+ "    		sequence: \"Host,CONTAINS>,Ltp,LINKED_L2|LINKED_L3,Ltp,<CONTAINS\",\r\n"
@@ -184,19 +266,19 @@ public class CypherQuery {
 				+ "    		maxLevel: 12\r\n"
 				+ "	})\r\n"
 				+ "	YIELD path\r\n"
-				+ "WITH path WHERE NONE(n in nodes(path) WHERE (n.type='Server' AND n.name<>from.name AND n.name<>to.name))\r\n"
+				+ "WITH path WHERE NONE(n in nodes(path) WHERE (n:Server AND n.name<>from.name AND n.name<>to.name))\r\n"
 				+ "WITH path, [n IN nodes(path) WHERE n:Ltp] as ltps, [n IN nodes(path) WHERE n:Host] as hosts\r\n"
 				+ "UNWIND hosts as host\r\n"
 				+ "UNWIND ltps as ltp\r\n"
-				+ "MATCH (host)-[:CONTAINS]->(ltp)-[:CONTAINS]->(mac:EtherCtp)-[:BRIDGE|:CONTAINS]->(ip:Ip4Ctp)\r\n"
+				+ "MATCH (host)-[:CONTAINS]->(ltp)-[:CONTAINS]->(mac:EtherCtp)-[:VLAN_MEMBER|:CONTAINS]->(ip:Ip4Ctp)\r\n"
 				+ "WITH hosts, ltps, collect({host:host.name, itf:ltp.name, type:ltp.type, adminStatus:ltp.adminStatus, "
 				+ "index:ltp.index, speed:ltp.speed, mtu:ltp.mtu, macAddr:mac.macAddr, vlan:mac.vlan, mode:mac.mode, "
 				+ "ipAddr:ip.ipAddr+ip.netMask, svi:ip.svi}) as hops\r\n"
 				+ "RETURN hops as path\r\n";
 		public static final String IP_TO_IP = 
-				"MATCH (from:Host)-[:CONTAINS]->(fromItf:Ltp)-[:CONTAINS*2]->(fromIp:Ip4Ctp{ipAddr:$from})\r\n"
-				+ "	MATCH (to:Host)-[:CONTAINS]->(toItf:Ltp)-[:CONTAINS*2]->(toIp:Ip4Ctp{ipAddr:$to})\r\n"
-				+ "	WHERE from.type = 'Server' AND to.type = 'Server'\r\n"
+				"MATCH (from:Server)-[:CONTAINS]->(fromItf:Ltp)-[:CONTAINS*2]->(fromIp:Ip4Ctp{ipAddr:$from})\r\n"
+				+ "	MATCH (to:Server)-[:CONTAINS]->(toItf:Ltp)-[:CONTAINS*2]->(toIp:Ip4Ctp{ipAddr:$to})\r\n"
+		//		+ "	WHERE from.type = 'Server' AND to.type = 'Server'\r\n"
 				+ "	WITH from, to, fromItf, toItf\r\n"
 				+ "	CALL apoc.path.expandConfig(fromItf, {\r\n"
 				+ "    	sequence: \"Ltp,LINKED_L2|LINKED_L3,Ltp,<CONTAINS,Host,CONTAINS>\",\r\n"
@@ -204,11 +286,11 @@ public class CypherQuery {
 				+ "    	maxLevel: 10\r\n"
 				+ "	})\r\n"
 				+ "	YIELD path\r\n"
-				+ "WITH path WHERE NONE(n in nodes(path) WHERE (n.type='Server' AND n.name<>from.name AND n.name<>to.name))\r\n"
+				+ "WITH path WHERE NONE(n in nodes(path) WHERE (n:Server AND n.name<>from.name AND n.name<>to.name))\r\n"
 				+ "WITH path, [n IN nodes(path) WHERE n:Ltp] as ltps, from + [n IN nodes(path) WHERE n:Host] + to as hosts\r\n"
 				+ "UNWIND hosts as host\r\n"
 				+ "UNWIND ltps as ltp\r\n"
-				+ "MATCH (host)-[:CONTAINS]->(ltp)-[:CONTAINS]->(mac:EtherCtp)-[:BRIDGE|:CONTAINS]->(ip:Ip4Ctp)\r\n"
+				+ "MATCH (host)-[:CONTAINS]->(ltp)-[:CONTAINS]->(mac:EtherCtp)-[:VLAN_MEMBER|:CONTAINS]->(ip:Ip4Ctp)\r\n"
 				+ "WITH hosts, ltps, collect({host:host.name, itf:ltp.name, type:ltp.type, adminStatus:ltp.adminStatus, index:ltp.index, speed:ltp.speed, mtu:ltp.mtu, macAddr:mac.macAddr, vlan:mac.vlan, mode:mac.mode, ipAddr:ip.ipAddr+ip.netMask, svi:ip.svi}) as hops\r\n"
 				+ "RETURN hops as path";
 		private static final String P_IPPATH_FIRST_HOP =
@@ -325,8 +407,7 @@ public class CypherQuery {
 	}
 	
 	public static class ConfigGen {
-		public static final String GET_DEVICES = "MATCH (h:Host) WHERE h.type = 'SpineRouter' OR h.type = 'LeafRouter' "
-				+ "OR h.type = 'BorderRouter' OR h.type = 'Firewall' "
+		public static final String GET_DEVICES = "MATCH (h) WHERE h:SpineRouter OR h:LeafRouter OR h:BorderRouter OR h:Firewall "
 				+ "RETURN h.name as device";
 		public static final String GET_METADATA = "MATCH (h:Host{name:'%s'}) RETURN h.hostname as hostname, h.type as type, h.platform as platform, "
 				+ "h.hwsku as hwsku, h.bgpAsn as bgpAsn, h.bgpStatus as bgpStatus, h.mac as mac";

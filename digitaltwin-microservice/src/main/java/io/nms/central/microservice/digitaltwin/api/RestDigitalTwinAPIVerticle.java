@@ -114,11 +114,12 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		router.get(API_VIEW_CONFIG).handler(this::checkAdminRole).handler(this::apiViewGenerateNetworkConfig);
 		router.get(API_VIEW_NETWORK).handler(this::checkAdminRole).handler(this::apiViewGetNetwork);
 		router.get(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewGetDevice);
-		router.put(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewCreateDevice);
+		router.put(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewCreateOrUpdateDevice);
 		router.delete(API_VIEW_ONE_DEVICE).handler(this::checkAdminRole).handler(this::apiViewDeleteDevice);
 		router.get(API_VIEW_INTERFACES).handler(this::checkAdminRole).handler(this::apiViewGetDeviceInterfaces);
 		router.get(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewGetInterface);
-		router.put(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewCreateInterface);
+		router.post(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewCreateInterface);
+		router.put(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewUpdateInterface);
 		router.delete(API_VIEW_ONE_INTERFACE).handler(this::checkAdminRole).handler(this::apiViewDeleteInterface);
 
 		router.post(API_VIEW_LINK).handler(this::checkAdminRole).handler(this::apiViewCreateLink);
@@ -126,7 +127,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 
 		router.get(API_VIEW_BGPS).handler(this::checkAdminRole).handler(this::apiViewGetDeviceBgps);
 		router.get(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewGetBgp);
-		router.put(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewUpdateBgp);
+		router.put(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewCreateOrUpdateBgp);
 		router.delete(API_VIEW_ONE_BGP).handler(this::checkAdminRole).handler(this::apiViewDeleteBgp);
 
 		router.get(API_VIEW_VLANS).handler(this::checkAdminRole).handler(this::apiViewGetVlans);
@@ -218,8 +219,7 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	private void apiCreateView(RoutingContext context) {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String viewId = principal.getString("username");
-		// String viewId = context.request().getParam("viewId");
-		service.createView(viewId, createResultHandler(context));
+		service.createView2(viewId, createResultHandler(context));
 	}
 	private void apiDeleteView(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
@@ -253,13 +253,13 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String deviceName = context.request().getParam("deviceName");
 		service.viewGetDevice(viewId, deviceName, resultHandlerNonEmpty(context));
 	}
-	private void apiViewCreateDevice(RoutingContext context) {
+	private void apiViewCreateOrUpdateDevice(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
 		try {
 			final Device device 
 			= JsonUtils.json2PojoE(context.getBodyAsString(), Device.class);
-			service.viewCreateDevice(viewId, deviceName, device, createResultHandler(context));
+			service.viewUpsertDevice(viewId, deviceName, device, createResultHandler(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
 			badRequest(context, e);
@@ -291,6 +291,19 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 			final NetInterface netItf
 			= JsonUtils.json2PojoE(context.getBodyAsString(), NetInterface.class);
 			service.viewCreateInterface(viewId, deviceName, itfName, netItf, createResultHandler(context));
+		} catch (Exception e) {
+			logger.info("API input argument exception: " + e.getMessage());
+			badRequest(context, e);
+		}
+	}
+	private void apiViewUpdateInterface(RoutingContext context) {
+		String viewId = context.request().getParam("viewId");
+		String deviceName = context.request().getParam("deviceName");
+		String itfName = context.request().getParam("itfName");
+		try {
+			final NetInterface netItf
+			= JsonUtils.json2PojoE(context.getBodyAsString(), NetInterface.class);
+			service.viewUpdateInterface(viewId, deviceName, itfName, netItf, createResultHandler(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
 			badRequest(context, e);
@@ -334,14 +347,14 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 		String itfAddr = context.request().getParam("itfAddr");
 		service.viewGetBgp(viewId, deviceName, itfAddr, resultHandlerNonEmpty(context));
 	}
-	private void apiViewUpdateBgp(RoutingContext context) {
+	private void apiViewCreateOrUpdateBgp(RoutingContext context) {
 		String viewId = context.request().getParam("viewId");
 		String deviceName = context.request().getParam("deviceName");
 		String itfAddr = context.request().getParam("itfAddr");
 		try {
 			final Bgp bgp 
 			= JsonUtils.json2PojoE(context.getBodyAsString(), Bgp.class);
-			service.viewUpdateBgp(viewId, deviceName, itfAddr, bgp, updateResultHandler(context));
+			service.viewUpsertBgp(viewId, deviceName, itfAddr, bgp, updateResultHandler(context));
 		} catch (Exception e) {
 			logger.info("API input argument exception: " + e.getMessage());
 			badRequest(context, e);
