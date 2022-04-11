@@ -1,11 +1,18 @@
 package io.nms.central.microservice.qconnection.impl;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 import io.nms.central.microservice.qconnection.model.CrossConnect;
 import io.nms.central.microservice.qconnection.model.PolatisPair;
 import io.nms.central.microservice.common.BaseMicroserviceVerticle;
+import io.nms.central.microservice.notification.NotificationService;
+import io.nms.central.microservice.notification.model.Status;
+import io.nms.central.microservice.notification.model.Status.ResTypeEnum;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.nms.central.microservice.qconnection.QconnectionService;
 import io.nms.central.microservice.qconnection.model.Trail;
@@ -40,7 +47,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 	private final MongoClient client;
 
-	private List<CrossConnect> crossConnectsCreated = new ArrayList<CrossConnect>();
+	private Map<Vnode, PolatisPair> crossConnectsCreated = new HashMap<Vnode, PolatisPair>();
 
 	public QconnectionServiceImpl(Vertx vertx, JsonObject config) {
 		this.client = MongoClient.create(vertx, config);
@@ -56,154 +63,118 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 	@Override
 	public QconnectionService createPath(Trail trail, String finish, Handler<AsyncResult<Integer>> resultHandler) {
 		// do necessary verifications -- param of trail and finish
+		// create OXCs on switches
 		// create Vtrail and Voxc in topology (status = PENDING)
 		// return Vtrail Id / call resultHandler
-		// create OXCs on switches
 		// update status (should = UP)
-
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
 		TopologyService service = builder.build(TopologyService.class);
 
-		Promise<Void> pTrailAdded = Promise.promise();
-		Vtrail vtrail = new Vtrail();
-		vtrail.setName(trail.getName());
-		vtrail.setLabel(trail.getLabel());
-		vtrail.setDescription(trail.getDescription());
-		vtrail.setStatus(StatusEnum.PENDING);
-		vtrail.setVsubnetId(trail.getVsubnetId());
-		vtrail.setInfo(trail.getInfo());
+		// create path on switch before creating it in the topology
+		// why : avoid the deletion in topology
+		Promise<Void> pTrailAddedToSwitch = Promise.promise();
+		CompletableFuture<Void> stage = CompletableFuture.completedFuture(null);
+		
+		for (CrossConnect crossConnect : trail.getOxcs()) {
+			PolatisPair polatisPair = new PolatisPair();
 
-		service.addVtrail(vtrail, sn -> {
-			if (sn.succeeded()) {
-				int trailId = sn.result();
-				// return id of vtrail in result handler
-				resultHandler.handle(Future.succeededFuture(trailId));
-				// create path on switch before creating it in the topology
-				// why : avoid the deletion in topology
-				CompletableFuture<Void> stage = CompletableFuture.completedFuture(null);
+			// ingressportnumber
+			Promise<Vltp> pltpIngress = Promise.promise();
+			service.getVltp(String.valueOf(crossConnect.getIngressPortId()), pltpIngress);
 
-				for (CrossConnect crossConnect : trail.getOxcs()) {
-					PolatisPair polatisPair = new PolatisPair();
+			// egressportnumber
+			Promise<Vltp> pltpEgress = Promise.promise();
+			service.getVltp(String.valueOf(crossConnect.getEgressPortId()), pltpEgress);
+			
+			// switchip
+			Promise<Vnode> pNode = Promise.promise();
+			service.getVnode(String.valueOf(crossConnect.getSwitchId()), pNode);
 
-					// ingressportnumber
-					Promise<Vltp> pltpIngress = Promise.promise();
-					service.getVltp(String.valueOf(crossConnect.getIngressPortId()), pltpIngress);
-					// egressportnumber
-					Promise<Vltp> pltpEgress = Promise.promise();
-					service.getVltp(String.valueOf(crossConnect.getEgressPortId()), pltpEgress);
-					// switchip
-					Promise<Vnode> pNode = Promise.promise();
-					service.getVnode(String.valueOf(crossConnect.getSwitchId()), pNode);
-					
-					polatisPair.setIngress(Integer.parseInt(pltpIngress.future().result().getPort()));
-					polatisPair.setEgress(Integer.parseInt(pltpEgress.future().result().getPort()) + 8);
-					
-					stage = stage.thenCompose(r -> createOXC(pNode.future().result().getMgmtIp(), polatisPair));
-				}
-				
-				stage.whenComplete((result, error) -> {
-					// TODO update status by update here or in notif microservice
-					if (error != null) {
-						pTrailAdded.fail(error.getCause());
-						deleteCrossConnectsCreated(ignore -> {
+			polatisPair.setIngress(Integer.parseInt(pltpIngress.future().result().getPort()));
+			polatisPair.setEgress(Integer.parseInt(pltpEgress.future().result().getPort()) + 8);
+
+			stage = stage.thenCompose(r -> createOXC(pNode.future().result(), polatisPair));
+		}
+
+		stage.whenComplete((result, error) -> {
+			if (error != null) {// if error in switch rollback and do not create in topology
+				pTrailAddedToSwitch.fail(error.getCause());
+				rollbackTrail(ignore -> {
+				});
+				resultHandler.handle(Future.failedFuture(error.getCause()));
+			} else { // if the oxcs were created on the switch, we create them in the topology
+				pTrailAddedToSwitch.complete();
+				Vtrail vtrail = new Vtrail();
+				vtrail.setName(trail.getName());
+				vtrail.setLabel(trail.getLabel());
+				vtrail.setDescription(trail.getDescription());
+				vtrail.setStatus(StatusEnum.PENDING);
+				vtrail.setVsubnetId(trail.getVsubnetId());
+				vtrail.setInfo(trail.getInfo());
+
+				Promise<Void> pTrailAdded = Promise.promise();
+
+				service.addVtrail(vtrail, sn -> {
+					if (sn.succeeded()) {
+						int trailId = sn.result();
+						// return id of vtrail in result handler
+						resultHandler.handle(Future.succeededFuture(trailId));
+						vtrail.setId(trailId);
+
+						// create vtrail and voxcs in the topology
+						List<CrossConnect> cross_connects = trail.getOxcs();
+						List<Future> allOXCsAdded = new ArrayList<Future>();
+						cross_connects.forEach(e -> {
+							Promise<Void> pOXCAdded = Promise.promise();
+							allOXCsAdded.add(pOXCAdded.future());
+
+							VcrossConnect vcrossConnect = new VcrossConnect();
+							vcrossConnect.setName(trail.getName() + "");
+							vcrossConnect.setLabel("");
+							vcrossConnect.setDescription("");
+							vcrossConnect.setTrailId(trailId);
+							vcrossConnect.setSwitchId(e.getSwitchId());
+							vcrossConnect.setIngressPortId(e.getIngressPortId());
+							vcrossConnect.setEgressPortId(e.getEgressPortId());
+							vcrossConnect.setStatus(StatusEnum.PENDING);
+
+							service.addVcrossConnect(vcrossConnect, ar2 -> {
+								if (ar2.succeeded()) {
+									pOXCAdded.complete();
+									// change status of oxc to UP
+									Status status = new Status();
+									status.setResType(ResTypeEnum.XC);
+									status.setStatus(StatusEnum.UP);
+									status.setTimestamp(OffsetDateTime.now());
+									status.setId(String.valueOf(status.hashCode()));
+									vertx.eventBus().publish(NotificationService.STATUS_ADDRESS, status.toJson());
+								} else {
+									pOXCAdded.fail(ar2.cause());
+								}
+							});
 						});
-						resultHandler.handle(Future.failedFuture(error.getCause()));
-					} else {
-						pTrailAdded.complete();
+						CompositeFuture.all(allOXCsAdded).map((Void) null).onComplete(pTrailAdded);
 						resultHandler.handle(Future.succeededFuture(0));
+					} else {
+						pTrailAdded.fail(sn.cause());
+						resultHandler.handle(Future.failedFuture(sn.cause()));
 					}
 				});
-				
-				
-				
-				List<CrossConnect> cross_connects = trail.getOxcs();
-
-				List<Future> allOXCsAdded = new ArrayList<Future>();
-				cross_connects.forEach(e -> {
-					Promise<Void> pOXCAdded = Promise.promise();
-					allOXCsAdded.add(pOXCAdded.future());
-
-					VcrossConnect vcrossConnect = new VcrossConnect();
-					vcrossConnect.setName(trail.getName() + "");
-					vcrossConnect.setLabel("");
-					vcrossConnect.setDescription("");
-					vcrossConnect.setTrailId(trailId);
-					vcrossConnect.setSwitchId(e.getSwitchId());
-					vcrossConnect.setIngressPortId(e.getIngressPortId());
-					vcrossConnect.setEgressPortId(e.getEgressPortId());
-					vcrossConnect.setStatus(StatusEnum.PENDING);
-
-					service.addVcrossConnect(vcrossConnect, ar2 -> {
-						if (ar2.succeeded()) {
-							pOXCAdded.complete();
-						} else {
-							pOXCAdded.fail(ar2.cause());
-						}
-					});
-				});
-				CompositeFuture.all(allOXCsAdded).map((Void) null).onComplete(pTrailAdded);
-			} else {
-				pTrailAdded.fail(sn.cause());
 			}
 		});
-
-//		CompletableFuture<Void> stage = CompletableFuture.completedFuture(null);
-//		for (CrossConnect crossConnect : trail.getOxcs()) {
-//
-//			// ingressportnumber
-//			Promise<Vltp> pltpIngress = Promise.promise();
-//			service.getVltp(String.valueOf(crossConnect.getIngressPortId()), pltpIngress);
-//			// egressportnumber
-//			Promise<Vltp> pltpEgress = Promise.promise();
-//			service.getVltp(String.valueOf(crossConnect.getEgressPortId()), pltpEgress);
-//			// switchname
-//			Promise<Vnode> pNode = Promise.promise();
-//			service.getVnode(String.valueOf(crossConnect.getSwitchId()), pNode);
-//			// create new class polatis (obj pair) to add to the network directly
-//			CrossConnect physical_crossConnect = new CrossConnect();
-//			physical_crossConnect.setId(crossConnect.getId());
-//			physical_crossConnect.setIngressPortId(Integer.parseInt(pltpIngress.future().result().getPort()));
-//			physical_crossConnect.setEgressPortId(Integer.parseInt(pltpEgress.future().result().getPort()) + 8);// engress
-//																												// port
-//			// number + 8
-//			physical_crossConnect.setSwitchId(Integer.parseInt(pNode.future().result().getName()));
-//			physical_crossConnect.setStatus(crossConnect.getStatus());
-//
-//			stage = stage.thenCompose(r -> createOXC(physical_crossConnect));
-//		}
-//		stage.whenComplete((result, error) -> {
-//			// TODO update status by update here or in notif microservice
-//			if (error != null) {
-//				pTrailAdded.fail(error.getCause());
-//				deleteCrossConnectsCreated(ignore -> {
-//				});
-//				resultHandler.handle(Future.failedFuture(error.getCause()));
-//			} else {
-//				pTrailAdded.complete();
-//				resultHandler.handle(Future.succeededFuture(0));
-//			}
-//		});
 		return this;
 	}
 
-	private CompletableFuture<Void> createOXC(CrossConnect crossConnect) {
-		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
-		TopologyService service = builder.build(TopologyService.class);
-
-		Promise<Vnode> pNode = Promise.promise();
-
-		service.getVnode(String.valueOf(crossConnect.getSwitchId()), pNode);
-
+	private CompletableFuture<Void> createOXC(Vnode pNode, PolatisPair polatisPair) {
 		CompletableFuture<Void> cs = new CompletableFuture<>();
-		// create map (switchid, mgmtip)
-		// add the items in create method, use in deleteoxc
-		webClient.put(pNode.future().result().getMgmtIp()).sendJson(crossConnect, response -> {
+		// add the items in create method, use in rollbackTrail
+		webClient.put(pNode.getMgmtIp()).sendJson(polatisPair, response -> {
 			if (response.succeeded()) {
 				HttpResponse<Buffer> httpResponse = response.result();
 				System.out.println("Post Response : " + httpResponse.statusMessage());
 				if (httpResponse.statusCode() == 201) {
 					cs.complete(null);
-					crossConnectsCreated.add(crossConnect);// add to list of created crossconnect
+					crossConnectsCreated.put(pNode, polatisPair);// add to list of created crossconnect
 				} else
 					cs.completeExceptionally(new RuntimeException("Conflict error!"));
 			} else {
@@ -214,13 +185,9 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		return cs;
 	}
 
-	public QconnectionService deleteCrossConnectsCreated(Handler<AsyncResult<Void>> resultHandler) {
-		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
-		TopologyService service = builder.build(TopologyService.class);
-		for (CrossConnect crossConnect : crossConnectsCreated) {
-			Promise<Vnode> pNode = Promise.promise();
-			service.getVnode(String.valueOf(crossConnect.getSwitchId()), pNode);
-			webClient.delete(pNode.future().result().getMgmtIp()).sendJson(crossConnect, response -> {
+	private QconnectionService rollbackTrail(Handler<AsyncResult<Void>> resultHandler) {
+		for (Entry<Vnode, PolatisPair> entry : crossConnectsCreated.entrySet()) {
+			webClient.delete(entry.getKey().getMgmtIp()).sendJson(entry.getValue(), response -> {
 				if (response.succeeded()) {
 					HttpResponse<Buffer> httpResponse = response.result();
 					System.out.println("Post Response : " + httpResponse.statusMessage());
@@ -239,6 +206,15 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		resultHandler.handle(Future.succeededFuture());
 		// call switches...
 		return this;
+	}
+
+	@Override
+	public QconnectionService deleteTrail(int trailId, Handler<AsyncResult<Void>> resultHandler) {
+		// add delete function in topology service
+		// call the delete function in here 
+		// or
+		// do the deletion in here 
+		return null;
 	}
 
 }

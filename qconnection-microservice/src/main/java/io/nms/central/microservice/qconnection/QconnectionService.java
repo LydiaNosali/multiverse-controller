@@ -40,9 +40,11 @@ public interface QconnectionService {
 	QconnectionService createPath(Trail path, String finish, Handler<AsyncResult<Integer>> resultHandler);
 
 	@Fluent
-	QconnectionService deleteCrossConnectsCreated(Handler<AsyncResult<Void>> resultHandler);
+	QconnectionService deleteTrail(int trailId, Handler<AsyncResult<Void>> resultHandler);
 	
 	@Fluent
 	QconnectionService doHealthCheck(Handler<AsyncResult<Void>> resultHandler);
+
+	
 	
 }
