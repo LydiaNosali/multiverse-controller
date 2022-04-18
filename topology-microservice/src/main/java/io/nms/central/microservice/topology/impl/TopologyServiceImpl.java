@@ -1400,11 +1400,12 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	/* *************** Example network topology for optical Quantum mgmt **************** */
 	private void loadBaseTopology(JsonObject baseTopology, Handler<AsyncResult<Void>> resultHandler) {
 		// logger.info("Load example topology: " + baseTopology.encodePrettily());
-		getVnodesByType(NodeTypeEnum.OPTSWITCH, res -> {
+		getVsubnetsByType(SubnetTypeEnum.QNET, res -> {
 			if (res.succeeded()) {
-				if (res.result().isEmpty()) {
+				String subnetName = baseTopology.getString("name");
+				if (!res.result().stream().anyMatch(e -> subnetName.equals(e.getName()))) {
 					Vsubnet vsubnet = new Vsubnet();
-					vsubnet.setName("ex-net");
+					vsubnet.setName(subnetName);
 					vsubnet.setLabel("example-quantum-network");
 					vsubnet.setDescription("example-quantum-network");
 					vsubnet.setType(SubnetTypeEnum.QNET);
@@ -1566,7 +1567,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 						}
 					});
 				} else {
-					logger.info("An optical network already exists.");
+					logger.info("This example optical network already exists.");
 					resultHandler.handle(Future.succeededFuture());
 				}
 			} else {

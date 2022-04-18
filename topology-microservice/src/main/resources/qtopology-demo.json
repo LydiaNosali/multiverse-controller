@@ -1,0 +1,34 @@
+{
+    "name": "qnet-demo",
+    "nodes": [
+        { 
+            "name": "Polatis_1", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], 
+            "position": { "x": 300, "y": 50 },
+            "mgmtAddr": "192.168.0.101"
+        },
+        { 
+            "name": "Polatis_2", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
+            "position": { "x": 250, "y": 350 },
+            "mgmtAddr": "192.168.0.102"
+        },
+        { 
+            "name": "Polatis_3", 
+            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], 
+            "position": { "x": 350, "y": 250 },
+            "mgmtAddr": "192.168.0.103" 
+        }
+    ],
+    "links": [
+        { "srcSwitch": "Polatis_1", "srcPort": "p1", "dstSwitch": "Polatis_2", "dstPort": "p1" },
+        { "srcSwitch": "Polatis_1", "srcPort": "p2", "dstSwitch": "Polatis_3", "dstPort": "p1" },
+        { "srcSwitch": "Polatis_2", "srcPort": "p2", "dstSwitch": "Polatis_3", "dstPort": "p2" }
+    ],
+    "capabilities": [
+        { "name": "Source_1", "location": { "node": "Polatis_1", "port": "p8" }, "description": "Source - at Polatis_1.p8" },
+        { "name": "Detector_2", "location": { "node": "Polatis_2", "port": "p8" }, "description": "Detector - at Polatis_2.p8" },
+        { "name": "Detector_3", "location": { "node": "Polatis_3", "port": "p8" }, "description": "Detector - at Polatis_3.p8" }
+    ],
+    "trails": []
+}

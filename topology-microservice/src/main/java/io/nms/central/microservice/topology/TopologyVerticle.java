@@ -13,7 +13,7 @@ import io.vertx.serviceproxy.ServiceBinder;
 
 
 /**
- * A verticle publishing the tepology service.
+ * A verticle publishing the topology service.
  */
 public class TopologyVerticle extends BaseMicroserviceVerticle {
 
@@ -37,7 +37,7 @@ public class TopologyVerticle extends BaseMicroserviceVerticle {
 
 	private Future<Void> initTopologyDatabase(TopologyService service) {
 		Promise<Void> initPromise = Promise.promise();
-		JsonObject baseTopology = vertx.fileSystem().readFileBlocking("qtopology.json").toJsonObject();
+		JsonObject baseTopology = vertx.fileSystem().readFileBlocking(config().getString("topology")).toJsonObject();
 		service.initializePersistence(baseTopology, initPromise);
 		return initPromise.future();
 	}

@@ -1,4 +1,5 @@
 {
+    "name": "qnet-example",
     "nodes": [
         { 
             "name": "A", 
