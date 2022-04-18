@@ -273,4 +273,61 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		// call switches...
 		return this;
 	}
+<<<<<<< HEAD
+=======
+
+	@Override
+	public QconnectionService deleteTrail(int trailId, Handler<AsyncResult<Void>> resultHandler) {
+		// get XCs from topology (map with LTPs port<->id)
+		// delete XCs on switches
+		// delete Vtrail in topology service
+		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
+		TopologyService service = builder.build(TopologyService.class);
+
+		service.getVcrossConnectsByTrail(String.valueOf(trailId), ar -> {
+			if (ar.succeeded()) {
+				for (VcrossConnect vcrossConnect : ar.result()) {
+
+					PolatisPair polatisPair = new PolatisPair();
+					// ingressportnumber
+					Promise<Vltp> pltpIngress = Promise.promise();
+					service.getVltp(String.valueOf(vcrossConnect.getIngressPortId()), pltpIngress);
+
+					// egressportnumber
+					Promise<Vltp> pltpEgress = Promise.promise();
+					service.getVltp(String.valueOf(vcrossConnect.getEgressPortId()), pltpEgress);
+
+					// switchip
+					Promise<Vnode> pNode = Promise.promise();
+					service.getVnode(String.valueOf(vcrossConnect.getSwitchId()), pNode);
+
+					polatisPair.setIngress(Integer.parseInt(pltpIngress.future().result().getPort()));
+					polatisPair.setEgress(Integer.parseInt(pltpEgress.future().result().getPort()) + 8);
+
+					webClient.delete(pNode.future().result().getMgmtIp())
+							.putHeader("Content-type", "application/yang-data+json")
+							.putHeader("Authorization",
+									"Basic " + Base64.getEncoder().encodeToString("admin:root".getBytes()))
+							.sendJson(polatisPair, response -> {
+								if (response.succeeded()) {
+									HttpResponse<Buffer> httpResponse = response.result();
+									System.out.println("Post Response : " + httpResponse.statusMessage());
+									resultHandler.handle(Future.succeededFuture());
+								} else {
+									System.out.println("ERROR : " + response.cause().getMessage());
+									resultHandler.handle(Future.failedFuture(response.cause()));
+								}
+							});
+				}
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				System.out.println("ERROR : " + ar.cause().getMessage());
+				resultHandler.handle(Future.failedFuture(ar.cause()));
+
+			}
+		});
+		return this;
+	}
+
+>>>>>>> 58feb99 (qconnection)
 }
