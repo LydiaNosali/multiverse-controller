@@ -68,6 +68,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		// create Vtrail and Voxc in topology (status = PENDING)
 		// return Vtrail Id / call resultHandler
 		// update status (should = UP)
+		logger.info("createPath in QconnectionService");
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
 		TopologyService service = builder.build(TopologyService.class);
 
@@ -173,6 +174,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 	}
 
 	private CompletableFuture<Void> createOXC(Vnode pNode, PolatisPair polatisPair) {
+		logger.info("createOXC in QconnectionServiceImpl");
 		CompletableFuture<Void> cs = new CompletableFuture<>();
 		// add the items in create method, use in rollbackTrail
 		webClient.put(pNode.getMgmtIp()).putHeader("Content-type", "application/yang-data+json")
@@ -213,21 +215,14 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		return this;
 	}
 
-	public QconnectionService doHealthCheck(Handler<AsyncResult<Void>> resultHandler) {
-		resultHandler.handle(Future.succeededFuture());
-		// call switches...
-		return this;
-	}
-
-	@Override
-	public QconnectionService deleteTrail(int trailId, Handler<AsyncResult<Void>> resultHandler) {
+	public QconnectionService deletePath(String trailId, Handler<AsyncResult<Void>> resultHandler) {
 		// get XCs from topology (map with LTPs port<->id)
 		// delete XCs on switches
 		// delete Vtrail in topology service
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
 		TopologyService service = builder.build(TopologyService.class);
 
-		service.getVcrossConnectsByTrail(String.valueOf(trailId), ar -> {
+		service.getVcrossConnectsByTrail(trailId, ar -> {
 			if (ar.succeeded()) {
 				for (VcrossConnect vcrossConnect : ar.result()) {
 
@@ -272,4 +267,9 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		return this;
 	}
 
+	public QconnectionService doHealthCheck(Handler<AsyncResult<Void>> resultHandler) {
+		resultHandler.handle(Future.succeededFuture());
+		// call switches...
+		return this;
+	}
 }
