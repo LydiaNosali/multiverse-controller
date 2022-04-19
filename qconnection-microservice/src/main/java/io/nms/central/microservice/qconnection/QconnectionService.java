@@ -26,25 +26,21 @@ public interface QconnectionService {
 	 * The address on which the service is published.
 	 */
 	String SERVICE_ADDRESS = "service.qconnection";
-	
-	
+
 	String FROTNEND_ADDRESS = "mvs.to.frontend";
 
 	String EVENT_ADDRESS = "qconnection.event";
-	
-	
-	@Fluent	
+
+	@Fluent
 	QconnectionService initialize(Handler<AsyncResult<Void>> resultHandler);
-	
-	@Fluent	
+
+	@Fluent
 	QconnectionService createPath(Trail path, String finish, Handler<AsyncResult<Integer>> resultHandler);
 
 	@Fluent
-	QconnectionService deleteTrail(int trailId, Handler<AsyncResult<Void>> resultHandler);
-	
+	QconnectionService deletePath(String trailId, Handler<AsyncResult<Void>> resultHandler);
+
 	@Fluent
 	QconnectionService doHealthCheck(Handler<AsyncResult<Void>> resultHandler);
 
-	
-	
 }
