@@ -217,6 +217,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 	}
 
 	public QconnectionService deletePath(String trailId, Handler<AsyncResult<Void>> resultHandler) {
+<<<<<<< HEAD
 		// get XCs from topology (map with LTPs port<->id)
 		// delete XCs on switches
 		// delete Vtrail in topology service
@@ -278,13 +279,15 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 	@Override
 	public QconnectionService deleteTrail(int trailId, Handler<AsyncResult<Void>> resultHandler) {
+=======
+>>>>>>> 2650ba5 (	modified:   qconnection-microservice/src/main/java/io/nms/central/microservice/qconnection/QconnectionService.java)
 		// get XCs from topology (map with LTPs port<->id)
 		// delete XCs on switches
 		// delete Vtrail in topology service
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
 		TopologyService service = builder.build(TopologyService.class);
 
-		service.getVcrossConnectsByTrail(String.valueOf(trailId), ar -> {
+		service.getVcrossConnectsByTrail(trailId, ar -> {
 			if (ar.succeeded()) {
 				for (VcrossConnect vcrossConnect : ar.result()) {
 
@@ -329,5 +332,13 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		return this;
 	}
 
+<<<<<<< HEAD
 >>>>>>> 58feb99 (qconnection)
+=======
+	public QconnectionService doHealthCheck(Handler<AsyncResult<Void>> resultHandler) {
+		resultHandler.handle(Future.succeededFuture());
+		// call switches...
+		return this;
+	}
+>>>>>>> 2650ba5 (	modified:   qconnection-microservice/src/main/java/io/nms/central/microservice/qconnection/QconnectionService.java)
 }
