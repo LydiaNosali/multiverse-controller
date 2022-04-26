@@ -1,10 +1,10 @@
 package io.nms.central.microservice.qconnection.model;
 
-public class PolatisPair {
+public class pair {
 	private int ingress;
 	private int egress;
 
-	public PolatisPair() {
+	public pair() {
 		super();
 		// TODO Auto-generated constructor stub
 	}
@@ -37,16 +37,16 @@ public class PolatisPair {
 			return true;
 		}
 
-		if (!(obj instanceof PolatisPair)) {
+		if (!(obj instanceof pair)) {
 			return false;
 		}
 
-		PolatisPair other = (PolatisPair) obj;
+		pair other = (pair) obj;
 
 		return ingress == other.ingress && egress == other.egress;
 	}
 
-	public PolatisPair(int ingress, int egress) {
+	public pair(int ingress, int egress) {
 		super();
 		this.ingress = ingress;
 		this.egress = egress;

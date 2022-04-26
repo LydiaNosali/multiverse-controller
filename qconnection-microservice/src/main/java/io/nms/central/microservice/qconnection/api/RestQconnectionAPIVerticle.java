@@ -58,7 +58,6 @@ public class RestQconnectionAPIVerticle extends RestAPIVerticle {
 	private void apiCreatePath(RoutingContext context) {
 		try {
 			final Trail trail = JsonUtils.json2PojoE(context.getBodyAsString(), Trail.class);
-			logger.info("finish="+context.request().getParam("finish"));
 			String finish = context.request().getParam("finish");
 			service.createPath(trail, finish, createResultHandler(context, "/path"));
 		} catch (Exception e) {
