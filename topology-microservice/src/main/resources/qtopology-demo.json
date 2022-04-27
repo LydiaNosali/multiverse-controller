@@ -31,5 +31,12 @@
         { "name": "Detector_2", "location": { "node": "Polatis_2", "port": "p8" }, "description": "Detector - at Polatis_2.p8" },
         { "name": "Detector_3", "location": { "node": "Polatis_3", "port": "p8" }, "description": "Detector - at Polatis_3.p8" }
     ],
-    "trails": []
+    "trails": [
+        { "name": "T-1", "description": "Source_1 to Detector_3 via Polatis_2", "oxcs": [
+            {"switch": "Polatis_1", "ingressPort": "p8", "egressPort": "p1"},
+            {"switch": "Polatis_2", "ingressPort": "p1", "egressPort": "p2"},
+            {"switch": "Polatis_3", "ingressPort": "p2", "egressPort": "p8"}
+            ]
+        }
+    ]
 }
