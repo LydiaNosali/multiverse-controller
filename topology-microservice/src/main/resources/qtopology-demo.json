@@ -27,6 +27,7 @@
     ],
     "capabilities": [
         { "name": "Source_1", "location": { "node": "Polatis_1", "port": "p8" }, "description": "Source - at Polatis_1.p8" },
+        { "name": "Source_2", "location": { "node": "Polatis_1", "port": "p7" }, "description": "Source - at Polatis_1.p7" },
         { "name": "Detector_2", "location": { "node": "Polatis_2", "port": "p8" }, "description": "Detector - at Polatis_2.p8" },
         { "name": "Detector_3", "location": { "node": "Polatis_3", "port": "p8" }, "description": "Detector - at Polatis_3.p8" }
     ],
