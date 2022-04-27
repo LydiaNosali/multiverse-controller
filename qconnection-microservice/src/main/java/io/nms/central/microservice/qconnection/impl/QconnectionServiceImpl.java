@@ -55,7 +55,11 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 	private Map<String, Integer> crossConnectsCreated = new HashMap<String, Integer>();
 	private Map<Integer, String> mgmtIpbyswitchId = new HashMap<Integer, String>();
 	private Map<Integer, String> portNbbyportId = new HashMap<Integer, String>();
+<<<<<<< HEAD
 	private Map<Integer, List<VcrossConnect>> intended_oxcsbytrailId = new HashMap<Integer, List<VcrossConnect>>();
+=======
+	private Map<Integer, List<VcrossConnect>> intended_oxcsbyswitchId = new HashMap<Integer, List<VcrossConnect>>();
+>>>>>>> 44f8508 (synchro)
 
 	public QconnectionServiceImpl(Vertx vertx, JsonObject config) {
 		this.vertx = vertx;
@@ -65,6 +69,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 	@Override
 	public QconnectionService initialize(Handler<AsyncResult<Void>> resultHandler) {
+<<<<<<< HEAD
 		logger.info("initialize in QconnectionService");
 		getOpticalNetwork(res -> {
 			synchTopologyToNetwork(resultHandler);
@@ -79,6 +84,9 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 				}
 			});
 		});
+=======
+		getOptNodes(resultHandler);
+>>>>>>> 44f8508 (synchro)
 		return this;
 	}
 
@@ -91,6 +99,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 			if (ar.succeeded()) {
 				List<Vnode> nodes = ar.result();
 				List<Future> allVltpsRead = new ArrayList<Future>();
+				List<Future> allVcrossconnectsRead = new ArrayList<Future>();
 				for (Vnode node : nodes) {
 					mgmtIpbyswitchId.put(node.getId(), node.getMgmtIp());
 					Promise<Void> pVltpRead = Promise.promise();
@@ -106,8 +115,44 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 						}
 
 					});
+
+					Promise<Void> pVcrossconectsRead = Promise.promise();
+					allVcrossconnectsRead.add(pVcrossconectsRead.future());
+					service.getVcrossConnectsByNode(String.valueOf(node.getId()), ar3 -> {
+						if (ar3.succeeded()) {
+							List<VcrossConnect> vcrossConnects = ar3.result();
+							pVcrossconectsRead.complete();
+							intended_oxcsbyswitchId.put(node.getId(), vcrossConnects);
+						} else {
+							pVcrossconectsRead.fail(ar3.cause());
+						}
+					});
 				}
 				CompositeFuture.all(allVltpsRead).map((Void) null).onComplete(resultHandler);
+				CompositeFuture.all(allVcrossconnectsRead).map((Void) null).onComplete(res -> {
+					Promise<Void> pDesiredStateinSwitch = Promise.promise();
+					CompletableFuture<Void> stage = CompletableFuture.completedFuture(null);
+					for (Entry<Integer, List<VcrossConnect>> entry : intended_oxcsbyswitchId.entrySet()) {
+						List<pair> crossconnects = new ArrayList<pair>();
+						for (VcrossConnect vcrossConnect : entry.getValue()) {
+							pair pair = new pair();
+							pair.setIngress(Integer.parseInt(portNbbyportId.get(vcrossConnect.getIngressPortId())));
+							int i = Integer.parseInt(portNbbyportId.get(vcrossConnect.getEgressPortId())) + 8;
+							pair.setEgress(i);
+							crossconnects.add(pair);
+						}
+						stage = stage.thenCompose(r -> createOXCs(mgmtIpbyswitchId.get(entry.getKey()), crossconnects));
+					}
+					stage.whenComplete((result, error) -> {
+						if (error != null) {
+							logger.info("fail to upload topology switches " + error.getCause());
+							pDesiredStateinSwitch.fail(error.getCause());
+						} else {
+							pDesiredStateinSwitch.complete();
+
+						}
+					});
+				});
 			} else {
 				logger.info("ERROR in get VtrailbyId : " + ar.cause().getMessage());
 				resultHandler.handle(Future.failedFuture(ar.cause()));
@@ -116,6 +161,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		return this;
 	}
 
+<<<<<<< HEAD
 	private QconnectionService synchTopologyToNetwork(Handler<AsyncResult<Void>> resultHandler) {
 		logger.info("synchTopologyToNetwork in QconnectionService");
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
@@ -215,6 +261,13 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 		PolatisCrossConnect crossconnects = new PolatisCrossConnect(PolatisPair);
 		webClient.post(mgmtIp, "/api/data/optical-switch:cross-connects")
+=======
+	private CompletableFuture<Void> createOXCs(String mgmtIp, List<pair> crossconnects) {
+		logger.info("createOXCs in QconnectionServiceImpl");
+		CompletableFuture<Void> cs = new CompletableFuture<>();
+
+		webClient.patch(mgmtIp, "/api/data/optical-switch:cross-connects")
+>>>>>>> 44f8508 (synchro)
 				.putHeader("Content-type", "application/yang-data+json")
 				.putHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString("admin:root".getBytes()))
 				.sendJson(crossconnects, response -> {
@@ -223,6 +276,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 						logger.info("Post Response : " + httpResponse.statusMessage());
 						if (httpResponse.statusCode() == 201) {
 							cs.complete(null);
+<<<<<<< HEAD
 							crossConnectsCreated.put(mgmtIp, PolatisPair.getIngress());// add to list of created
 							Status status = new Status();
 							status.setResId(vcrossconnect.getId());
@@ -241,19 +295,31 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 							vertx.eventBus().publish(NotificationService.STATUS_ADDRESS, status.toJson());
 							cs.completeExceptionally(new RuntimeException("Conflict error!"));
 						}
+=======
+
+						} else
+							cs.completeExceptionally(new RuntimeException("Conflict error!"));
+>>>>>>> 44f8508 (synchro)
 					} else {
 						logger.info("ERROR in POST: " + response.cause().getMessage());
 						cs.completeExceptionally(response.cause());
 					}
 				});
+<<<<<<< HEAD
 
+=======
+>>>>>>> 44f8508 (synchro)
 		return cs;
 	}
 
 	@Override
 	public QconnectionService createPath(Trail trail, String finish, Handler<AsyncResult<Integer>> resultHandler) {
 		// do necessary verifications -- param of trail and finish
+<<<<<<< HEAD
 		// TODO if one of the oxcs already exist in the topology
+=======
+
+>>>>>>> 44f8508 (synchro)
 		logger.info("createPath in QconnectionService");
 //		for (CrossConnect crossConnect : trail.getOxcs()) {
 //			webClient
@@ -400,7 +466,11 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 						logger.info("Post Response : " + httpResponse.statusMessage());
 						if (httpResponse.statusCode() == 201) {
 							cs.complete(null);
+<<<<<<< HEAD
 							crossConnectsCreated.put(mgmtIp, PolatisPair.getIngress());// add to list of created
+=======
+							crossConnectsCreated.put(mgmtIp, pair.getIngress());// add to list of created
+>>>>>>> 44f8508 (synchro)
 						} else
 							cs.completeExceptionally(new RuntimeException("Conflict error!"));
 					} else {
@@ -424,7 +494,10 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 				resultHandler.handle(Future.failedFuture(error.getCause()));
 			} else {
 				logger.info("ROLLBACK succeed ");
+<<<<<<< HEAD
 				resultHandler.handle(Future.succeededFuture());
+=======
+>>>>>>> 44f8508 (synchro)
 			}
 		});
 		return this;
