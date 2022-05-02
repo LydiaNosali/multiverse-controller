@@ -3,7 +3,7 @@ FROM maven:3.6.3-jdk-11 as build
 
 COPY ./ /home/multiverse
 
-RUN mvn -f /home/multiverse/pom.xml -pl topology-microservice -am clean install -Dmaven.test.skip=true
+RUN mvn -f /home/multiverse/pom.xml -pl topology-microservice -am clean package -Dmaven.test.skip=true
 
 
 # Package stage
