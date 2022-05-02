@@ -137,6 +137,16 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 					}
 				});
 			break;
+			case XC:
+				topologyService.updateCrossConnectStatus(resId, resStatus, null, ar -> {
+					if (ar.succeeded()) {
+						notifyFrontend();
+						notifyTopologyChange();
+					} else {
+						ar.cause().printStackTrace();
+					}
+				});
+			break;
 			default:
 			break;
 		  }

@@ -1397,6 +1397,28 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		return this;
 	}
 	
+	@Override
+	public TopologyService updateCrossConnectStatus(int id, StatusEnum status, String op,
+			Handler<AsyncResult<Void>> resultHandler) {
+		UUID opp[] = { Functional.getUUID(op) };
+		beginTransaction(Entity.XC, opp[0], InternalSql.LOCK_TABLES).onComplete(tx -> {
+			if (tx.succeeded()) {
+				JsonArray params = new JsonArray().add(status.getValue()).add(id);
+				transactionExecute(InternalSql.UPDATE_XC_STATUS, params).onComplete(u -> {
+					if (u.succeeded()) {
+						commitTransaction(Entity.XC, opp[0]).onComplete(resultHandler);
+					} else {
+						rollback();
+						resultHandler.handle(Future.failedFuture(u.cause()));
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(tx.cause()));
+			}
+		});
+		return this;
+	}
+	
 	/* *************** Example network topology for optical Quantum mgmt **************** */
 	private void loadBaseTopology(JsonObject baseTopology, Handler<AsyncResult<Void>> resultHandler) {
 		// logger.info("Load example topology: " + baseTopology.encodePrettily());

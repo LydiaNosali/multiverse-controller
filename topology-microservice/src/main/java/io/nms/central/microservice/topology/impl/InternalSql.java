@@ -6,7 +6,7 @@ public class InternalSql {
 			+ "Vltp WRITE, Vltp AS sLtp WRITE, Vltp AS dLtp WRITE, "
 			+ "Vctp WRITE, Vctp AS sCtp WRITE, Vctp AS dCtp WRITE, "
 			+ "Vnode WRITE, Vlink WRITE, VlinkConn WRITE, Vconnection WRITE, "
-			+ "Prefix WRITE";
+			+ "Prefix WRITE, VcrossConnect WRITE";
 
 	public static final String LOCK_TABLES_FOR_NODE = "LOCK TABLES "
 			+ "Vltp WRITE, Vltp AS sLtp WRITE, Vltp AS dLtp WRITE, "
@@ -27,6 +27,7 @@ public class InternalSql {
 	public static final String UPDATE_CONNECTION_STATUS = "UPDATE Vconnection SET status=IFNULL(?, status) WHERE id = ?";
 	public static final String UPDATE_PREFIX_STATUS_BY_NODE = "UPDATE Prefix SET available=IFNULL(?, available) WHERE originId = ?";
 	public static final String UPDATE_TRAIL_STATUS = "UPDATE Vtrail SET status=IFNULL(?, status) WHERE id = ?";
+	public static final String UPDATE_XC_STATUS = "UPDATE VcrossConnect SET status=IFNULL(?, status) WHERE id = ?";
 	
 	// get node status
 	public static final String GET_NODE_STATUS = "SELECT status FROM Vnode WHERE id = ?";
