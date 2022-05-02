@@ -1,7 +1,7 @@
 = Cheatsheets
 
-[[CrossConnects]]
-== CrossConnects
+[[CrossConnect]]
+== CrossConnect
 
 
 [cols=">25%,25%,50%"]
@@ -28,7 +28,7 @@
 |[[id]]`@id`|`Number (int)`|-
 |[[label]]`@label`|`String`|-
 |[[name]]`@name`|`String`|-
-|[[oxcs]]`@oxcs`|`Array of link:dataobjects.html#CrossConnects[CrossConnects]`|-
+|[[oxcs]]`@oxcs`|`Array of link:dataobjects.html#CrossConnect[CrossConnect]`|-
 |[[status]]`@status`|`link:enums.html#StatusEnum[StatusEnum]`|-
 |[[updated]]`@updated`|`String`|-
 |[[vsubnetId]]`@vsubnetId`|`Number (int)`|-
