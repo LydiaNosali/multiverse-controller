@@ -42,13 +42,13 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 		}
 		int resId = status.getResId();
 		if (statusTimers.containsKey(resId)) {
-			if (status.getStatus().equals(StatusEnum.UP) || status.getStatus().equals(StatusEnum.DISCONN)) {
+			if (!status.getStatus().equals(StatusEnum.DOWN)) {
 				vertx.cancelTimer(statusTimers.get(resId));
 				statusTimers.remove(resId);
 				dispatchStatus(status);
 			}
 		} else {
-			if (status.getStatus().equals(StatusEnum.UP) || status.getStatus().equals(StatusEnum.DISCONN)) {
+			if (!status.getStatus().equals(StatusEnum.DOWN)) {
 				dispatchStatus(status);
 			} else {
 				long timerId = vertx.setTimer(5000, new Handler<Long>() {
