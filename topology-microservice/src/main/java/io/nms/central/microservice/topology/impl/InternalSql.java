@@ -6,11 +6,8 @@ public class InternalSql {
 			+ "Vltp WRITE, Vltp AS sLtp WRITE, Vltp AS dLtp WRITE, "
 			+ "Vctp WRITE, Vctp AS sCtp WRITE, Vctp AS dCtp WRITE, "
 			+ "Vnode WRITE, Vlink WRITE, VlinkConn WRITE, Vconnection WRITE, "
-<<<<<<< HEAD
-			+ "Prefix WRITE, VcrossConnect WRITE";
-=======
-			+ "Prefix WRITE, Vtrail WRITE";
->>>>>>> a128ce3 (synchtopologyservicetonetwork)
+			+ "VcrossConnect WRITE,"
+			+ "Vtrail WRITE";
 
 	public static final String LOCK_TABLES_FOR_NODE = "LOCK TABLES "
 			+ "Vltp WRITE, Vltp AS sLtp WRITE, Vltp AS dLtp WRITE, "
