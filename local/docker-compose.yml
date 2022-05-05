@@ -22,8 +22,10 @@ services:
     restart: always
     expose:
       - "5672"
+      - "8161"
     ports:
       - "5672:5672"
+      - "8161:8161"
   neo4j:
     image: neo4j:4.2.1-enterprise
     ports:
