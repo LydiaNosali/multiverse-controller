@@ -25,6 +25,7 @@ public class CasperTelemetryAPIVerticle extends CasperAPIVerticle {
 	
 	private static final String TOPIC_CAPABILITIES = "/capabilities";
 	private static final String TOPIC_SPECIFICATIONS = "/specifications";
+	private static final String TOPIC_RECEIPT = "/specifications/receipt";
 	private static final String TOPIC_RESULTS = "/results/";
 	
 	private final TelemetryService service;
@@ -47,15 +48,16 @@ public class CasperTelemetryAPIVerticle extends CasperAPIVerticle {
 	}
 	
 	public void processSpecification(String id, Specification spec, Handler<AsyncResult<Receipt>> resultHandler) {
-		String topic = spec.getEndpoint() + TOPIC_SPECIFICATIONS;
-		publishSpecAwaitReceipt(spec, topic, ar -> {
+		String specTopic = spec.getEndpoint() + TOPIC_SPECIFICATIONS;
+		String rctTopic = spec.getEndpoint() + TOPIC_RECEIPT;
+		publishSpecAwaitReceipt2(spec, specTopic, rctTopic, ar -> {
 			if (ar.succeeded()) {
 				Receipt specRct = ar.result();
 				if (!specRct.getErrors().isEmpty()) {
 					resultHandler.handle(Future.failedFuture(specRct.getErrors().get(0)));
 					return;
 				}
-				String resTopic = specRct.getEndpoint() + TOPIC_RESULTS + specRct.getRole();
+				String resTopic = specRct.getEndpoint() + TOPIC_RESULTS;
 				subscribeToResults(resTopic, sub -> {
 					if (sub.succeeded()) {
 						service.saveSpecification(spec, res -> {
@@ -124,12 +126,13 @@ public class CasperTelemetryAPIVerticle extends CasperAPIVerticle {
 
 	@Override
 	protected void onCapability(Capability capability) {
+		logger.info(capability.toJson().encodePrettily());
 		service.saveCapability(capability, done -> {
 			if (done.succeeded()) {
 				publishUpdateToUI();
 				logger.info("capability saved"); 
 			} else {
-				logger.warn("capability not saved");
+				logger.warn("capability not saved: " + done.cause());
 			}
 		});
 	}

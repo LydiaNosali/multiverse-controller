@@ -13,6 +13,7 @@ import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpConnection;
 import io.vertx.amqp.AmqpMessage;
 import io.vertx.amqp.AmqpReceiver;
+import io.vertx.amqp.AmqpSender;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -24,7 +25,8 @@ import io.vertx.core.logging.LoggerFactory;
 public abstract class CasperAPIVerticle extends AbstractVerticle {
 	
 	protected abstract void onCapability(Capability cap);	
-	protected abstract void onResult(Result res);	
+	protected abstract void onResult(Result res);
+	// protected abstract void onReceipt(Result res);
 	
 	private static final Logger logger = LoggerFactory.getLogger(CasperAPIVerticle.class);
 	
@@ -74,7 +76,7 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 				        	onCapability(Message.fromJsonString(msg.bodyAsString(), Capability.class));				  
 				        });
 				resultHandler.handle(Future.succeededFuture());
-				logger.info("subscribed to" + topic + "topic");
+				logger.info("subscribed to " + topic + " topic");
 			} else {
 				logger.error("failed to subscribe to " + topic, ar.cause());
 				resultHandler.handle(Future.failedFuture(ar.cause()));
@@ -106,6 +108,55 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 				});
 			} else {
 				resultHandler.handle(Future.failedFuture(replyReceiver.cause()));
+			}
+		});
+	}
+	
+	protected void publishSpecAwaitReceipt2(Specification spec, String specTopic, String rctTopic, 
+			Handler<AsyncResult<Receipt>> resultHandler) {
+		if (connection == null) {
+			resultHandler.handle(Future.failedFuture("not connected to the messaging platform"));
+			return;
+		}
+		// sub to receipt
+		connection.createReceiver(rctTopic, ar -> {
+			if (ar.succeeded()) {
+		        Long rctTimeoutTimerId[] = { (long) 0 };
+
+				AmqpReceiver receiver = ar.result();
+				receiver
+						.exceptionHandler(t -> {})
+				        .handler(msg -> {
+				        	vertx.cancelTimer(rctTimeoutTimerId[0]);
+				        	logger.info("Receipt received");
+				        	Receipt rct = Message.fromJsonString(msg.bodyAsString(), Receipt.class);
+				        	resultHandler.handle(Future.succeededFuture(rct));
+				        });
+				logger.info("subscribed to Receipt topic: " + rctTopic);
+
+				connection.createSender(specTopic, res -> {
+					if (res.succeeded()) {
+						AmqpSender sender = res.result();
+						AmqpMessage msg = AmqpMessage.create().withBody(spec.toString()).build();
+						sender.send(msg);
+						logger.info("published Spec to topic: " + specTopic);
+						
+						// Rct timeout timer
+						rctTimeoutTimerId[0] = vertx.setTimer(1000, new Handler<Long>() {
+						    @Override
+						    public void handle(Long aLong) {
+						    	logger.info("Receipt timeout");
+						    	resultHandler.handle(Future.failedFuture("Receipt timeout"));
+						    }
+						});
+					} else {
+						logger.info("failed to publish Spec: " + res.cause());
+						resultHandler.handle(Future.failedFuture(res.cause()));
+					}
+				});
+			} else {
+				logger.error("failed to subscribe to Receipt topic: " + rctTopic, ar.cause());
+				resultHandler.handle(Future.failedFuture(ar.cause()));
 			}
 		});
 	}
@@ -152,7 +203,7 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 				        	onResult(Message.fromJsonString(msg.bodyAsString(), Result.class));				  
 				        });
 				resultHandler.handle(Future.succeededFuture());
-				logger.info("subscribed to" + topic + "topic");
+				logger.info("subscribed to " + topic + " topic");
 			} else {
 				logger.error("failed to subscribe to " + topic, ar.cause());
 				resultHandler.handle(Future.failedFuture(ar.cause()));
