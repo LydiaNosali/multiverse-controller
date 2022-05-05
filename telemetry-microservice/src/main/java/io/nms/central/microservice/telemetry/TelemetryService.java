@@ -35,6 +35,7 @@ public interface TelemetryService {
   
   void saveCapability(Capability cap, Handler<AsyncResult<Void>> resultHandler);
   void getCapabilitiesByRole(String role, Handler<AsyncResult<List<Capability>>> resultHandler);
+  void deleteAllCapabilities(Handler<AsyncResult<Void>> resultHandler);
   
   void saveSpecification(Specification spec, Handler<AsyncResult<Void>> resultHandler);
   void getAllSpecifications(Handler<AsyncResult<List<Specification>>> resultHandler);

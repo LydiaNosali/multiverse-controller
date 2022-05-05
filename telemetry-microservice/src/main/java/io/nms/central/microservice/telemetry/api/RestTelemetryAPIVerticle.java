@@ -61,6 +61,7 @@ public class RestTelemetryAPIVerticle extends RestAPIVerticle {
 		router.get(API_VERSION).handler(this::apiVersion);
 
 		router.get(API_ALL_CAPABILITIES).handler(this::checkAdminRole).handler(this::apiGetAllCapabilities);
+		router.delete(API_ALL_CAPABILITIES).handler(this::checkAdminRole).handler(this::apiDeleteAllCapabilities);
 
 		router.get(API_SPECIFICATION).handler(this::checkAdminRole).handler(this::apiGetAllSpecifications);
 		router.post(API_SPECIFICATION).handler(this::checkAdminRole).handler(this::apiSendSpecification);
@@ -97,6 +98,10 @@ public class RestTelemetryAPIVerticle extends RestAPIVerticle {
 		JsonObject principal = new JsonObject(context.request().getHeader("user-principal"));
 		String role = principal.getString("role");
 		service.getCapabilitiesByRole(role, resultHandlerNonEmpty(context));
+	}
+	
+	private void apiDeleteAllCapabilities(RoutingContext context) {
+		service.deleteAllCapabilities(deleteResultHandler(context));
 	}
 
 	private void apiGetAllSpecifications(RoutingContext context) {

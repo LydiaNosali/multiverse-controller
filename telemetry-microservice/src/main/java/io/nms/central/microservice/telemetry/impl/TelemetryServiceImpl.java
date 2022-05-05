@@ -57,7 +57,7 @@ public class TelemetryServiceImpl implements TelemetryService {
 			return;
 		}
 
-		doc.put("_id", cap.getSchema());			
+		doc.put("_id", cap.getSchema());
 
 		TimeZone tz = TimeZone.getTimeZone("UTC");
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
@@ -97,6 +97,18 @@ public class TelemetryServiceImpl implements TelemetryService {
 				resultHandler.handle(Future.succeededFuture(result));
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
+	}
+	
+	@Override
+	public void deleteAllCapabilities(Handler<AsyncResult<Void>> resultHandler) {
+		JsonObject query = new JsonObject();
+		client.removeDocuments(CAPABILITIES, query, ar -> {
+			if (ar.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
 			}
 		});
 	}
