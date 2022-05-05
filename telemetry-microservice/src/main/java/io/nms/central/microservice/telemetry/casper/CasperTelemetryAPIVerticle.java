@@ -25,7 +25,12 @@ public class CasperTelemetryAPIVerticle extends CasperAPIVerticle {
 	
 	private static final String TOPIC_CAPABILITIES = "/capabilities";
 	private static final String TOPIC_SPECIFICATIONS = "/specifications";
+<<<<<<< HEAD
 	private static final String TOPIC_RESULTS = "/results";
+=======
+	private static final String TOPIC_RECEIPT = "/specifications/receipt";
+	private static final String TOPIC_RESULTS = "/results/";
+>>>>>>> 1ae82e3 (fix: decouple spec/receipt exchange)
 	
 	private final TelemetryService service;
 
@@ -48,7 +53,12 @@ public class CasperTelemetryAPIVerticle extends CasperAPIVerticle {
 	
 	public void processSpecification(String id, Specification spec, Handler<AsyncResult<Receipt>> resultHandler) {
 		String specTopic = spec.getEndpoint() + TOPIC_SPECIFICATIONS;
+<<<<<<< HEAD
 		publishSpecAwaitReceipt(spec, specTopic, ar -> {
+=======
+		String rctTopic = spec.getEndpoint() + TOPIC_RECEIPT;
+		publishSpecAwaitReceipt2(spec, specTopic, rctTopic, ar -> {
+>>>>>>> 1ae82e3 (fix: decouple spec/receipt exchange)
 			if (ar.succeeded()) {
 				Receipt specRct = ar.result();
 				if (!specRct.getErrors().isEmpty()) {
