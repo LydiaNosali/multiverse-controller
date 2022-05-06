@@ -13,7 +13,6 @@ import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.amqp.AmqpConnection;
 import io.vertx.amqp.AmqpMessage;
 import io.vertx.amqp.AmqpReceiver;
-import io.vertx.amqp.AmqpSender;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -67,7 +66,7 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 			resultHandler.handle(Future.failedFuture("not connected to the messaging platform"));
 			return;
 		}
-		connection.createReceiver(topic, ar -> {
+		connection.createReceiver("topic://"+topic, ar -> {
 			if (ar.succeeded()) {
 				AmqpReceiver receiver = ar.result();
 				receiver
@@ -102,7 +101,7 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 					resultHandler.handle(Future.succeededFuture(rct));
 					logger.info("receipt received: " + msg.bodyAsString());
 				});
-				connection.createSender(topic, sender -> {
+				connection.createSender("topic://"+topic, sender -> {
 					if (sender.succeeded()) {
 						sender.result().send(AmqpMessage.create()
 								.replyTo(replyToAddress)
@@ -143,7 +142,7 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 					Receipt rct = Message.fromJsonString(msg.bodyAsString(), Receipt.class);									
 					resultHandler.handle(Future.succeededFuture(rct));
 				});
-				connection.createSender(topic, sender -> {
+				connection.createSender("topic://"+topic, sender -> {
 					if (sender.succeeded()) {
 						sender.result().send(AmqpMessage.create()
 								.replyTo(replyToAddress)
@@ -164,7 +163,7 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 			resultHandler.handle(Future.failedFuture("not connected to the messaging platform"));
 			return;
 		}
-		connection.createReceiver(topic, ar -> {
+		connection.createReceiver("topic://"+topic, ar -> {
 			if (ar.succeeded()) {
 				AmqpReceiver receiver = ar.result();
 				receiver
