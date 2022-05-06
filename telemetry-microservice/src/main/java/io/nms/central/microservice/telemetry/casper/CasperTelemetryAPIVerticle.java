@@ -25,7 +25,7 @@ public class CasperTelemetryAPIVerticle extends CasperAPIVerticle {
 	
 	private static final String TOPIC_CAPABILITIES = "/capabilities";
 	private static final String TOPIC_SPECIFICATIONS = "/specifications";
-	private static final String TOPIC_RECEIPT = "/specifications/receipt";
+	private static final String TOPIC_RECEIPT = "/receipt";
 	private static final String TOPIC_RESULTS = "/results/";
 	
 	private final TelemetryService service;
@@ -49,31 +49,38 @@ public class CasperTelemetryAPIVerticle extends CasperAPIVerticle {
 	
 	public void processSpecification(String id, Specification spec, Handler<AsyncResult<Receipt>> resultHandler) {
 		String specTopic = spec.getEndpoint() + TOPIC_SPECIFICATIONS;
-		String rctTopic = spec.getEndpoint() + TOPIC_RECEIPT;
-		publishSpecAwaitReceipt2(spec, specTopic, rctTopic, ar -> {
+		// String rctTopic = spec.getEndpoint() + TOPIC_RECEIPT;
+		publishSpecAwaitReceipt(spec, specTopic, ar -> {
 			if (ar.succeeded()) {
 				Receipt specRct = ar.result();
 				if (!specRct.getErrors().isEmpty()) {
-					resultHandler.handle(Future.failedFuture(specRct.getErrors().get(0)));
+					resultHandler.handle(Future.succeededFuture(specRct));
+					logger.info("receipt contains error: " + specRct.getErrors().get(0));
 					return;
 				}
 				String resTopic = specRct.getEndpoint() + TOPIC_RESULTS;
 				subscribeToResults(resTopic, sub -> {
 					if (sub.succeeded()) {
+						logger.info("subscribed to results topic: " + resTopic);
 						service.saveSpecification(spec, res -> {
 							if (res.succeeded()) {
-								service.saveReceipt(ar.result(), done -> {
+								logger.info("specification saved");
+								service.saveReceipt(specRct, done -> {
 									if (done.succeeded()) {
+										logger.info("receipt saved");
 										resultHandler.handle(Future.succeededFuture(ar.result()));
 									} else {
+										logger.info("failed to save receipt");
 										resultHandler.handle(Future.failedFuture(done.cause()));
 									}
 								});
 							} else {
+								logger.info("failed to save specification");
 								resultHandler.handle(Future.failedFuture(res.cause()));
 							}
 						});
 					} else {
+						logger.info("failed to subscrib to results topic: " + resTopic);
 						resultHandler.handle(Future.failedFuture(sub.cause()));
 					}
 				});
