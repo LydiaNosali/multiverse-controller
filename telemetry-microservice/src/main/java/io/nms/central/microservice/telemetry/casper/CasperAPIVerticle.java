@@ -91,72 +91,42 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 		}
 		connection.createDynamicReceiver(replyReceiver -> {
 			if (replyReceiver.succeeded()) {
+				Long rctTimeoutTimerId[] = { (long) 0 };
+				
 				String replyToAddress = replyReceiver.result().address();
+				logger.info("subscribed to Receipt topic: " + replyToAddress);
 				replyReceiver.result().handler(msg -> {
+					vertx.cancelTimer(rctTimeoutTimerId[0]);
+					replyReceiver.result().close(ig -> {});
 					Receipt rct = Message.fromJsonString(msg.bodyAsString(), Receipt.class);									
 					resultHandler.handle(Future.succeededFuture(rct));
+					logger.info("receipt received: " + msg.bodyAsString());
 				});
 				connection.createSender(topic, sender -> {
 					if (sender.succeeded()) {
 						sender.result().send(AmqpMessage.create()
 								.replyTo(replyToAddress)
-								.id(String.valueOf(rand.nextInt(10000)))
+								.id(replyToAddress)
 								.withBody(spec.toString()).build());
-					} else {
-						resultHandler.handle(Future.failedFuture(sender.cause()));
-					}
-				});
-			} else {
-				resultHandler.handle(Future.failedFuture(replyReceiver.cause()));
-			}
-		});
-	}
-	
-	protected void publishSpecAwaitReceipt2(Specification spec, String specTopic, String rctTopic, 
-			Handler<AsyncResult<Receipt>> resultHandler) {
-		if (connection == null) {
-			resultHandler.handle(Future.failedFuture("not connected to the messaging platform"));
-			return;
-		}
-		// sub to receipt
-		connection.createReceiver(rctTopic, ar -> {
-			if (ar.succeeded()) {
-		        Long rctTimeoutTimerId[] = { (long) 0 };
-
-				AmqpReceiver receiver = ar.result();
-				receiver
-						.exceptionHandler(t -> {})
-				        .handler(msg -> {
-				        	vertx.cancelTimer(rctTimeoutTimerId[0]);
-				        	logger.info("Receipt received");
-				        	Receipt rct = Message.fromJsonString(msg.bodyAsString(), Receipt.class);
-				        	resultHandler.handle(Future.succeededFuture(rct));
-				        });
-				logger.info("subscribed to Receipt topic: " + rctTopic);
-
-				connection.createSender(specTopic, res -> {
-					if (res.succeeded()) {
-						AmqpSender sender = res.result();
-						AmqpMessage msg = AmqpMessage.create().withBody(spec.toString()).build();
-						sender.send(msg);
-						logger.info("published Spec to topic: " + specTopic);
+						logger.info("published Spec to topic: " + topic);
 						
 						// Rct timeout timer
 						rctTimeoutTimerId[0] = vertx.setTimer(1000, new Handler<Long>() {
 						    @Override
 						    public void handle(Long aLong) {
-						    	logger.info("Receipt timeout");
-						    	resultHandler.handle(Future.failedFuture("Receipt timeout"));
+						    	logger.info("receipt timeout");
+						    	replyReceiver.result().close(ig -> {});
+						    	resultHandler.handle(Future.failedFuture("receipt timeout"));
 						    }
 						});
 					} else {
-						logger.info("failed to publish Spec: " + res.cause());
-						resultHandler.handle(Future.failedFuture(res.cause()));
+						logger.info("failed to publish Spec: " + sender.cause());
+						resultHandler.handle(Future.failedFuture(sender.cause()));
 					}
 				});
 			} else {
-				logger.error("failed to subscribe to Receipt topic: " + rctTopic, ar.cause());
-				resultHandler.handle(Future.failedFuture(ar.cause()));
+				logger.error("failed to subscribe to Receipt topic. ", replyReceiver.cause());
+				resultHandler.handle(Future.failedFuture(replyReceiver.cause()));
 			}
 		});
 	}
