@@ -43,7 +43,22 @@ public class PolatisPair {
 
 		PolatisPair other = (PolatisPair) obj;
 
-		return ingress == other.ingress && egress == other.egress;
+		return (ingress == other.ingress) && (egress == other.egress);
+	}
+	
+	public boolean conflict(Object obj) {
+
+		if (obj == this) {
+			return false;
+		}
+
+		if (!(obj instanceof PolatisPair)) {
+			return false; // ???
+		}
+
+		PolatisPair other = (PolatisPair) obj;
+
+		return ((ingress == other.ingress) && (egress != other.egress)) || ((ingress != other.ingress) && (egress == other.egress));
 	}
 
 	public PolatisPair(int ingress, int egress) {
