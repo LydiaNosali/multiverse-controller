@@ -1,6 +1,7 @@
 package io.nms.central.microservice.telemetry.casper;
 
-import java.util.Random;
+import java.util.HashMap;
+import java.util.Map;
 
 import io.nms.central.microservice.telemetry.model.Capability;
 import io.nms.central.microservice.telemetry.model.Interrupt;
@@ -26,11 +27,12 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 	protected abstract void onCapability(Capability cap);	
 	protected abstract void onResult(Result res);
 	// protected abstract void onReceipt(Result res);
+	protected Map<String,AmqpReceiver> subscribers = new HashMap<String,AmqpReceiver>();
 	
 	private static final Logger logger = LoggerFactory.getLogger(CasperAPIVerticle.class);
 	
 	private AmqpConnection connection = null;
-	private Random rand = new Random();
+	// private Random rand = new Random();
 	
 	protected void connect(JsonObject config, Handler<AsyncResult<Void>> resultHandler) {
 		if (config == null) {
@@ -62,6 +64,11 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 	}
 	
 	protected void subscribeToCapabilities(String topic, Handler<AsyncResult<Void>> resultHandler) {
+		if (subscribers.containsKey(topic)) {
+			logger.info("already subscribed to " + topic + " topic");
+			resultHandler.handle(Future.succeededFuture());
+			return;
+		}
 		if (connection == null) {
 			resultHandler.handle(Future.failedFuture("not connected to the messaging platform"));
 			return;
@@ -69,6 +76,7 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 		connection.createReceiver("topic://"+topic, ar -> {
 			if (ar.succeeded()) {
 				AmqpReceiver receiver = ar.result();
+				subscribers.put(topic, receiver);
 				receiver
 						.exceptionHandler(t -> {})
 				        .handler(msg -> {
@@ -97,6 +105,7 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 				replyReceiver.result().handler(msg -> {
 					vertx.cancelTimer(rctTimeoutTimerId[0]);
 					replyReceiver.result().close(ig -> {});
+
 					Receipt rct = Message.fromJsonString(msg.bodyAsString(), Receipt.class);									
 					resultHandler.handle(Future.succeededFuture(rct));
 					logger.info("receipt received: " + msg.bodyAsString());
@@ -137,28 +146,53 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 		}
 		connection.createDynamicReceiver(replyReceiver -> {
 			if (replyReceiver.succeeded()) {
+				Long rctTimeoutTimerId[] = { (long) 0 };
+
 				String replyToAddress = replyReceiver.result().address();
+				logger.info("subscribed to Receipt topic: " + replyToAddress);
 				replyReceiver.result().handler(msg -> {
+					vertx.cancelTimer(rctTimeoutTimerId[0]);
+					replyReceiver.result().close(ig -> {});
+
 					Receipt rct = Message.fromJsonString(msg.bodyAsString(), Receipt.class);									
 					resultHandler.handle(Future.succeededFuture(rct));
+					logger.info("receipt received: " + msg.bodyAsString());
 				});
 				connection.createSender("topic://"+topic, sender -> {
 					if (sender.succeeded()) {
 						sender.result().send(AmqpMessage.create()
 								.replyTo(replyToAddress)
-								.id(String.valueOf(rand.nextInt(10000)))
+								.id(replyToAddress)
 								.withBody(itr.toString()).build());
+						logger.info("published Itr to topic: " + topic);
+						
+						// Rct timeout timer
+						rctTimeoutTimerId[0] = vertx.setTimer(1000, new Handler<Long>() {
+						    @Override
+						    public void handle(Long aLong) {
+						    	logger.info("receipt timeout");
+						    	replyReceiver.result().close(ig -> {});
+						    	resultHandler.handle(Future.failedFuture("receipt timeout"));
+						    }
+						});
 					} else {
+						logger.info("failed to publish Itr: " + sender.cause());
 						resultHandler.handle(Future.failedFuture(sender.cause()));
 					}
 				});
 			} else {
+				logger.error("failed to subscribe to Receipt topic. ", replyReceiver.cause());
 				resultHandler.handle(Future.failedFuture(replyReceiver.cause()));
 			}
 		});
 	}
 	
 	protected void subscribeToResults(String topic, Handler<AsyncResult<Void>> resultHandler) {
+		if (subscribers.containsKey(topic)) {
+			logger.info("already subscribed to " + topic + " topic");
+			resultHandler.handle(Future.succeededFuture());
+			return;
+		}
 		if (connection == null) {
 			resultHandler.handle(Future.failedFuture("not connected to the messaging platform"));
 			return;
@@ -166,10 +200,11 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 		connection.createReceiver("topic://"+topic, ar -> {
 			if (ar.succeeded()) {
 				AmqpReceiver receiver = ar.result();
+				subscribers.put(topic, receiver);
 				receiver
 						.exceptionHandler(t -> {})
 				        .handler(msg -> {
-				        	onResult(Message.fromJsonString(msg.bodyAsString(), Result.class));				  
+				        	onResult(Message.fromJsonString(msg.bodyAsString(), Result.class));
 				        });
 				resultHandler.handle(Future.succeededFuture());
 				logger.info("subscribed to " + topic + " topic");
