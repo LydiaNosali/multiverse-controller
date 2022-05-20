@@ -113,10 +113,14 @@ public class CasperTelemetryAPIVerticle extends CasperAPIVerticle {
 				});
 			} else {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> f88e937 (fix: result summary)
 				// delete Spec and Rct anyway, consider correct
 				resultHandler.handle(Future.succeededFuture());
 				service.removeSpecification(itr.getSchema(), ar0 -> {
 					service.removeReceipt(itr.getSchema(), ig -> {});
+<<<<<<< HEAD
 =======
 				resultHandler.handle(Future.failedFuture(ar.cause()));
 				
@@ -134,6 +138,8 @@ public class CasperTelemetryAPIVerticle extends CasperAPIVerticle {
 						resultHandler.handle(Future.failedFuture(res.cause()));
 					}
 >>>>>>> e832bdb (fix: include params in results summary)
+=======
+>>>>>>> f88e937 (fix: result summary)
 				});
 			}
 		});
