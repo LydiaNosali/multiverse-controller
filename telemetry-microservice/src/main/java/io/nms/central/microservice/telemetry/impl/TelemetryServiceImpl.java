@@ -278,7 +278,8 @@ public class TelemetryServiceImpl implements TelemetryService {
 				.put("name", new JsonObject().put("$first", "$name"))
 				.put("begins", new JsonObject().put("$min", "$timestamp"))
 				.put("ends", new JsonObject().put("$max", "$timestamp"))
-				.put("total", new JsonObject().put("$sum", 1));
+				.put("total", new JsonObject().put("$sum", 1))
+				.put("params", new JsonObject().put("$first", "$parameters"));
 			
 			JsonObject command = new JsonObject()
 				.put("aggregate", RESULTS)
@@ -288,7 +289,7 @@ public class TelemetryServiceImpl implements TelemetryService {
 				.put("cursor", new JsonObject());
 							
 			client.runCommand("aggregate", command, res -> {
-				if (res.succeeded()) {				
+				if (res.succeeded()) {
 					if (res.result().getInteger("ok") == 1) {
 						JsonArray results = res.result().getJsonObject("cursor").getJsonArray("firstBatch");
 						resultHandler.handle(Future.succeededFuture(results));
