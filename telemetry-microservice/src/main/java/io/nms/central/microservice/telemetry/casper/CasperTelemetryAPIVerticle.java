@@ -113,6 +113,21 @@ public class CasperTelemetryAPIVerticle extends CasperAPIVerticle {
 				});
 			} else {
 				resultHandler.handle(Future.failedFuture(ar.cause()));
+				
+				// delete Spec and Rct anyway
+				service.removeSpecification(itr.getSchema(), res -> {
+					if (res.succeeded()) {
+						service.removeReceipt(itr.getSchema(), done -> {
+							if (done.succeeded()) {
+								resultHandler.handle(Future.succeededFuture(ar.result()));
+							} else {
+								resultHandler.handle(Future.failedFuture(done.cause()));
+							}
+						});
+					} else {
+						resultHandler.handle(Future.failedFuture(res.cause()));
+					}
+				});
 			}
 		});
 	}
