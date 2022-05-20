@@ -48,7 +48,7 @@ public abstract class CasperAPIVerticle extends AbstractVerticle {
 		}
 		
 		AmqpClientOptions options = new AmqpClientOptions()
-				.setHost("129.6.222.64")
+				.setHost(host)
 				.setPort(port);
 		AmqpClient client = AmqpClient.create(options);
 		client.connect(ar -> {
