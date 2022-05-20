@@ -276,10 +276,18 @@ public class TelemetryServiceImpl implements TelemetryService {
 				.put("_id", "$schema")
 				.put("endpoint", new JsonObject().put("$first", "$endpoint"))
 				.put("name", new JsonObject().put("$first", "$name"))
+<<<<<<< HEAD
 				.put("timepoints", new JsonObject().put("$addToSet", "$timestamp"))
 				.put("total", new JsonObject().put("$sum", 1))
 				.put("params", new JsonObject().put("$first", "$parameters"));
 		
+=======
+				.put("begins", new JsonObject().put("$min", "$timestamp"))
+				.put("ends", new JsonObject().put("$max", "$timestamp"))
+				.put("total", new JsonObject().put("$sum", 1))
+				.put("params", new JsonObject().put("$first", "$parameters"));
+			
+>>>>>>> e832bdb (fix: include params in results summary)
 			JsonObject command = new JsonObject()
 				.put("aggregate", RESULTS)
 				.put("pipeline", new JsonArray()
