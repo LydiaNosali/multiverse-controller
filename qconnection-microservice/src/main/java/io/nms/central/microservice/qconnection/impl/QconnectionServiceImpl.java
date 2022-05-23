@@ -80,20 +80,16 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 					} else {
 						logger.info("synchronization ERROR : " + r.cause());
 					}
-					/*
-					 * vertx.setPeriodic(5 * 60 * 1000, id -> { // add synchro from network to
-					 * topology getOpticalNetwork(re -> { if (re.succeeded()) {
-					 * logger.info("Update done successfuly"); } else {
-					 * logger.info("ERROR, update went wrong"); } }); });
-					 */
+//					  vertx.setPeriodic(5 * 60 * 1000, id -> { // add synchro from network to
+//					  topology getOpticalNetwork(re -> { if (re.succeeded()) {
+//					  logger.info("Update done successfuly"); } else {
+//					  logger.info("ERROR, update went wrong"); } }); });
 				});
 			} else {
 				logger.info("Update ERROR : " + res.cause());
 			}
 		});
-
 		// notification per switch instead of periodic gets on all switches
-
 		return this;
 	}
 
@@ -102,6 +98,8 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		intended_oxcsbytrailId.clear();
 		mgmtIpbyswitchId.clear();
 		portNbbyportId.clear();
+		oxcsbySwitchId.clear();
+		voxcsbySwitchId.clear();
 
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
 		TopologyService service = builder.build(TopologyService.class);
@@ -174,7 +172,6 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 												if (ar3.succeeded()) {
 													List<VcrossConnect> vcrossConnects = ar3.result();
 													intended_oxcsbytrailId.put(vtrail.getId(), vcrossConnects);
-													logger.info("intended_oxcsbytrailId" + intended_oxcsbytrailId);
 													pVoxcRead.complete();
 												} else {
 													logger.info("ERROR in get VcrossconnectsbyVtrails: "
@@ -211,6 +208,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		logger.info("synchTopologyToNetwork in QconnectionService");
 
 		List<Future> allTrailsUP = new ArrayList<Future>();
+		Map<Integer, List<PolatisPair>> oxcsToCreateOnSwitch = new HashMap<Integer, List<PolatisPair>>();
 		for (Entry<Integer, List<VcrossConnect>> entry : intended_oxcsbytrailId.entrySet()) {
 			crossConnectsCreated.clear();
 			Promise<Void> pTrailUP = Promise.promise();
@@ -222,7 +220,32 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 				polatisPair.setIngress(Integer.parseInt(portNbbyportId.get(vcrossconnect.getIngressPortId())));
 				int i = Integer.parseInt(portNbbyportId.get(vcrossconnect.getEgressPortId())) + 8;
 				polatisPair.setEgress(i);
-				if (!oxcsbySwitchId.get(entry.getKey()).contains(polatisPair)) {
+				// TODO change in here
+//				// conflict --> complete(error) --> stop --> delete path
+//				PolatisPair pp = oxcsbySwitchId.get(vcrossconnect.getSwitchId()).stream()
+//						.filter(pair -> polatisPair.conflict(pair)).findAny().orElse(null);
+//				if (pp != null) {
+//					stage = stage.thenCompose(r -> CompletableFuture.failedStage(null));
+//				} else {
+//					// same oxc --> complete(empty list)
+//					pp = oxcsbySwitchId.get(vcrossconnect.getSwitchId()).stream().filter(pair -> polatisPair.equals(pair)).findAny()
+//							.orElse(null);
+//					if (pp != null) {
+//						stage = stage.thenCompose(r -> CompletableFuture.completedStage(null));
+//					} else {
+//						// no oxc at all --> complete(list with one element (mgmt, list polatis) to
+//						// create)
+//						stage = stage.thenCompose(r -> CompletableFuture.completedStage(null));
+//						oxcsToCreateOnSwitch.put(vcrossconnect.getSwitchId(), oxcsToCreateOnSwitch.get(vcrossconnect.getSwitchId()).add(pp));
+//					}
+//				}
+//
+//				stage = stage.thenCompose(previousList -> checkOxc(vcrossconnect.getSwitchId(), polatisPair)
+//						.thenApply(nextList -> {
+//							oxcsToCreateOnSwitch.put(null, previousList)
+//						}));
+
+				if (!oxcsbySwitchId.get(vcrossconnect.getSwitchId()).contains(polatisPair)) {
 					stage = stage.thenCompose(
 							r -> createOXC(mgmtIpbyswitchId.get(vcrossconnect.getSwitchId()), polatisPair));
 				}
@@ -252,8 +275,6 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 	private QconnectionService synchNetworkToTopology(Handler<AsyncResult<Void>> resultHandler) {
 		// To be continued
-		// get oxcsbyswitchid in switches
-
 		Map<Integer, List<PolatisPair>> topologypolatisbyswitchid = new HashMap<Integer, List<PolatisPair>>();
 		// get oxcsbyswitchid in topology
 		for (Entry<Integer, List<VcrossConnect>> topologyoxcsbyswitchid : voxcsbySwitchId.entrySet()) {
@@ -310,12 +331,11 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		for (CrossConnect crossConnect : trail.getOxcs()) {
 			for (Entry<Integer, List<VcrossConnect>> entry : intended_oxcsbytrailId.entrySet()) {
 				for (VcrossConnect vcrossConnect : entry.getValue()) {
-					logger.info("vcrossConnect.getIngressPortId()= " + vcrossConnect.getIngressPortId());
-					logger.info("vcrossConnect.getEgressPortId()= " + vcrossConnect.getEgressPortId());
 					if (crossConnect.getSwitchId() == vcrossConnect.getSwitchId()
 							&& (crossConnect.getIngressPortId() == vcrossConnect.getIngressPortId()
 									|| crossConnect.getEgressPortId() == vcrossConnect.getEgressPortId())) {
 						resultHandler.handle(Future.failedFuture("CONFLICT oxc already exists"));
+						logger.info("CONFLICT oxc already exists");
 						return this;
 					}
 				}
@@ -334,7 +354,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		vtrail.setVsubnetId(trail.getVsubnetId());
 		vtrail.setInfo(trail.getInfo());
 
-		Promise<Void> pTrailAddedToTopology = Promise.promise();
+		// Promise<Void> pTrailAddedToTopology = Promise.promise();
 
 		service.addVtrail(vtrail, sn -> {
 			if (sn.succeeded()) {
@@ -396,11 +416,22 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 						});
 						CompositeFuture.all(allOXCsAdded).map((Void) null).onComplete(res -> {
 							if (res.succeeded()) {
-								pTrailAddedToTopology.complete();
-								updateStatus(trailId, ResTypeEnum.TRAIL, StatusEnum.UP);
+								vertx.executeBlocking(promise -> {
+									updateStatus(trailId, ResTypeEnum.TRAIL, StatusEnum.UP);
+									promise.complete();
+								}, done -> {
+									// get topology
+									getOpticalNetwork(re -> {
+										if (re.succeeded()) {
+											logger.info("Update done successfuly");
+										} else {
+											logger.info("ERROR, update went wrong");
+										}
+									});
+								});
 							} else {
 								logger.info("fail to add Vtrail to topology service" + res.cause());
-								pTrailAddedToTopology.fail(res.cause());
+								// pTrailAddedToTopology.fail(res.cause());
 							}
 						});
 					}
@@ -421,7 +452,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 					if (response.succeeded()) {
 						HttpResponse<Buffer> httpResponse = response.result();
 						logger.info("GET Response With Filter Response : " + httpResponse.bodyAsString());
-						if (httpResponse.statusCode() == 201) {
+						if (httpResponse.statusCode() == 200) {
 							resultHandler.handle(Future.succeededFuture());
 						} else {
 							resultHandler.handle(Future.failedFuture("CONFLICT"));
@@ -444,12 +475,11 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 					if (response.succeeded()) {
 						HttpResponse<Buffer> httpResponse = response.result();
 						logger.info("GET Response : " + httpResponse.bodyAsString());
-						if (httpResponse.statusCode() == 201) {
+						if (httpResponse.statusCode() == 200) {
 							List<PolatisPair> crossConnects = JsonUtils.json2Pojo(
 									httpResponse.bodyAsJsonObject().getValue("optical-switch:pair").toString(),
 									new TypeReference<List<PolatisPair>>() {
 									});
-							logger.info("switch getAllOxcs: " + crossConnects);
 							resultHandler.handle(Future.succeededFuture(crossConnects));
 						} else {
 							resultHandler.handle(Future.failedFuture("CONFLICT"));
@@ -533,6 +563,13 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 						service.deleteVtrail(trailId, ar3 -> {
 							if (ar3.succeeded()) {
 								resultHandler.handle(Future.succeededFuture());
+								getOpticalNetwork(re -> {
+									if (re.succeeded()) {
+										logger.info("Update done successfuly");
+									} else {
+										logger.info("ERROR, update went wrong");
+									}
+								});
 							} else {
 								logger.info("ERROR in delete Vtrail in topology service: " + ar3.cause().getMessage());
 							}
