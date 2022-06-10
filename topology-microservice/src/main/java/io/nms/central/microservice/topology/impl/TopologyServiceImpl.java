@@ -1529,15 +1529,13 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 												addVtrail(vtrail, ar -> {
 													if (ar.succeeded()) {
 														trailIds.put(vtrail.getName(), ar.result());
-														List<Future> allOxcsAdded = new ArrayList<Future>();
-														jTrail.getJsonArray("oxcs").forEach(el -> {
-															JsonObject xc = (JsonObject) el;
-															Promise<Void> pOxcAdded = Promise.promise();
-															allOxcsAdded.add(pOxcAdded.future());
+														CompletableFuture<Void> stage2 = CompletableFuture.completedFuture(null);
+														for (Object ee: jTrail.getJsonArray("oxcs")) {
+															JsonObject xc = (JsonObject) ee;
 															String ingressPortName = xc.getString("switch") + "." + xc.getString("ingressPort");
 															String egressPortName = xc.getString("switch") + "." + xc.getString("egressPort");
 															VcrossConnect vxc = new VcrossConnect();
-															vxc.setName(vtrail.getName());
+															vxc.setName(xc.getString("name"));
 															vxc.setLabel("");
 															vxc.setDescription("");
 															vxc.setStatus(StatusEnum.UP);
@@ -1545,15 +1543,16 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 															vxc.setSwitchId(nodeIds.get(xc.getString("switch")));
 															vxc.setIngressPortId(ltpIds.get(ingressPortName));
 															vxc.setEgressPortId(ltpIds.get(egressPortName));
-															addVcrossConnect(vxc, ar2 -> {
-																if (ar2.succeeded()) {
-																	pOxcAdded.complete();
-																} else {
-																	pOxcAdded.fail(ar2.cause());
-																}
-															});
-														});
-														CompositeFuture.all(allOxcsAdded).map((Void)null).onComplete(pTrailAdded);
+
+															stage2 = stage2.thenCompose(r -> createXc(vxc));
+														}
+														stage2.whenComplete((result2, error2) -> {
+											            	if (error2 != null) {
+											            		pTrailAdded.fail(error2.getCause());
+											                } else {
+											                	pTrailAdded.complete();
+											                }
+											            });
 													} else {
 														pTrailAdded.fail(ar.cause());
 													}
@@ -1615,6 +1614,18 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				cs.complete(null);
 			} else {
 				cs.completeExceptionally(ar3.cause());
+			}
+		});
+		return cs;
+	}
+	
+	private CompletableFuture<Void> createXc(VcrossConnect vxc) {
+		CompletableFuture<Void> cs = new CompletableFuture<>();
+		addVcrossConnect(vxc, ar -> {
+			if (ar.succeeded()) {
+				cs.complete(null);
+			} else {
+				cs.completeExceptionally(ar.cause());
 			}
 		});
 		return cs;

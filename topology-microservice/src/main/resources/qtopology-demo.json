@@ -40,15 +40,15 @@
         },
         {
             "name": "T-1", "description": "Source_1 to Detector_3", "oxcs": [
-                {"switch": "Polatis_1", "ingressPort": "p8", "egressPort": "p2"},
-                {"switch": "Polatis_3", "ingressPort": "p1", "egressPort": "p8"}
+                {"name": "xc1", "switch": "Polatis_1", "ingressPort": "p8", "egressPort": "p2"},
+                {"name": "xc2", "switch": "Polatis_3", "ingressPort": "p1", "egressPort": "p8"}
                 ]
         },
         {
             "name": "T-2", "description": "Source_2 to Detector_2", "oxcs": [
-                {"switch": "Polatis_1", "ingressPort": "p7", "egressPort": "p1"},
-                {"switch": "Polatis_2", "ingressPort": "p1", "egressPort": "p8"}
-                ]   
+                {"name": "xc1", "switch": "Polatis_1", "ingressPort": "p7", "egressPort": "p1"},
+                {"name": "xc2", "switch": "Polatis_2", "ingressPort": "p1", "egressPort": "p8"}
+                ]
         }
     ]
 }
