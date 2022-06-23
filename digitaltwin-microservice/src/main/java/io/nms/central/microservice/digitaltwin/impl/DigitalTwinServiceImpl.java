@@ -743,6 +743,15 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 		});
 	}
 	
+	/* private String joinQueries(List<String> queries) {
+		String res = "";
+		for (String q: queries) {
+			res+=q.substring(0, q.length() - 1);
+			res+=" ";
+		}
+		return res;
+	} */
+	
 	/* private void processNetworkStateBlocking(NetworkState netState, 
 			Handler<AsyncResult<CreationReport>> resultHandler) {
 		List<String> queries = new ArrayList<String>();

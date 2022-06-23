@@ -49,20 +49,22 @@ public class GraphCreator {
 		
 		output = new ArrayList<String>();
 		
-		JsonArray hosts = input.getJsonArray("host");
-	    processHosts(hosts); 
+		// JsonArray hosts = input.getJsonArray("host");
+	    // processHosts(hosts); 
 	    
-	    JsonArray ltps = input.getJsonArray("ltp");
-	    processLtps(ltps);
+	    // JsonArray ltps = input.getJsonArray("ltp");
+	    // processLtps(ltps);
 	    
-	    JsonArray etherCtps = input.getJsonArray("etherCtp");
-	    processEtherCtps(etherCtps);
+	    // JsonArray etherCtps = input.getJsonArray("etherCtp");
+	    // processEtherCtps(etherCtps);
 	    
-	    JsonArray ip4Ctps = input.getJsonArray("ip4Ctp");
-	    processIp4Ctps(ip4Ctps);
+	    // JsonArray ip4Ctps = input.getJsonArray("ip4Ctp");
+	    // processIp4Ctps(ip4Ctps);
 	    
-	    JsonArray sviCtps = input.getJsonArray("sviCtp");
-	    processIp4Ctps(sviCtps);
+	    // JsonArray sviCtps = input.getJsonArray("sviCtp");
+	    // processIp4Ctps(sviCtps);
+		
+		processHostsAgg();
 	    
 	    processAutoVlanMembers();
 	    
@@ -96,6 +98,104 @@ public class GraphCreator {
 	    return true;
 	}
 
+	private void processHostsAgg() {
+		String CREATE_HOST = "T4@CREATE (h:Host:%s {name: '%s', hostname: '%s', type: '%s', mac: '%s', platform: '%s', "
+				+ "bgpAsn: '%s', bgpStatus: '%s', hwsku: '%s'})";
+		String CREATE_LTP = " CREATE (h)-[:CONTAINS]->(:Ltp {name: '%s', type: '%s', adminStatus: '%s', "
+				+ "index: '%s', speed: '%s', mtu: '%s'})";
+		String CREATE_ETHERCTP = "-[:CONTAINS]->(:EtherCtp {macAddr: '%s', vlan: '%s', mode: '%s'})";
+		String CREATE_IP4CTP = "-[:CONTAINS]->(:Ip4Ctp {ipAddr:'%s', netMask:'%s', netAddr: '%s', svi:'%s', vlan:'%s'})";
+		
+		JsonArray hosts = input.getJsonArray("host");
+		String[] hostQuery = {""};
+		hosts.forEach(e -> {
+	    	JsonObject host = (JsonObject) e;
+	    	hostQuery[0] = String.format(CREATE_HOST, host.getString("type"),
+	    			host.getString("name"), host.getString("hostname"),
+    				host.getString("type"), host.getString("mac"),
+    				host.getString("platform"),
+    				host.getString("bgpAsn"), host.getString("bgpStatus"), host.getString("hwsku"));
+	    	hostQuery[0]+=" WITH h as h";
+	    	// add Ltps
+	    	getLtpsOfHost(host.getString("name")).forEach(ee -> {
+	    		JsonObject ltp = (JsonObject) ee;
+	    		hostQuery[0]+= String.format(CREATE_LTP,
+	    				ltp.getString("name"), ltp.getString("type"), ltp.getString("adminStatus"),
+	    				ltp.getString("index"), ltp.getString("speed"), ltp.getString("mtu"));
+	    		// add etherCtps
+	    		getEtherCtpsOfLtp(host.getString("name"), ltp.getString("name")).forEach(eee -> {
+		    		JsonObject ectp = (JsonObject) eee;
+		    		hostQuery[0]+= String.format(CREATE_ETHERCTP, 
+			    			ectp.getString("macAddr"), ectp.getString("vlan"), ectp.getString("mode"));
+		    		// add ip4Ctps
+		    		getIp4CtpsOfEtherCtp(host.getString("name"), ectp.getString("interface")).forEach(eeee -> {
+			    		JsonObject ip4ctp = (JsonObject) eeee;
+			    		hostQuery[0]+= String.format(CREATE_IP4CTP, 
+			    				ip4ctp.getString("ipAddr"), ip4ctp.getString("netMask"),
+			    				ip4ctp.getString("netAddr"), ip4ctp.getString("svi"), ip4ctp.getString("vlan"));
+			    	});
+		    		// add sviCtps
+		    		getSviCtpsOfEtherCtp(host.getString("name"), ectp.getString("interface")).forEach(eeee -> {
+			    		JsonObject svictp = (JsonObject) eeee;
+			    		hostQuery[0]+= String.format(CREATE_IP4CTP,
+			    				svictp.getString("ipAddr"), svictp.getString("netMask"),
+			    				svictp.getString("netAddr"), svictp.getString("svi"), svictp.getString("vlan"));
+			    	});
+		    	});
+	    	});
+	    	
+	    	// add one host query
+	    	output.add(hostQuery[0]+=";");
+	    });
+	}
+	
+	private JsonArray getLtpsOfHost(String host) {
+		JsonArray ltps = input.getJsonArray("ltp");
+		JsonArray res = new JsonArray();
+		ltps.forEach(e -> {
+	    	JsonObject ltp = (JsonObject) e;
+	    	if (ltp.getString("host").equals(host)) {
+	    		res.add(ltp);
+	    	}
+		});
+		return res;
+	}
+	private JsonArray getEtherCtpsOfLtp(String host, String ltp) {
+		JsonArray ctps = input.getJsonArray("etherCtp");
+		JsonArray res = new JsonArray();
+		ctps.forEach(e -> {
+	    	JsonObject ctp = (JsonObject) e;
+	    	if (ctp.getString("host").equals(host) && ctp.getString("interface").equals(ltp)) {
+	    		res.add(ctp);
+	    	}
+		});
+		return res;
+	}
+	private JsonArray getIp4CtpsOfEtherCtp(String host, String ltp) {
+		JsonArray ctps = input.getJsonArray("ip4Ctp");
+		JsonArray res = new JsonArray();
+		ctps.forEach(e -> {
+	    	JsonObject ctp = (JsonObject) e;
+	    	if (ctp.getString("host").equals(host) && ctp.getString("interface").equals(ltp)) {
+	    		res.add(ctp);
+	    	}
+		});
+		return res;
+	}
+	private JsonArray getSviCtpsOfEtherCtp(String host, String ltp) {
+		JsonArray ctps = input.getJsonArray("sviCtp");
+		JsonArray res = new JsonArray();
+		ctps.forEach(e -> {
+	    	JsonObject ctp = (JsonObject) e;
+	    	if (ctp.getString("host").equals(host) && ctp.getString("interface").equals(ltp)) {
+	    		res.add(ctp);
+	    	}
+		});
+		return res;
+	}
+    
+    
+	/* ----------------------------------------- */
 	private void processHosts(JsonArray hosts) {
 		String query = "T4@" + CypherQuery.Graph.CREATE_HOST;
 		hosts.forEach(e -> {

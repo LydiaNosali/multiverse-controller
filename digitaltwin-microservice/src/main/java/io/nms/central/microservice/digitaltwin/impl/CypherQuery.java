@@ -12,7 +12,7 @@ public class CypherQuery {
 	public static final String CLEAR_DB = "MATCH (n) DETACH DELETE n;";
 	
 	public static class Graph {
-		public static final String CREATE_HOST = "CREATE (:Host:%s {name: '%s', hostname: '%s', type: '%s', mac: '%s', platform: '%s', "
+		public static final String CREATE_HOST = "CREATE (h:Host:%s {name: '%s', hostname: '%s', type: '%s', mac: '%s', platform: '%s', "
 				+ "bgpAsn: '%s', bgpStatus: '%s', hwsku: '%s'});";
 		public static final String CREATE_LTP = "MATCH (r:Host) WHERE r.name = '%s' "
 				+ "CREATE (r)-[:CONTAINS]->(:Ltp {name: '%s', type: '%s', adminStatus: '%s', "

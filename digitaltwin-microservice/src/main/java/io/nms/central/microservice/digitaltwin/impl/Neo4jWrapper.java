@@ -172,16 +172,17 @@ public class Neo4jWrapper {
 			Handler<AsyncResult<List<String>>> resultHandler) {
 		beginTransaction(db, res -> {
 			if (res.succeeded()) {
-				CompletionStage<List<String>> stage = CompletableFuture.completedFuture(new ArrayList<String>());
+				CompletionStage<ResultCursor> stage = CompletableFuture.completedFuture(null);
 				Instant start = Instant.now();
 	            for (String query : queries) {
-	                stage = stage.thenCompose(current -> tx.runAsync(query)
-	                        .thenCompose(ResultCursor::consumeAsync)
-	                        .thenApply(ResultSummary::counters)
-	                        .thenApply(counters -> aggregateResults(query, current, counters)));
+	                stage = stage.thenCompose(current -> tx.runAsync(query));
+	                       // .thenCompose(ResultCursor::consumeAsync)
+	                       // .thenApply(ResultSummary::counters)
+	                       // .thenApply(counters -> aggregateResults(query, current, counters)));
 	            }
 	            stage.whenComplete((result, error) -> {
 	            	if (error != null) {
+	            		logger.info("Graph creation error: " + error.getMessage());
 	            		resultHandler.handle(Future.failedFuture(error.getMessage()));
 	            		rollback(ignore -> {});
 	                } else {
@@ -189,7 +190,7 @@ public class Neo4jWrapper {
 	                		if (done.succeeded()) {
 	                			Instant end = Instant.now();
 	    						logger.info("3- Graph creation time: " + Duration.between(start, end).toMillis() + " ms");
-	                			resultHandler.handle(Future.succeededFuture(result));
+	                			resultHandler.handle(Future.succeededFuture(new ArrayList<String>()));
 	                		} else {
 	                			resultHandler.handle(Future.failedFuture(done.cause()));
 	                		}
