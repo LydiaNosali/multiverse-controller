@@ -67,9 +67,11 @@ public class GraphCreator {
 	    processAutoVlanMembers();
 	    
 	    JsonArray links = input.getJsonArray("link");
-	    processLinks(links);
+	    // processLinks(links);
+	    processLinksSimple(links);
 	    
-	    processAutoLc();
+	    // processAutoLc();
+	    processAutoLcSimple();
 	    
 	    JsonArray ipConns = input.getJsonArray("ipConn");
 	    processIpConns(ipConns);
@@ -90,8 +92,7 @@ public class GraphCreator {
 	    processIpRoutes(ipRoutes);
 	    
 	    Instant end = Instant.now();
-		Duration timeElapsed = Duration.between(start, end);
-		logger.info("2- Queries creation time: " + timeElapsed.getNano() / 1000000 + " ms.");
+		logger.info("2- Queries creation time: " + Duration.between(start, end).toMillis() + " ms.");
 	    return true;
 	}
 
@@ -166,8 +167,27 @@ public class GraphCreator {
 	    });
 	}
 	
+	private void processLinksSimple(JsonArray links) {
+		String q = "T9@" + CypherQuery.Graph.CREATE_LINK_SIMPLE;
+		links.forEach(e -> {
+			JsonObject link = (JsonObject) e;
+	    	String result = String.format(q, 
+	    			link.getString("srcHost"),
+	    			link.getString("srcInterface"),
+	    			link.getString("destHost"),
+	    			link.getString("destInterface"),
+	    			link.getString("name"));
+	    	output.add(result);
+	    });
+	}
+	
 	private void processAutoLc() {
 		String q = "T10@" + CypherQuery.Graph.AUTO_LINKCONN;
+    	output.add(q);
+	}
+	
+	private void processAutoLcSimple() {
+		String q = "T10@" + CypherQuery.Graph.AUTO_LINKCONN_SIMPLE;
     	output.add(q);
 	}
 	
@@ -277,7 +297,7 @@ public class GraphCreator {
 	    			table.getString("name"), 
 	    			table.getLong("priority"), 
 	    			table.getString("action"),
-	    			table.getString("match"),
+	    			table.getJsonArray("match").encode(),
 	    			table.getString("host"),
 	    			table.getString("table"));
 	    	output.add(result);

@@ -196,14 +196,14 @@
           "RULE": "ACE_DROP",
           "PRIORITY": "2",
           "ACTION": "DROP",
-          "MATCH": "SRC_IP: 20.0.0.0/8"
+          "MATCH": ["SRC_IP: 20.0.0.0/8"]
         },
         {
           "TABLE": "BLK_SSH",
           "RULE": "ACE_FORWARD",
           "PRIORITY": "1",
-          "ACTION": "FORWARD",
-          "MATCH": "IP_TYPE: ANY"
+          "ACTION": "ACCEPT",
+          "MATCH": ["IP_TYPE: ANY"]
         }
       ],
       "lldp": [
@@ -824,14 +824,14 @@
           "RULE": "ACE_DROP",
           "PRIORITY": "2",
           "ACTION": "DROP",
-          "MATCH": "SRC_IP: 20.0.0.0/8"
+          "MATCH": ["SRC_IP: 20.0.0.0/8"]
         },
         {
           "TABLE": "BLK_SSH",
           "RULE": "ACE_FORWARD",
           "PRIORITY": "1",
-          "ACTION": "FORWARD",
-          "MATCH": "IP_TYPE: ANY"
+          "ACTION": "ACCEPT",
+          "MATCH": ["IP_TYPE: ANY"]
         }
       ],
       "lldp": [
