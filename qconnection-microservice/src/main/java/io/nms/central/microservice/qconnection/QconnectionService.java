@@ -1,5 +1,6 @@
 package io.nms.central.microservice.qconnection;
 
+import io.nms.central.microservice.qconnection.model.CrossConnect;
 import io.nms.central.microservice.qconnection.model.Trail;
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.ProxyGen;
@@ -42,5 +43,11 @@ public interface QconnectionService {
 
 	@Fluent
 	QconnectionService doHealthCheck(Handler<AsyncResult<Void>> resultHandler);
+	
+	@Fluent
+	QconnectionService createCrossConnect(CrossConnect crossConnect, Handler<AsyncResult<Integer>> resultHandler);
+
+	@Fluent
+	QconnectionService deleteCrossConnect(String oxcId, Handler<AsyncResult<Void>> resultHandler);
 
 }
