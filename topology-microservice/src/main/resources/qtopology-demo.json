@@ -8,28 +8,19 @@
             "mgmtAddr": "192.168.0.101"
         },
         { 
-            "name": "Polatis_2",
+            "name": "Polatis_3",
             "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
-            "position": { "x": 250, "y": 350 },
-            "mgmtAddr": "192.168.0.102"
-        },
-        { 
-            "name": "Polatis_3", 
-            "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], 
-            "position": { "x": 350, "y": 250 },
-            "mgmtAddr": "192.168.0.103" 
+            "position": { "x": 250, "y": 300 },
+            "mgmtAddr": "192.168.0.103"
         }
     ],
     "links": [
-        { "srcSwitch": "Polatis_1", "srcPort": "p1", "dstSwitch": "Polatis_2", "dstPort": "p1" },
-        { "srcSwitch": "Polatis_1", "srcPort": "p2", "dstSwitch": "Polatis_3", "dstPort": "p1" },
-        { "srcSwitch": "Polatis_2", "srcPort": "p2", "dstSwitch": "Polatis_3", "dstPort": "p2" }
+        { "srcSwitch": "Polatis_1", "srcPort": "p1", "dstSwitch": "Polatis_3", "dstPort": "p1" }
     ],
     "capabilities": [
-        { "name": "Source_1", "location": { "node": "Polatis_1", "port": "p8" }, "description": "Source - at Polatis_1.p8" },
-        { "name": "Source_2", "location": { "node": "Polatis_1", "port": "p7" }, "description": "Source - at Polatis_1.p7" },
-        { "name": "Detector_2", "location": { "node": "Polatis_2", "port": "p8" }, "description": "Detector - at Polatis_2.p8" },
-        { "name": "Detector_3", "location": { "node": "Polatis_3", "port": "p8" }, "description": "Detector - at Polatis_3.p8" }
+        { "name": "Alice-S", "location": { "node": "Polatis_1", "port": "p7" }, "description": "Alice - at Polatis_1.p7" },
+        { "name": "Bob-D", "location": { "node": "Polatis_3", "port": "p8" }, "description": "Bob - at Polatis_3.p8" },
+        { "name": "Charlie-D", "location": { "node": "Polatis_3", "port": "p7" }, "description": "Charlie - at Polatis_3.p7" }
     ],
     "trails": [
         {
@@ -37,18 +28,6 @@
         },
         {
             "name": "default-cli", "description": "default trail for cli-origin oxcs", "oxcs": []   
-        },
-        {
-            "name": "T-1", "description": "Source_1 to Detector_3", "oxcs": [
-                {"switch": "Polatis_1", "ingressPort": "p8", "egressPort": "p2"},
-                {"switch": "Polatis_3", "ingressPort": "p1", "egressPort": "p8"}
-                ]
-        },
-        {
-            "name": "T-2", "description": "Source_2 to Detector_2", "oxcs": [
-                {"switch": "Polatis_1", "ingressPort": "p7", "egressPort": "p1"},
-                {"switch": "Polatis_2", "ingressPort": "p1", "egressPort": "p8"}
-                ]   
         }
     ]
 }
