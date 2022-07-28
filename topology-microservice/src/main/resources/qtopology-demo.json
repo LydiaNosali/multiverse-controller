@@ -8,11 +8,7 @@
             "mgmtAddr": "192.168.0.101"
         },
         { 
-<<<<<<< HEAD
             "name": "Polatis_3",
-=======
-            "name": "Polatis_2",
->>>>>>> origin/master
             "ports": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"],
             "position": { "x": 250, "y": 300 },
             "mgmtAddr": "192.168.0.103"
@@ -29,27 +25,9 @@
     "trails": [
         {
             "name": "default-mvs", "description": "default trail for multiverse-origin oxcs", "oxcs": []   
-<<<<<<< HEAD
         },
         {
             "name": "default-cli", "description": "default trail for cli-origin oxcs", "oxcs": []   
-=======
-        },
-        {
-            "name": "default-cli", "description": "default trail for cli-origin oxcs", "oxcs": []   
-        },
-        {
-            "name": "T-1", "description": "Source_1 to Detector_3", "oxcs": [
-                {"name": "xc1", "switch": "Polatis_1", "ingressPort": "p8", "egressPort": "p2"},
-                {"name": "xc2", "switch": "Polatis_3", "ingressPort": "p1", "egressPort": "p8"}
-                ]
-        },
-        {
-            "name": "T-2", "description": "Source_2 to Detector_2", "oxcs": [
-                {"name": "xc1", "switch": "Polatis_1", "ingressPort": "p7", "egressPort": "p1"},
-                {"name": "xc2", "switch": "Polatis_2", "ingressPort": "p1", "egressPort": "p8"}
-                ]
->>>>>>> origin/master
         }
     ]
 }
