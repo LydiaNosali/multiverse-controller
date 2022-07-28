@@ -9,7 +9,7 @@
 |===
 ^|Name | Type ^| Description
 |[[action]]`@action`|`String`|-
-|[[match]]`@match`|`String`|-
+|[[match]]`@match`|`Array of String`|-
 |[[priority]]`@priority`|`String`|-
 |[[ruleName]]`@ruleName`|`String`|-
 |[[tableName]]`@tableName`|`String`|-

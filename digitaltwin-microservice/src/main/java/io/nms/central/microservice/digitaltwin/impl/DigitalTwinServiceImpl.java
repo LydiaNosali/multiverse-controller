@@ -78,8 +78,15 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	@Override
 	public DigitalTwinService processNetworkRunningState(NetworkState netState,
 			Handler<AsyncResult<CreationReport>> resultHandler) {
-		vertx.runOnContext(v -> {
-			processNetworkState(netState, resultHandler);
+		CreationReport report = new CreationReport();
+		resultHandler.handle(Future.succeededFuture(report));
+		
+		processNetworkState(netState, res -> {
+			if (res.succeeded()) {
+				logger.info("Running state processed. Report: " + res.result().toJson().encodePrettily());
+			} else {
+				logger.info("Failed to process running state: " + res.cause());
+			}
 		});
 		return this;
 	}
@@ -266,9 +273,9 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	
 	@Override
 	public DigitalTwinService createView2(String viewId, Handler<AsyncResult<Void>> resultHandler) {
-		Instant start = Instant.now();
 		vertx.fileSystem().readFile("graph_queries.cypher", arr -> {
 			if (arr.succeeded()) {
+				Instant start = Instant.now();
 				List<String> queries = arr.result().toJsonArray().stream().map(s -> ((String)s)).collect(Collectors.toList());
 				JsonObject params = new JsonObject().put("viewId", viewId);
 				execute(MAIN_DB, CypherQuery.View.CREATE_VIEW, params, created -> {
@@ -277,9 +284,9 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 						createGraph(viewId, queries, done -> {
 							Instant end = Instant.now();
 							if (done.succeeded()) {
+								resultHandler.handle(Future.succeededFuture());
 								Duration timeElapsed = Duration.between(start, end);
 								logger.info("View creation time: " + timeElapsed.getNano() / 1000000 + " ms");
-								resultHandler.handle(Future.succeededFuture());
 							} else {
 								resultHandler.handle(Future.failedFuture(done.cause()));
 								deleteView(viewId, ignore -> {});
@@ -691,55 +698,112 @@ public class DigitalTwinServiceImpl extends Neo4jWrapper implements DigitalTwinS
 	/* Processing functions */
 	private void processNetworkState(NetworkState netState, 
 			Handler<AsyncResult<CreationReport>> resultHandler) {
-		CreationReport report = new CreationReport();
-		report.setTimestamp(OffsetDateTime.now().toLocalDateTime().toString());
-		
-		ConfigProcessor cp = new ConfigProcessor(netState);
-		if (!cp.process()) {
-			resultHandler.handle(Future.failedFuture("Failed to process config"));
-			return;
-		}
-		report.setConfigProcessor(cp.getReport());
-
-		GraphCreator gc = new GraphCreator(cp.getOutput());
-		if (!gc.process()) {
-			resultHandler.handle(Future.failedFuture("Failed to create graph queries"));
-			return;
-		}
-		report.setQueriesGenerator(gc.getReport());
-
 		List<String> queries = new ArrayList<String>();
-		queries.add(CypherQuery.CLEAR_DB);
-		queries.addAll(gc.getOutput().stream().map(s -> s.split("@")[1]).collect(Collectors.toList()));
-		
-		Instant start = Instant.now();
-		createGraph(MAIN_DB, queries, res -> {
-			Instant end = Instant.now();
+		CreationReport report = new CreationReport();
+		vertx.executeBlocking(future -> {
+			report.setTimestamp(OffsetDateTime.now().toLocalDateTime().toString());
+			
+			ConfigProcessor cp = new ConfigProcessor(netState);
+			if (!cp.process()) {
+				future.fail("Failed to process config");
+				// resultHandler.handle(Future.failedFuture("Failed to process config"));
+				return;
+			}
+			report.setConfigProcessor(cp.getReport());
+
+			GraphCreator gc = new GraphCreator(cp.getOutput());
+			if (!gc.process()) {
+				// resultHandler.handle(Future.failedFuture("Failed to create graph queries"));
+				future.fail("Failed to create graph queries");
+				return;
+			}
+			report.setQueriesGenerator(gc.getReport());
+			
+			queries.add(CypherQuery.CLEAR_DB);
+			queries.addAll(gc.getOutput().stream().map(s -> s.split("@")[1]).collect(Collectors.toList()));
+			
+			future.complete();
+		}, res -> {
 			if (res.succeeded()) {
-				Duration timeElapsed = Duration.between(start, end);
-				logger.info("3- Graph creation time: " + timeElapsed.getNano() / 1000000 + " ms");
-				logger.info("Total queries: " + queries.size());
-				// logger.info("Report: " + res.result());
-				report.setGraphCreator(res.result());
-				resultHandler.handle(Future.succeededFuture(report));
-				
-				// save queries for static views creation
-				saveQueries(new JsonArray(queries));
+				logger.info("Create graph with "+queries.size()+" queries");
+				createGraph(MAIN_DB, queries, done -> {
+					if (res.succeeded()) {
+						report.setGraphCreator(done.result());
+						resultHandler.handle(Future.succeededFuture(report));
+					
+						// save queries for static views creation
+						saveQueries(new JsonArray(queries));
+					} else {
+						resultHandler.handle(Future.failedFuture(done.cause()));	
+					}
+				});
 			} else {
 				resultHandler.handle(Future.failedFuture(res.cause()));	
 			}
 		});
 	}
 	
+	/* private String joinQueries(List<String> queries) {
+		String res = "";
+		for (String q: queries) {
+			res+=q.substring(0, q.length() - 1);
+			res+=" ";
+		}
+		return res;
+	} */
+	
+	/* private void processNetworkStateBlocking(NetworkState netState, 
+			Handler<AsyncResult<CreationReport>> resultHandler) {
+		List<String> queries = new ArrayList<String>();
+		CreationReport report = new CreationReport();
+		vertx.executeBlocking(future -> {
+			report.setTimestamp(OffsetDateTime.now().toLocalDateTime().toString());
+			
+			ConfigProcessor cp = new ConfigProcessor(netState);
+			if (!cp.process()) {
+				future.fail("Failed to process config");
+				// resultHandler.handle(Future.failedFuture("Failed to process config"));
+				return;
+			}
+			report.setConfigProcessor(cp.getReport());
+
+			GraphCreator gc = new GraphCreator(cp.getOutput());
+			if (!gc.process()) {
+				// resultHandler.handle(Future.failedFuture("Failed to create graph queries"));
+				future.fail("Failed to create graph queries");
+				return;
+			}
+			report.setQueriesGenerator(gc.getReport());
+			
+			queries.add(CypherQuery.CLEAR_DB);
+			queries.addAll(gc.getOutput().stream().map(s -> s.split("@")[1]).collect(Collectors.toList()));
+			
+			future.complete();
+		}, res -> {
+			if (res.succeeded()) {
+				logger.info("Create graph with "+queries.size()+" queries");
+				createGraphBlocking(MAIN_DB, queries, done -> {
+					if (done.succeeded()) {
+						logger.info("Total queries: " + queries.size());
+						// report.setGraphCreator(done.result());
+						resultHandler.handle(Future.succeededFuture(report));
+
+						// save queries for static views creation
+						saveQueries(new JsonArray(queries));
+					} else {
+						resultHandler.handle(Future.failedFuture(done.cause()));	
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));	
+			}
+		});
+	} */
+	
 	private void saveQueries(JsonArray queries) {
-		vertx.fileSystem().writeFile("graph_queries.cypher", queries.toBuffer(), arw -> {
+		vertx.fileSystem().writeFile("graph_queries.json", queries.toBuffer(), arw -> {
 			if (arw.succeeded()) {
 				logger.info("Graph queries saved");
-				/* vertx.fileSystem().readFile("graph_queries.cypher", arr -> {
-					if (arr.succeeded()) {
-						logger.info("CHECK 0: " + arr.result().toJsonArray().getString(0));
-					}
-				}); */
 			}
 		});
 	}

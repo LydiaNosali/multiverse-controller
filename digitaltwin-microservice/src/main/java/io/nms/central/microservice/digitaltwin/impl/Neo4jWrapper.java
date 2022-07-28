@@ -2,6 +2,8 @@ package io.nms.central.microservice.digitaltwin.impl;
 
 import static org.neo4j.driver.internal.summary.InternalSummaryCounters.EMPTY_STATS;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -15,7 +17,9 @@ import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Record;
+import org.neo4j.driver.Result;
 import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Transaction;
 import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.ResultCursor;
@@ -24,6 +28,8 @@ import org.neo4j.driver.exceptions.NoSuchRecordException;
 import org.neo4j.driver.internal.summary.InternalSummaryCounters;
 import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.driver.summary.SummaryCounters;
+
+import org.neo4j.driver.Session;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
@@ -166,21 +172,25 @@ public class Neo4jWrapper {
 			Handler<AsyncResult<List<String>>> resultHandler) {
 		beginTransaction(db, res -> {
 			if (res.succeeded()) {
-				CompletionStage<List<String>> stage = CompletableFuture.completedFuture(new ArrayList<String>());
+				CompletionStage<ResultCursor> stage = CompletableFuture.completedFuture(null);
+				Instant start = Instant.now();
 	            for (String query : queries) {
-	                stage = stage.thenCompose(current -> tx.runAsync(query)
-	                        .thenCompose(ResultCursor::consumeAsync)
-	                        .thenApply(ResultSummary::counters)
-	                        .thenApply(counters -> aggregateResults(query, current, counters)));
+	                stage = stage.thenCompose(current -> tx.runAsync(query));
+	                       // .thenCompose(ResultCursor::consumeAsync)
+	                       // .thenApply(ResultSummary::counters)
+	                       // .thenApply(counters -> aggregateResults(query, current, counters)));
 	            }
 	            stage.whenComplete((result, error) -> {
 	            	if (error != null) {
+	            		logger.info("Graph creation error: " + error.getMessage());
 	            		resultHandler.handle(Future.failedFuture(error.getMessage()));
 	            		rollback(ignore -> {});
 	                } else {
 	                	commit(done -> {
 	                		if (done.succeeded()) {
-	                			resultHandler.handle(Future.succeededFuture(result));
+	                			Instant end = Instant.now();
+	    						logger.info("3- Graph creation time: " + Duration.between(start, end).toMillis() + " ms");
+	                			resultHandler.handle(Future.succeededFuture(new ArrayList<String>()));
 	                		} else {
 	                			resultHandler.handle(Future.failedFuture(done.cause()));
 	                		}
@@ -193,6 +203,28 @@ public class Neo4jWrapper {
 		});
 	}
 	
+	/* protected void createGraphBlocking(String db, List<String> queries, 
+			Handler<AsyncResult<List<String>>> resultHandler) {
+		vertx.executeBlocking(future -> {
+			Session session = driver.session(configBuilder(db, AccessMode.WRITE));
+			Transaction tx = session.beginTransaction();
+			Instant start = Instant.now();
+			for (String query : queries) {
+				Result res = tx.run(query);
+				// res.consume().counters()
+			}
+			Instant end = Instant.now();
+			logger.info("3- Graph creation time: " + Duration.between(start, end).toMillis() + " ms");
+			tx.commit();
+		}, done -> {
+			if (done.succeeded()) {
+				resultHandler.handle(Future.succeededFuture());
+			} else {
+				resultHandler.handle(Future.failedFuture(done.cause()));
+			}
+		});
+	} */
+
 	private List<String> aggregateResults(String query, List<String> current, SummaryCounters counters) {
 		if (counters.nodesCreated() == 0 
 				&& counters.relationshipsCreated() == 0

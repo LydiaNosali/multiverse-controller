@@ -160,9 +160,9 @@ public class RestDigitalTwinAPIVerticle extends RestAPIVerticle {
 	private void apiProcessNetworkRunningState(RoutingContext context) {
 		try {
 			TypeReference<HashMap<String,DeviceState>> typeRef 
-			= new TypeReference<HashMap<String,DeviceState>>() {};
+					= new TypeReference<HashMap<String,DeviceState>>() {};
 			final Map<String, DeviceState> deviceStates 
-			= JsonUtils.json2Pojo(context.getBodyAsString(), typeRef);
+					= JsonUtils.json2Pojo(context.getBodyAsString(), typeRef);
 			final NetworkState netState = new NetworkState();
 			netState.setConfigs(deviceStates);
 			service.processNetworkRunningState(netState, resultHandlerNonEmpty(context));

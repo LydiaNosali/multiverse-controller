@@ -12,7 +12,7 @@ public class CypherQuery {
 	public static final String CLEAR_DB = "MATCH (n) DETACH DELETE n;";
 	
 	public static class Graph {
-		public static final String CREATE_HOST = "CREATE (:Host:%s {name: '%s', hostname: '%s', type: '%s', mac: '%s', platform: '%s', "
+		public static final String CREATE_HOST = "CREATE (h:Host:%s {name: '%s', hostname: '%s', type: '%s', mac: '%s', platform: '%s', "
 				+ "bgpAsn: '%s', bgpStatus: '%s', hwsku: '%s'});";
 		public static final String CREATE_LTP = "MATCH (r:Host) WHERE r.name = '%s' "
 				+ "CREATE (r)-[:CONTAINS]->(:Ltp {name: '%s', type: '%s', adminStatus: '%s', "
@@ -32,6 +32,10 @@ public class CypherQuery {
 				+ "\"CREATE (src)-[r:LINKED_L3 {name: '%s'}]->(dst)\", {src:src, dst:dst})\r\n"
 				+ "YIELD value\r\n"
 				+ "RETURN value;";
+		public static final String CREATE_LINK_SIMPLE = "MATCH (sR:Host {name:'%s'})-[:CONTAINS]->(src:Ltp{name:'%s'})\r\n"
+				+ "MATCH (tR:Host {name:'%s'})-[:CONTAINS]->(dst:Ltp{name:'%s'})\r\n"
+				+ "WITH DISTINCT sR,tR,src,dst\r\n"
+				+ "CREATE (src)-[r:LINKED {name: '%s'}]->(dst)\r\n";
 		public static final String CREATE_IPCONN = "MATCH (r:Host {name:'%s'})-[:CONTAINS]->(sL:Ltp{name:'%s'})-[:CONTAINS*2]->(s:Ip4Ctp) "
 				+ "MATCH (dC:EtherCtp{macAddr:'%s'})-[:CONTAINS]->(d:Ip4Ctp{ipAddr:'%s'}) "
 				+ "CREATE (s)-[ip:IP_CONN]->(d);";
@@ -48,11 +52,11 @@ public class CypherQuery {
 				+ "OPTIONAL MATCH (t)-[:NEXT_RULE*]->(r:AclRule) WHERE NOT EXISTS ((r)-[:NEXT_RULE]->())\r\n"
 				+ "WITH DISTINCT nr, t, r\r\n"
 				+ "CALL apoc.do.case([\r\n"
-				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'FORWARD'),\r\n"
+				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'ACCEPT'),\r\n"
 				+ "  'CREATE (r)-[:NEXT_RULE]->(nr)-[:ACCEPT]->(t)',\r\n"
 				+ "  (t IS NOT null AND r IS NOT null AND nr.action = 'DROP'),\r\n"
 				+ "  'CREATE (r)-[:NEXT_RULE]->(nr)',\r\n"
-				+ "  (t IS NOT null AND r IS null AND nr.action = 'FORWARD'),\r\n"
+				+ "  (t IS NOT null AND r IS null AND nr.action = 'ACCEPT'),\r\n"
 				+ "  'CREATE (t)-[:NEXT_RULE]->(nr)-[:ACCEPT]->(t)',\r\n"
 				+ "  (t IS NOT null AND r IS null AND nr.action = 'DROP'),\r\n"
 				+ "  'CREATE (t)-[:NEXT_RULE]->(nr)'\r\n"
@@ -90,6 +94,10 @@ public class CypherQuery {
 				+ "RETURN value;";
 
 		public static final String AUTO_LINKCONN = "MATCH (sC:EtherCtp)<-[:CONTAINS]-(sL:Ltp)-[:LINKED_L2|:LINKED_L3|:LINKED_VLT]->(dL:Ltp)-[:CONTAINS]->(dC:EtherCtp) "
+				+ "WHERE NOT (sC)-[:LINK_CONN]-() AND NOT (dC)-[:LINK_CONN]-() "
+				+ "AND NOT (sL)-[:CONTAINS]-(:Switch) AND NOT (dL)-[:CONTAINS]-(:Switch) "
+				+ "CREATE (sC)-[r:LINK_CONN]->(dC);";
+		public static final String AUTO_LINKCONN_SIMPLE = "MATCH (sC:EtherCtp)<-[:CONTAINS]-(sL:Ltp)-[:LINKED]->(dL:Ltp)-[:CONTAINS]->(dC:EtherCtp) "
 				+ "WHERE NOT (sC)-[:LINK_CONN]-() AND NOT (dC)-[:LINK_CONN]-() "
 				+ "AND NOT (sL)-[:CONTAINS]-(:Switch) AND NOT (dL)-[:CONTAINS]-(:Switch) "
 				+ "CREATE (sC)-[r:LINK_CONN]->(dC);";
@@ -146,6 +154,13 @@ public class CypherQuery {
 				+ "\"CREATE (src)-[r:LINKED_L3]->(dst) RETURN r\", {src:src, dst:dst})\r\n"
 				+ "YIELD value\r\n"
 				+ "WITH value.r as link SET link.name = $srcDevice + '.' + $srcInterface + '-' + $destDevice + '.' + $destInterface";
+		public static final String CREATE_LINK_SIMPLE = "MATCH (sH:Host {name: $srcDevice})-[:CONTAINS]->(src:Ltp{name: $srcInterface})\r\n"
+				+ "WHERE NOT (src)-[:LINKED]-()\r\n"
+				+ "MATCH (dH:Host {name: $destDevice})-[:CONTAINS]->(dst:Ltp{name: $destInterface})\r\n"
+				+ "WHERE NOT (dst)-[:LINKED]-()\r\n"
+				+ "WITH DISTINCT sH,dH,src,dst\r\n"
+				+ "CREATE (src)-[r:LINKED]->(dst)\r\n"
+				+ "WITH r as link SET link.name = $srcDevice + '.' + $srcInterface + '-' + $destDevice + '.' + $destInterface";
 		public static final String UPSERT_BGP = "MATCH (h:Host{name:$deviceName})-[:CONTAINS*3]->(c:Ip4Ctp{ipAddr:$itfAddr})\r\n"
 				+ "MERGE (c)-[:HAS_CONFIG]->(b:Bgp)\r\n"
 				+ "SET b.lAsn=$localAsn, b.lId=$localId, b.rAddr=$remoteAddr, b.rAsn=$remoteAsn, b.rId=$remoteId, "

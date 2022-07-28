@@ -1,5 +1,6 @@
 package io.nms.central.microservice.digitaltwin.model.graph;
 
+import java.util.List;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -24,7 +25,7 @@ public class AclRule {
 	private String action;
 	
 	@JsonProperty("MATCH")
-	private String match;
+	private List<String> match;
 	
 	/*-----------------------------------------------*/
 
@@ -74,10 +75,10 @@ public class AclRule {
 	public void setAction(String action) {
 		this.action = action;
 	}
-	public String getMatch() {
+	public List<String> getMatch() {
 		return match;
 	}
-	public void setMatch(String match) {
+	public void setMatch(List<String> match) {
 		this.match = match;
 	}
 

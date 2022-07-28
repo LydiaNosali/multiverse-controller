@@ -7,5 +7,5 @@
   "user": "root",
   "password": "rootpw",
   "max_pool_size": 30,
-  "topology": "qtopology-demo.json"
+  "topology": "qtopology.json"
 }
