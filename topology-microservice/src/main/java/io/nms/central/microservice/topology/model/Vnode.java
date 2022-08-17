@@ -17,7 +17,11 @@ public class Vnode {
 		OPTSWITCH("OPTSWITCH"),
 		ROUTER("ROUTER"),
 		NDNFWD("NDNFWD"),
-		ENDSYS("ENDSYS");
+		ENDSYS("ENDSYS"),
+		QSOURCE("QSOURCE"),
+		QDETECTOR("QDETECTOR"),
+		QMEMORY("QMEMORY"),
+		QMEASURE("QMEASURE");
 
 		private String value;
 		private NodeTypeEnum(String value) { this.value = value; }
