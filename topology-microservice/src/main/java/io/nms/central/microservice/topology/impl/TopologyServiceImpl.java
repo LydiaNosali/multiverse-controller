@@ -885,7 +885,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService addVcrossConnect(VcrossConnect vcrossConnect, Handler<AsyncResult<Integer>> resultHandler) {
 		JsonArray verifyParams = new JsonArray()
 				.add(vcrossConnect.getSwitchId())
-				.add(Vnode.NodeTypeEnum.OPTSWITCH.getValue())
+				.add(Vnode.NodeTypeEnum.OXC.getValue())
 				.add(vcrossConnect.getIngressPortId())
 				.add(vcrossConnect.getEgressPortId());
 		
@@ -1457,7 +1457,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 								vnode.setDescription("");
 								vnode.setLocation("");
 								vnode.setHwaddr("");
-								vnode.setType(NodeTypeEnum.OPTSWITCH);
+								vnode.setType(NodeTypeEnum.OXC);
 								vnode.setMgmtIp(jNode.getString("mgmtAddr"));
 								vnode.setPosx(jNode.getJsonObject("position").getInteger("x"));
 								vnode.setPosy(jNode.getJsonObject("position").getInteger("y"));

@@ -8,6 +8,8 @@ import io.nms.central.microservice.notification.NotificationService;
 import io.nms.central.microservice.notification.model.Status;
 import io.nms.central.microservice.notification.model.Status.ResTypeEnum;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
@@ -31,13 +33,13 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 		super.start(promise);
 		vertx.eventBus().consumer(NotificationService.STATUS_ADDRESS, ar -> {
 			Status status = new Status(((JsonObject)ar.body()));
-			initHandleStatus(status);
+			initHandleStatus(status, done -> {});
 		});
 	}
 
-	private void initHandleStatus(Status status) {
+	private void initHandleStatus(Status status, Handler<AsyncResult<Void>> resultHandler) {
 		if (!status.getResType().equals(ResTypeEnum.NODE)) {
-			dispatchStatus(status);
+			dispatchStatus(status, resultHandler);
 			return;
 		}
 		int resId = status.getResId();
@@ -45,16 +47,16 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			if (status.getStatus().equals(StatusEnum.UP) || status.getStatus().equals(StatusEnum.DISCONN)) {
 				vertx.cancelTimer(statusTimers.get(resId));
 				statusTimers.remove(resId);
-				dispatchStatus(status);
+				dispatchStatus(status, resultHandler);
 			}
 		} else {
 			if (status.getStatus().equals(StatusEnum.UP) || status.getStatus().equals(StatusEnum.DISCONN)) {
-				dispatchStatus(status);
+				dispatchStatus(status, resultHandler);
 			} else {
 				long timerId = vertx.setTimer(5000, new Handler<Long>() {
 				    @Override
 				    public void handle(Long aLong) {
-				    	dispatchStatus(status);
+				    	dispatchStatus(status, resultHandler);
 				    	statusTimers.remove(status.getResId());
 				    }
 				});
@@ -62,7 +64,7 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			}
 		}
 	}
-	private void dispatchStatus(Status status) {
+	private void dispatchStatus(Status status, Handler<AsyncResult<Void>> resultHandler) {
 		int resId = status.getResId();
 		StatusEnum resStatus = status.getStatus();
 
@@ -70,9 +72,11 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case NODE:
 				topologyService.updateNodeStatus(resId, resStatus, ar -> {
 					if (ar.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
 						notifyFrontend();
 						notifyTopologyChange();
 					} else {
+						resultHandler.handle(Future.failedFuture(ar.cause()));
 						ar.cause().printStackTrace();
 					}
 				});
@@ -80,9 +84,11 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case LTP:
 				topologyService.updateLtpStatus(resId, resStatus, null, ar -> {
 					if (ar.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
 						notifyFrontend();
 						notifyTopologyChange();
 					} else {
+						resultHandler.handle(Future.failedFuture(ar.cause()));
 						ar.cause().printStackTrace();
 					}
 				});
@@ -90,9 +96,11 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case CTP:
 				topologyService.updateCtpStatus(resId, null, resStatus, null, ar -> {
 					if (ar.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
 						notifyFrontend();
 						notifyTopologyChange();
 					} else {
+						resultHandler.handle(Future.failedFuture(ar.cause()));
 						ar.cause().printStackTrace();
 					}
 				});
@@ -100,9 +108,11 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case LINK:
 				topologyService.updateLinkStatus(resId, resStatus, null, ar -> {
 					if (ar.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
 						notifyFrontend();
 						notifyTopologyChange();
 					} else {
+						resultHandler.handle(Future.failedFuture(ar.cause()));
 						ar.cause().printStackTrace();
 					}
 				});
@@ -110,9 +120,11 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case LC:
 				topologyService.updateLcStatus(resId, resStatus, null, ar -> {
 					if (ar.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
 						notifyFrontend();
 						notifyTopologyChange();
 					} else {
+						resultHandler.handle(Future.failedFuture(ar.cause()));
 						ar.cause().printStackTrace();
 					}
 				});
@@ -120,9 +132,11 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case CONNECTION:
 				topologyService.updateConnectionStatus(resId, resStatus, null, ar -> {
 					if (ar.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
 						notifyFrontend();
 						notifyTopologyChange();
 					} else {
+						resultHandler.handle(Future.failedFuture(ar.cause()));
 						ar.cause().printStackTrace();
 					}
 				});
@@ -130,9 +144,11 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case TRAIL:
 				topologyService.updateTrailStatus(resId, resStatus, null, ar -> {
 					if (ar.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
 						notifyFrontend();
 						notifyTopologyChange();
 					} else {
+						resultHandler.handle(Future.failedFuture(ar.cause()));
 						ar.cause().printStackTrace();
 					}
 				});
@@ -140,9 +156,11 @@ public class StatusHandler extends BaseMicroserviceVerticle {
 			case XC:
 				topologyService.updateCrossConnectStatus(resId, resStatus, null, ar -> {
 					if (ar.succeeded()) {
+						resultHandler.handle(Future.succeededFuture());
 						notifyFrontend();
 						notifyTopologyChange();
 					} else {
+						resultHandler.handle(Future.failedFuture(ar.cause()));
 						ar.cause().printStackTrace();
 					}
 				});
