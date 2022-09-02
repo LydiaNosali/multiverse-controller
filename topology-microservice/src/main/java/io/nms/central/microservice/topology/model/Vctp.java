@@ -22,7 +22,8 @@ public class Vctp {
 		Ether("Ether"), VXEther("VXEther"), 
 		NDN("NDN"), IPv4("IPv4"), IPv6("IPv6"), 
 		UDP("UDP"), TCP("TCP"),
-        VXLAN("VXLAN");
+        VXLAN("VXLAN"),
+        QUBIT("QUBIT");
 
         private String value;
 
@@ -53,7 +54,8 @@ public class Vctp {
         @Type(value = EtherConnInfo.class, name = "VXEther"), @Type(value = Ipv4ConnInfo.class, name = "IPv4"),
         @Type(value = Ipv6ConnInfo.class, name = "IPv6"), @Type(value = NdnConnInfo.class, name = "NDN"),
         @Type(value = UdpConnInfo.class, name = "UDP"), @Type(value = TcpConnInfo.class, name = "TCP"),
-        @Type(value = VxlanConnInfo.class, name = "VXLAN") })
+        @Type(value = VxlanConnInfo.class, name = "VXLAN"),
+		@Type(value = QubitConnInfo.class, name = "QUBIT")})
 	private ConnInfo connInfo;
 
 	@JsonProperty("parentId")

@@ -59,6 +59,9 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private static final String API_CTPS_BY_CTP = "/ctp/:ctpId/ctps";
 	private static final String API_CTPS_BY_NODE = "/node/:nodeId/ctps";
 
+	private static final String API_BIND_CTP = "/ctp/:ctpId/bind/:ltpId";
+	private static final String API_UNBIND_CTP = "/ctp/:ctpId/unbind";
+
 	private static final String API_ONE_LINK = "/link/:linkId";
 	private static final String API_ALL_LINKS = "/link";
 	private static final String API_LINKS_BY_SUBNET = "/subnet/:subnetId/links";
@@ -130,6 +133,9 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		router.get(API_ONE_CTP).handler(this::checkAdminRole).handler(this::apiGetCtp);
 		router.delete(API_ONE_CTP).handler(this::checkAdminRole).handler(this::apiDeleteCtp);
 		router.put(API_ONE_CTP).handler(this::checkAdminRole).handler(this::apiUpdateCtp);
+
+		router.put(API_BIND_CTP).handler(this::checkAdminRole).handler(this::apiBindCtp);
+		router.put(API_UNBIND_CTP).handler(this::checkAdminRole).handler(this::apiUnbindCtp);
 
 		router.post(API_ALL_LINKS).handler(this::checkAdminRole).handler(this::apiAddLink);
 		router.get(API_LINKS_BY_SUBNET).handler(this::checkAdminRole).handler(this::apiGetLinksBySubnet);
@@ -335,6 +341,16 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		String id = context.request().getParam("ctpId");
 		final Vctp vctp = Json.decodeValue(context.getBodyAsString(), Vctp.class);		
 		service.updateVctp(id, vctp, resultVoidHandler(context, 200));
+	}
+
+	private void apiBindCtp(RoutingContext context) {
+		String ctpId = context.request().getParam("ctpId");
+		String ltpId = context.request().getParam("ltpId");	
+		service.bindVctp(ctpId, ltpId, resultVoidHandler(context, 200));
+	}
+	private void apiUnbindCtp(RoutingContext context) {
+		String ctpId = context.request().getParam("ctpId");
+		service.unbindVctp(ctpId, resultVoidHandler(context, 200));
 	}
 
 	// Link API
