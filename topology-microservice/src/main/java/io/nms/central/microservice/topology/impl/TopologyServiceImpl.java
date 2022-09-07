@@ -345,12 +345,14 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 
 	@Override
 	public TopologyService updateVnode(String id, Vnode vnode, Handler<AsyncResult<Void>> resultHandler) {
-		String macAddr = Functional.validateAndConvertMAC(vnode.getHwaddr());
-		if (macAddr.isEmpty()) {
+		if (!vnode.getHwaddr().isEmpty()) {
+			String macAddr = Functional.validateAndConvertMAC(vnode.getHwaddr());
+			if (macAddr.isEmpty()) {
 				resultHandler.handle(Future.failedFuture("MAC address not valid"));
 				return this;
+			}
+			vnode.setHwaddr(macAddr);
 		}
-		vnode.setHwaddr(macAddr);
 
 		if (!Functional.isValidHostIp(vnode.getMgmtIp())) {
 			resultHandler.handle(Future.failedFuture("IP address not valid"));
