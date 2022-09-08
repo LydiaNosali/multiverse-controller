@@ -435,7 +435,8 @@ public class ApiSql {
 			+ "WHERE id = ?";
 	public static final String UPDATE_VNODE = "UPDATE Vnode "
 			+ "SET label=IFNULL(?, label), description=IFNULL(?, description), info=IFNULL(?, info), status=IFNULL(?, status), "
-			+ "posx=IFNULL(?, posx), posy=IFNULL(?, posy), location=IFNULL(?, location), hwaddr=IFNULL(?, hwaddr), mgmtIp=IFNULL(?, mgmtIp) "
+			+ "posx=IFNULL(?, posx), posy=IFNULL(?, posy), location=IFNULL(?, location), hwaddr=IFNULL(?, hwaddr), "
+			+ "mgmtIp=IFNULL(?, mgmtIp), type=IFNULL(?, type) "
 			+ "WHERE id = ?";
 	public static final String UPDATE_VLTP = "UPDATE Vltp "
 			+ "SET label=IFNULL(?, label), description=IFNULL(?, description), info=IFNULL(?, info), status=IFNULL(?, status), "
