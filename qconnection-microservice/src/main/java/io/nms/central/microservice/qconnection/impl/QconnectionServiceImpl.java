@@ -158,7 +158,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
 		TopologyService service = builder.build(TopologyService.class);
 
-		service.getVnodesByType(NodeTypeEnum.OPTSWITCH, ar -> {
+		service.getVnodesByType(NodeTypeEnum.OXC, ar -> {
 			if (ar.succeeded()) {
 				List<Vnode> nodes = ar.result();
 				List<Future> allVltpsReadVcrossconnectsRead = new ArrayList<Future>();
