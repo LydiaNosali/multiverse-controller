@@ -44,6 +44,7 @@ public class ApiSql {
 			"    `description` VARCHAR(255) NOT NULL,\n" +
 			"	 `info` JSON DEFAULT NULL,\n" +
 			"    `status` VARCHAR(10) NOT NULL,\n" +
+			"    `direction` VARCHAR(10) NOT NULL,\n" +
 			"    `created` DATETIME DEFAULT CURRENT_TIMESTAMP,\n" + 
 			"    `updated` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n" +
 			"    `vnodeId` INT NOT NULL,\n" + 
@@ -222,7 +223,7 @@ public class ApiSql {
 	/*-------------------- INSERT ITEMS --------------------*/	
 	public static final String INSERT_VSUBNET = "INSERT INTO Vsubnet (name, label, description, type, info) VALUES (?, ?, ?, ?, ?) ";
 	public static final String INSERT_VNODE = "INSERT INTO Vnode (name, label, description, info, status, posx, posy, location, type, vsubnetId, hwaddr, mgmtIp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ";
-	public static final String INSERT_VLTP = "INSERT INTO Vltp (name, label, description, info, status, vnodeId, port, bandwidth, mtu, busy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ";
+	public static final String INSERT_VLTP = "INSERT INTO Vltp (name, label, description, info, status, vnodeId, port, bandwidth, mtu, busy, direction) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ";
 	public static final String INSERT_VCTP_VCTP = "INSERT INTO Vctp (name, label, description, info, connType, connInfo, status, vctpId, vnodeId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ";
 	public static final String INSERT_VCTP_VLTP = "INSERT INTO Vctp (name, label, description, info, connType, connInfo, status, vltpId, vnodeId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ";
 	public static final String INSERT_VLINK = "INSERT INTO Vlink (name, label, description, info, status, srcVltpId, destVltpId) VALUES (?, ?, ?, ?, ?, ?, ?) ";
@@ -241,7 +242,7 @@ public class ApiSql {
 	//		+ "id, name, label, description, info, status, created, updated, posx, posy, location, type, vsubnetId, hwaddr, mgmtIp FROM Vnode";
 	public static final String FETCH_VLTPS_BY_VSUBNET = "SELECT "
 			+ "Vltp.id, Vltp.name, Vltp.label, Vltp.description, Vltp.info, Vltp.status, Vltp.created, Vltp.updated, "
-			+ "Vltp.vnodeId, Vltp.port, Vltp.bandwidth, Vltp.mtu, Vltp.busy FROM Vltp "
+			+ "Vltp.vnodeId, Vltp.port, Vltp.bandwidth, Vltp.mtu, Vltp.busy, Vltp.direction FROM Vltp "
 			+ "INNER JOIN Vnode ON Vltp.vnodeId=Vnode.id WHERE Vnode.vsubnetId = ?";
 	// public static final String FETCH_ALL_VCTPS = "SELECT "
 	//		+ "id, name, label, description, info, created, updated, connType, connInfo, status, vltpId, vctpId, vnodeId FROM Vctp"; 
@@ -326,7 +327,7 @@ public class ApiSql {
 			+ "INNER JOIN Prefix ON Vnode.id=Prefix.originId "
 			+ "WHERE Vnode.vsubnetId = ?";
 	public static final String FETCH_VLTPS_BY_VNODE = "SELECT "
-			+ "id, name, label, description, info, status, created, updated, vnodeId, port, bandwidth, mtu, busy "
+			+ "id, name, label, description, info, status, created, updated, vnodeId, port, bandwidth, mtu, busy, direction "
 			+ "FROM Vltp WHERE vnodeId = ?";
 	public static final String FETCH_VCTPS_BY_TYPE = "SELECT "
 			+ "id, name, label, description, info, created, updated, connType, connInfo, status, vltpId, vctpId, vnodeId FROM Vctp WHERE connType = ?";
@@ -374,7 +375,7 @@ public class ApiSql {
 			+ "posx, posy, location, type, vsubnetId, hwaddr, mgmtIp "
 			+ "FROM `Vnode` WHERE Vnode.id = ?";
 	public static final String FETCH_VLTP_BY_ID = "SELECT "
-			+ "id, name, label, description, info, status, created, updated, vnodeId, port, bandwidth, mtu, busy "
+			+ "id, name, label, description, info, status, created, updated, vnodeId, port, bandwidth, mtu, busy, direction "
 			+ "FROM `Vltp` WHERE Vltp.id = ?";
 	public static final String FETCH_VCTP_BY_ID = "SELECT "
 			+ "id, name, label, description, info, created, updated, connType, connInfo, status, vltpId, vctpId, vnodeId "
@@ -434,7 +435,8 @@ public class ApiSql {
 			+ "WHERE id = ?";
 	public static final String UPDATE_VNODE = "UPDATE Vnode "
 			+ "SET label=IFNULL(?, label), description=IFNULL(?, description), info=IFNULL(?, info), status=IFNULL(?, status), "
-			+ "posx=IFNULL(?, posx), posy=IFNULL(?, posy), location=IFNULL(?, location), hwaddr=IFNULL(?, hwaddr), mgmtIp=IFNULL(?, mgmtIp) "
+			+ "posx=IFNULL(?, posx), posy=IFNULL(?, posy), location=IFNULL(?, location), hwaddr=IFNULL(?, hwaddr), "
+			+ "mgmtIp=IFNULL(?, mgmtIp), type=IFNULL(?, type) "
 			+ "WHERE id = ?";
 	public static final String UPDATE_VLTP = "UPDATE Vltp "
 			+ "SET label=IFNULL(?, label), description=IFNULL(?, description), info=IFNULL(?, info), status=IFNULL(?, status), "
@@ -458,6 +460,12 @@ public class ApiSql {
 	public static final String UPDATE_VCROSS_CONNECT = "UPDATE VcrossConnect "
 			+ "SET label=IFNULL(?, label), description=IFNULL(?, description), info=IFNULL(?, info), status=IFNULL(?, status) "
 			+ "WHERE id = ?";
+	
+	public static final String BIND_VCTP = "UPDATE Vctp SET vltpId = ? WHERE id = ?";
+	public static final String UNBIND_VCTP = "UPDATE Vctp "
+			+ "INNER JOIN Vnode AS node ON Vctp.vnodeId = node.id INNER JOIN Vltp AS lltp ON node.id = lltp.vnodeId "
+			+ "SET Vctp.vltpId =  lltp.id "
+			+ "WHERE Vctp.id = ? AND lltp.name LIKE '%loopback%'";
 
 	/*-------------------- CROSSCONNECT GET AND CHECK INFO --------------------*/
 	public static final String XC_VERIFY = "SELECT "

@@ -14,10 +14,14 @@ public class Vnode {
 
 	public enum NodeTypeEnum {
 		SWITCH("SWITCH"),
-		OPTSWITCH("OPTSWITCH"),
+		OXC("OXC"),
 		ROUTER("ROUTER"),
 		NDNFWD("NDNFWD"),
-		ENDSYS("ENDSYS");
+		ENDSYS("ENDSYS"),
+		QSOURCE("QSOURCE"),
+		QDETECTOR("QDETECTOR"),
+		QMEMORY("QMEMORY"),
+		QMEASURE("BSM");
 
 		private String value;
 		private NodeTypeEnum(String value) { this.value = value; }

@@ -11,6 +11,18 @@ import io.vertx.core.json.JsonObject;
 
 @DataObject(generateConverter = true)
 public class Vltp {
+	
+	public enum LtpDirectionEnum {
+		IN("IN"), OUT("OUT"), 
+		INOUT("INOUT");
+        private String value;
+        private LtpDirectionEnum(String value) {
+            this.value = value;
+        }
+        public String getValue() {
+            return this.value;
+        }
+    };
 
 	// common fields
 	private int id;
@@ -28,6 +40,7 @@ public class Vltp {
 	private int mtu;
 	private String port;  // "[switch number]:[line card]:module:port"
 	private boolean busy = false;
+	private LtpDirectionEnum direction;
 
 	/*-----------------------------------------------*/
 
@@ -148,5 +161,12 @@ public class Vltp {
 	}
 	public void setBandwidth(String bandwidth) {
 		this.bandwidth = bandwidth;
+	}
+
+	public LtpDirectionEnum getDirection() {
+		return direction;
+	}
+	public void setDirection(LtpDirectionEnum direction) {
+		this.direction = direction;
 	}
 }

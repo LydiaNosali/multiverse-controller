@@ -22,11 +22,13 @@ import io.nms.central.microservice.topology.model.Vctp.ConnTypeEnum;
 import io.nms.central.microservice.topology.model.Vlink;
 import io.nms.central.microservice.topology.model.VlinkConn;
 import io.nms.central.microservice.topology.model.Vltp;
+import io.nms.central.microservice.topology.model.Vltp.LtpDirectionEnum;
 import io.nms.central.microservice.topology.model.Vnode;
 import io.nms.central.microservice.topology.model.Vnode.NodeTypeEnum;
 import io.nms.central.microservice.topology.model.Vsubnet;
 import io.nms.central.microservice.topology.model.Vsubnet.SubnetTypeEnum;
 import io.nms.central.microservice.topology.model.Vtrail;
+import io.vertx.codegen.annotations.Fluent;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
@@ -246,7 +248,33 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vnode.getVsubnetId())
 				.add(vnode.getHwaddr())
 				.add(vnode.getMgmtIp());
-		insert(ApiSql.INSERT_VNODE, params, resultHandler);
+		insert(ApiSql.INSERT_VNODE, params, res -> {
+			// create loppback interface (LTP)
+			if (res.succeeded()) {
+				Vltp vltp = new Vltp();
+				vltp.setName(vnode.getName() + "-loopback");
+				vltp.setVnodeId(res.result());
+				vltp.setPort("0");
+				vltp.setStatus(StatusEnum.UP);
+				vltp.setLabel("");
+				vltp.setDescription("");
+				vltp.setBandwidth("");
+				vltp.setMtu(0);	
+				vltp.setDirection(LtpDirectionEnum.INOUT);
+				addVltp(vltp, done -> {
+					if (done.succeeded()) {
+						resultHandler.handle(Future.succeededFuture(res.result()));
+					} else {
+						deleteVnode(String.valueOf(res.result()), ig -> {
+							resultHandler.handle(Future.failedFuture("Vnode not created: failed to create loopback LTP."));
+							logger.warn("Vnode not created: failed to create loopback LTP.");
+						});
+					}
+				});
+			} else {
+				resultHandler.handle(Future.failedFuture(res.cause()));
+			}
+		});
 		return this;
 	}
 
@@ -317,12 +345,14 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 
 	@Override
 	public TopologyService updateVnode(String id, Vnode vnode, Handler<AsyncResult<Void>> resultHandler) {
-		String macAddr = Functional.validateAndConvertMAC(vnode.getHwaddr());
-		if (macAddr.isEmpty()) {
+		if (!vnode.getHwaddr().isEmpty()) {
+			String macAddr = Functional.validateAndConvertMAC(vnode.getHwaddr());
+			if (macAddr.isEmpty()) {
 				resultHandler.handle(Future.failedFuture("MAC address not valid"));
 				return this;
+			}
+			vnode.setHwaddr(macAddr);
 		}
-		vnode.setHwaddr(macAddr);
 
 		if (!Functional.isValidHostIp(vnode.getMgmtIp())) {
 			resultHandler.handle(Future.failedFuture("IP address not valid"));
@@ -338,6 +368,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vnode.getLocation())
 				.add(vnode.getHwaddr())
 				.add(vnode.getMgmtIp())
+				.add(vnode.getType())
 				.add(id);
 		execute(ApiSql.UPDATE_VNODE, params, resultHandler);
 		return this;
@@ -356,7 +387,8 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				.add(vltp.getPort())
 				.add(vltp.getBandwidth())
 				.add(vltp.getMtu())
-				.add(vltp.isBusy());
+				.add(vltp.isBusy())
+				.add(vltp.getDirection().getValue());
 		insert(ApiSql.INSERT_VLTP, params, resultHandler);
 		return this;
 	}
@@ -466,7 +498,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 
 		JsonArray pQueryNode = new JsonArray().add(vctp.getParentId());
 
-		if (vctp.getConnType().equals(ConnTypeEnum.Ether)) {
+		if (vctp.getConnType().equals(ConnTypeEnum.Ether) || vctp.getConnType().equals(ConnTypeEnum.QUBIT)) {
 			findOne(ApiSql.FETCH_VLTP_BY_ID, pQueryNode).onComplete(ar -> {
 				if (ar.succeeded()) {
 					Vltp parentLtp = JsonUtils.json2Pojo(ar.result().encode(), Vltp.class);
@@ -589,44 +621,83 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		execute(ApiSql.UPDATE_VCTP, params, resultHandler);
 		return this;
 	}
+	
+	@Override
+    public TopologyService bindVctp(String ctpId, String ltpId, Handler<AsyncResult<Void>> resultHandler) {
+		JsonArray params = new JsonArray()
+				.add(ltpId)
+				.add(ctpId);
+		execute(ApiSql.BIND_VCTP, params, resultHandler);
+		return this;
+	}
+	
+	@Override
+	public TopologyService unbindVctp(String ctpId, Handler<AsyncResult<Void>> resultHandler) {
+		JsonArray params = new JsonArray()
+				.add(ctpId);
+		execute(ApiSql.UNBIND_VCTP, params, resultHandler);
+		return this;
+	}
 
 	/********** Vlink **********/
 	@Override
 	public TopologyService addVlink(Vlink vlink, Handler<AsyncResult<Integer>> resultHandler) {
-		JsonArray pVlink = new JsonArray()
-				.add(vlink.getName())
-				.add(vlink.getLabel())
-				.add(vlink.getDescription())
-				.add(JsonUtils.pojo2Json(vlink.getInfo(), false))
-				.add(vlink.getStatus().getValue())
-				.add(vlink.getSrcVltpId())
-				.add(vlink.getDestVltpId());
-		JsonArray updSrcLtp = new JsonArray().add(true).add(vlink.getSrcVltpId());
-		JsonArray updDestLtp = new JsonArray().add(true).add(vlink.getDestVltpId());
-
-		UUID opp = UUID.randomUUID();
-		beginTransaction(Entity.LINK, opp, InternalSql.LOCK_TABLES_FOR_LINK).onComplete(ar -> {
-			if (ar.succeeded()) {
-				transactionInsert(ApiSql.INSERT_VLINK, pVlink).onComplete(res -> {
-					if (res.succeeded()) {
-						Future<Void> trx = transactionExecute(InternalSql.UPDATE_LTP_BUSY, updSrcLtp);
-						trx
-							.compose(r -> transactionExecute(InternalSql.UPDATE_LTP_BUSY, updDestLtp))
-							.compose(r -> commitTransaction(Entity.LINK, opp))
-							.onComplete(z -> {
-								if (z.succeeded()) {
-									resultHandler.handle(Future.succeededFuture(res.result()));
-								} else {
-									resultHandler.handle(Future.failedFuture(z.cause()));
-								}
-							});
-					} else {
-						resultHandler.handle(Future.failedFuture(res.cause()));
-					}
-				});
+		Promise<Vltp> pVerified = Promise.promise();
+		
+		Promise<Vltp> pLtp1 = Promise.promise();
+		getVltp(String.valueOf(vlink.getSrcVltpId()), pLtp1);
+		Promise<Vltp> pLtp2 = Promise.promise();
+		getVltp(String.valueOf(vlink.getSrcVltpId()), pLtp2);
+		CompositeFuture.all(pLtp1.future(),pLtp2.future()).onSuccess(res -> {
+			LtpDirectionEnum ltp1Dir = pLtp1.future().result().getDirection();
+			LtpDirectionEnum ltp2Dir = pLtp2.future().result().getDirection();
+			if ((ltp1Dir.equals(LtpDirectionEnum.IN) && ltp2Dir.equals(LtpDirectionEnum.IN))
+					|| (ltp1Dir.equals(LtpDirectionEnum.OUT) && ltp2Dir.equals(LtpDirectionEnum.OUT))) {
+				resultHandler.handle(Future.failedFuture("Wrong LTP directions: " + ltp1Dir.getValue() +" - "+ ltp2Dir.getValue()));
 			} else {
-				resultHandler.handle(Future.failedFuture(ar.cause()));
+				pVerified.complete();
 			}
+		});
+		CompositeFuture.all(pLtp1.future(),pLtp2.future()).onFailure(e -> {
+			resultHandler.handle(Future.failedFuture(e.getCause()));
+		});
+
+		pVerified.future().onSuccess(ok -> {
+			JsonArray pVlink = new JsonArray()
+					.add(vlink.getName())
+					.add(vlink.getLabel())
+					.add(vlink.getDescription())
+					.add(JsonUtils.pojo2Json(vlink.getInfo(), false))
+					.add(vlink.getStatus().getValue())
+					.add(vlink.getSrcVltpId())
+					.add(vlink.getDestVltpId());
+			JsonArray updSrcLtp = new JsonArray().add(true).add(vlink.getSrcVltpId());
+			JsonArray updDestLtp = new JsonArray().add(true).add(vlink.getDestVltpId());
+
+			UUID opp = UUID.randomUUID();
+			beginTransaction(Entity.LINK, opp, InternalSql.LOCK_TABLES_FOR_LINK).onComplete(ar -> {
+				if (ar.succeeded()) {
+					transactionInsert(ApiSql.INSERT_VLINK, pVlink).onComplete(res -> {
+						if (res.succeeded()) {
+							Future<Void> trx = transactionExecute(InternalSql.UPDATE_LTP_BUSY, updSrcLtp);
+							trx
+								.compose(r -> transactionExecute(InternalSql.UPDATE_LTP_BUSY, updDestLtp))
+								.compose(r -> commitTransaction(Entity.LINK, opp))
+								.onComplete(z -> {
+									if (z.succeeded()) {
+										resultHandler.handle(Future.succeededFuture(res.result()));
+									} else {
+										resultHandler.handle(Future.failedFuture(z.cause()));
+									}
+								});
+						} else {
+							resultHandler.handle(Future.failedFuture(res.cause()));
+						}
+					});
+				} else {
+					resultHandler.handle(Future.failedFuture(ar.cause()));
+				}
+			});
 		});
 		return this;
 	}
@@ -885,7 +956,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 	public TopologyService addVcrossConnect(VcrossConnect vcrossConnect, Handler<AsyncResult<Integer>> resultHandler) {
 		JsonArray verifyParams = new JsonArray()
 				.add(vcrossConnect.getSwitchId())
-				.add(Vnode.NodeTypeEnum.OPTSWITCH.getValue())
+				.add(Vnode.NodeTypeEnum.OXC.getValue())
 				.add(vcrossConnect.getIngressPortId())
 				.add(vcrossConnect.getEgressPortId());
 		
@@ -1457,7 +1528,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 								vnode.setDescription("");
 								vnode.setLocation("");
 								vnode.setHwaddr("");
-								vnode.setType(NodeTypeEnum.OPTSWITCH);
+								vnode.setType(NodeTypeEnum.OXC);
 								vnode.setMgmtIp(jNode.getString("mgmtAddr"));
 								vnode.setPosx(jNode.getJsonObject("position").getInteger("x"));
 								vnode.setPosy(jNode.getJsonObject("position").getInteger("y"));
@@ -1488,6 +1559,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 											vltp.setDescription("");
 											vltp.setBandwidth("");
 											vltp.setMtu(0);	
+											vltp.setDirection(LtpDirectionEnum.INOUT);
 											addVltp(vltp, ar2 -> {
 												if (ar2.succeeded()) {
 													ltpIds.put(vltp.getName(), ar2.result());

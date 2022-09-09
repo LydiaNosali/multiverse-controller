@@ -67,6 +67,17 @@
 |[[updated]]`@updated`|`String`|-
 |===
 
+[[QubitConnInfo]]
+== QubitConnInfo
+
+
+[cols=">25%,25%,50%"]
+[frame="topbot"]
+|===
+^|Name | Type ^| Description
+|[[id]]`@id`|`String`|-
+|===
+
 [[TcpConnInfo]]
 == TcpConnInfo
 
@@ -210,6 +221,7 @@
 |[[busy]]`@busy`|`Boolean`|-
 |[[created]]`@created`|`String`|-
 |[[description]]`@description`|`String`|-
+|[[direction]]`@direction`|`link:enums.html#LtpDirectionEnum[LtpDirectionEnum]`|-
 |[[id]]`@id`|`Number (int)`|-
 |[[label]]`@label`|`String`|-
 |[[mtu]]`@mtu`|`Number (int)`|-

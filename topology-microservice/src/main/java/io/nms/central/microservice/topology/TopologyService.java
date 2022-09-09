@@ -138,6 +138,12 @@ public interface TopologyService {
 	@Fluent 
 	TopologyService updateVctp(String id, Vctp vctp, Handler<AsyncResult<Void>> resultHandler);
 	
+	@Fluent
+	TopologyService bindVctp(String ctpId, String ltpId, Handler<AsyncResult<Void>> resultHandler);
+	
+	@Fluent
+	TopologyService unbindVctp(String ctpId, Handler<AsyncResult<Void>> resultHandler);
+	
 	
 	/* Vlink */
 	@Fluent	
