@@ -28,7 +28,7 @@ java -Djava.net.preferIPv4Stack=true -Dvertx.logger-delegate-factory-class-name=
 sleep 1
 # topology
 java -Djava.net.preferIPv4Stack=true -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../topology-microservice/target/topology-microservice-fat.jar -cluster -ha -conf ../topology-microservice/src/config/local.json &
-sleep 1
+sleep 10
 # digital twin
 java -Djava.net.preferIPv4Stack=true -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -jar ../digitaltwin-microservice/target/digitaltwin-microservice-fat.jar -cluster -ha -conf ../digitaltwin-microservice/src/config/local.json &
 sleep 1

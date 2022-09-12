@@ -6,7 +6,7 @@ public class InternalSql {
 			+ "Vltp WRITE, Vltp AS sLtp WRITE, Vltp AS dLtp WRITE, "
 			+ "Vctp WRITE, Vctp AS sCtp WRITE, Vctp AS dCtp WRITE, "
 			+ "Vnode WRITE, Vlink WRITE, VlinkConn WRITE, Vconnection WRITE, "
-			+ "Prefix WRITE, VcrossConnect WRITE";
+			+ "VcrossConnect WRITE, Vtrail WRITE, Prefix WRITE";
 
 	public static final String LOCK_TABLES_FOR_NODE = "LOCK TABLES "
 			+ "Vltp WRITE, Vltp AS sLtp WRITE, Vltp AS dLtp WRITE, "
