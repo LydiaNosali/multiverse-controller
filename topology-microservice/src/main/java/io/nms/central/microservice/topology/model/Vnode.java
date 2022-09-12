@@ -21,7 +21,7 @@ public class Vnode {
 		QSOURCE("QSOURCE"),
 		QDETECTOR("QDETECTOR"),
 		QMEMORY("QMEMORY"),
-		QMEASURE("BSM");
+		BSM("BSM");
 
 		private String value;
 		private NodeTypeEnum(String value) { this.value = value; }

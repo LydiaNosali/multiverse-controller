@@ -80,14 +80,14 @@ public class InternalSql {
 	// get the type of a CTP
 	public static final String GET_CTP_TYPE = "SELECT connType from Vctp WHERE id = ?";
 
-	public static final String INIT_NODE_STATUS = "UPDATE Vnode SET status='DOWN'";
-	public static final String INIT_LTP_STATUS = "UPDATE Vltp SET status='DOWN'";
-	public static final String INIT_CTP_STATUS = "UPDATE Vctp SET status='DOWN'";
-	public static final String INIT_LINK_STATUS = "UPDATE Vlink SET status='DOWN'";
-	public static final String INIT_LC_STATUS = "UPDATE VlinkConn SET status='DOWN'";
-	public static final String INIT_CONNECTION_STATUS = "UPDATE Vconnection SET status='DOWN'";
-	public static final String INIT_TRAIL_STATUS = "UPDATE Vtrail SET status='DOWN'";
-	public static final String INIT_CROSSCONNECT_STATUS = "UPDATE VcrossConnect SET status='DOWN'";
+	public static final String INIT_NODE_STATUS = "UPDATE Vnode SET status='DOWN' WHERE status NOT LIKE 'ADMIN_DOWN'";
+	public static final String INIT_LTP_STATUS = "UPDATE Vltp SET status='DOWN' WHERE status NOT LIKE 'ADMIN_DOWN'";
+	public static final String INIT_CTP_STATUS = "UPDATE Vctp SET status='DOWN' WHERE status NOT LIKE 'ADMIN_DOWN'";
+	public static final String INIT_LINK_STATUS = "UPDATE Vlink SET status='DOWN' WHERE status NOT LIKE 'ADMIN_DOWN'";
+	public static final String INIT_LC_STATUS = "UPDATE VlinkConn SET status='DOWN' WHERE status NOT LIKE 'ADMIN_DOWN'";
+	public static final String INIT_CONNECTION_STATUS = "UPDATE Vconnection SET status='DOWN' WHERE status NOT LIKE 'ADMIN_DOWN'";
+	public static final String INIT_TRAIL_STATUS = "UPDATE Vtrail SET status='DOWN' WHERE status NOT LIKE 'ADMIN_DOWN'";
+	public static final String INIT_CROSSCONNECT_STATUS = "UPDATE VcrossConnect SET status='DOWN' WHERE status NOT LIKE 'ADMIN_DOWN'";
 	public static final String INIT_PREFIX_STATUS = "UPDATE Prefix SET available=false";
 	
 	public static final String INSERT_IGNORE_VSUBNET = "INSERT IGNORE INTO Vsubnet (name, label, description, type, info) VALUES (?, ?, ?, ?, ?) ";

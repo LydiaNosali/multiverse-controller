@@ -1096,34 +1096,48 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 				transactionExecute(InternalSql.UPDATE_NODE_STATUS, params).onComplete(u -> {
 					if (u.succeeded()) {
 						params.remove(0);
-						transactionFind(ApiSql.FETCH_VLTPS_BY_VNODE, params).onComplete(ar -> {
-							if (ar.succeeded()) {
-								List<Future> futures = new ArrayList<>();
+						transactionFind(ApiSql.FETCH_VLTPS_BY_VNODE, params).onComplete(arLtps -> {
+							if (arLtps.succeeded()) {
+								transactionFind(ApiSql.FETCH_VCROSS_CONNECTS_BY_NODE, params).onComplete(arXcs -> {
+									if (arXcs.succeeded()) {
+										List<Future> futures = new ArrayList<>();
 
-								// Update LTPs status
-								Vltp[] ltps = JsonUtils.json2Pojo(new JsonArray(ar.result()).encode(), Vltp[].class);
-								for (Vltp ltp : ltps) {
-									Promise<Void> p = Promise.promise();
-									futures.add(p.future());
-									updateLtpStatus(ltp.getId(), status, op.toString(), p);
-								}
+										// Update LTPs status
+										Vltp[] ltps = JsonUtils.json2Pojo(new JsonArray(arLtps.result()).encode(), Vltp[].class);
+										for (Vltp ltp : ltps) {
+											Promise<Void> p = Promise.promise();
+											futures.add(p.future());
+											updateLtpStatus(ltp.getId(), status, op.toString(), p);
+										}
+								
+										// Update XCs status
+										VcrossConnect[] xcs = JsonUtils.json2Pojo(new JsonArray(arXcs.result()).encode(), VcrossConnect[].class);
+										for (VcrossConnect xc : xcs) {
+											Promise<Void> p = Promise.promise();
+											futures.add(p.future());
+											updateCrossConnectStatus(xc.getId(), status, op.toString(), p);
+										}
 
-								// Update Prefixes availability
-								Promise<Void> p = Promise.promise();
-								futures.add(p.future());
-								JsonArray pUpdatePrefixes = new JsonArray().add(status.equals(StatusEnum.UP)).add(id);
-								transactionExecute(InternalSql.UPDATE_PREFIX_STATUS_BY_NODE, pUpdatePrefixes).onComplete(p);
+										// Update Prefixes availability
+										Promise<Void> p = Promise.promise();
+										futures.add(p.future());
+										JsonArray pUpdatePrefixes = new JsonArray().add(status.equals(StatusEnum.UP)).add(id);
+										transactionExecute(InternalSql.UPDATE_PREFIX_STATUS_BY_NODE, pUpdatePrefixes).onComplete(p);
 
-								CompositeFuture.all(futures).map((Void) null).onComplete(done -> {
-									if (done.succeeded()) {
-										commitTransaction(Entity.NODE, op).onComplete(resultHandler);
+										CompositeFuture.all(futures).map((Void) null).onComplete(done -> {
+											if (done.succeeded()) {
+												commitTransaction(Entity.NODE, op).onComplete(resultHandler);
+											} else {
+												rollback();
+												resultHandler.handle(Future.failedFuture(done.cause()));
+											}
+										});
 									} else {
-										rollback();
-										resultHandler.handle(Future.failedFuture(done.cause()));
+										resultHandler.handle(Future.failedFuture(arXcs.cause()));
 									}
 								});
 							} else {
-								resultHandler.handle(Future.failedFuture(ar.cause()));
+								resultHandler.handle(Future.failedFuture(arLtps.cause()));
 							}
 						});
 					} else {
@@ -1512,7 +1526,6 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 							JsonArray trails = baseTopology.getJsonArray("trails");
 							HashMap<String,Integer> nodeIds = new HashMap<String,Integer>();
 							HashMap<String,Integer> ltpIds = new HashMap<String,Integer>();
-							// HashMap<String,Integer> linkIds = new HashMap<String,Integer>();
 							HashMap<String,Integer> trailIds = new HashMap<String,Integer>();
 							
 							List<Future> allNodesAdded = new ArrayList<Future>();
@@ -1532,7 +1545,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 								vnode.setMgmtIp(jNode.getString("mgmtAddr"));
 								vnode.setPosx(jNode.getJsonObject("position").getInteger("x"));
 								vnode.setPosy(jNode.getJsonObject("position").getInteger("y"));
-								vnode.setStatus(StatusEnum.DOWN);
+								vnode.setStatus(StatusEnum.ADMIN_DOWN);
 								HashMap<String,Object> info = new HashMap<String,Object>();
 								caps.forEach(c -> {
 									JsonObject jCap = (JsonObject) c;
@@ -1554,7 +1567,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 											vltp.setName(fullPortName);
 											vltp.setVnodeId(ar.result());
 											vltp.setPort(portName.substring(1));
-											vltp.setStatus(StatusEnum.DOWN);
+											vltp.setStatus(StatusEnum.ADMIN_DOWN);
 											vltp.setLabel("");
 											vltp.setDescription("");
 											vltp.setBandwidth("");
@@ -1597,7 +1610,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 												vtrail.setVsubnetId(subnetId);
 												vtrail.setLabel("");
 												vtrail.setDescription(jTrail.getString("description"));
-												vtrail.setStatus(StatusEnum.UP);
+												vtrail.setStatus(StatusEnum.ADMIN_DOWN);
 												addVtrail(vtrail, ar -> {
 													if (ar.succeeded()) {
 														trailIds.put(vtrail.getName(), ar.result());
@@ -1610,7 +1623,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 															vxc.setName(xc.getString("name"));
 															vxc.setLabel("");
 															vxc.setDescription("");
-															vxc.setStatus(StatusEnum.UP);
+															vxc.setStatus(StatusEnum.ADMIN_DOWN);
 															vxc.setTrailId(ar.result());
 															vxc.setSwitchId(nodeIds.get(xc.getString("switch")));
 															vxc.setIngressPortId(ltpIds.get(ingressPortName));
@@ -1680,7 +1693,7 @@ public class TopologyServiceImpl extends JdbcRepositoryWrapper implements Topolo
 		vlink.setDescription("");
 		vlink.setSrcVltpId(ltpIds.get(srcPortName));
 		vlink.setDestVltpId(ltpIds.get(dstPortName));
-		vlink.setStatus(StatusEnum.DOWN);
+		vlink.setStatus(StatusEnum.ADMIN_DOWN);
 		addVlink(vlink, ar3 -> {
 			if (ar3.succeeded()) {
 				cs.complete(null);

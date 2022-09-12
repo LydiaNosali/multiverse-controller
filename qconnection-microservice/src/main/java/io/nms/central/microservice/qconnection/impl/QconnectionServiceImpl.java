@@ -64,11 +64,11 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 	private Map<Integer, List<VcrossConnect>> dbOXCsbytrailId = new HashMap<Integer, List<VcrossConnect>>();
 	private Map<Integer, List<VcrossConnect>> voxcsbySwitchId = new HashMap<Integer, List<VcrossConnect>>();
 	private Map<Integer, List<Integer>> portIdbySwitchId = new HashMap<Integer, List<Integer>>();
-	private Map<Integer, Long> timerTdbyswitchId = new HashMap<Integer, Long>();
+	// private Map<Integer, Long> timerTdbyswitchId = new HashMap<Integer, Long>();
 	private Map<Integer, Integer> periodDiscPerSwitchId = new HashMap<Integer, Integer>();
 	private int default_cliId = 0;
 	private int default_mvsId = 0;
-	private long healthCheckTimerId = 0;
+	// private long healthCheckTimerId = 0;
 
 	public QconnectionServiceImpl(Vertx vertx, JsonObject config) {
 		this.vertx = vertx;
@@ -80,6 +80,8 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 	public QconnectionService initialize(Handler<AsyncResult<Void>> resultHandler) {
 		logger.info("initialize in QconnectionService");
 		resultHandler.handle(Future.succeededFuture());
+
+		// TODO: listen to topology events and call: getOpticalNetwork()
 
 		// get the topology from the database
 		getOpticalNetwork(res -> {
@@ -148,6 +150,8 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 	private QconnectionService getOpticalNetwork(Handler<AsyncResult<Void>> resultHandler) {
 		logger.info("getOpticalNetwork in QconnectionService");
+		
+		// TODO: keep only managed switches
 		dbOXCsbytrailId.clear();
 		mgmtIpbyswitchId.clear();
 		portNbbyportId.clear();
@@ -220,9 +224,11 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 											for (Vtrail vtrail : vtrails) {
 //												updateStatus(vtrail.getId(), ResTypeEnum.TRAIL, StatusEnum.UP);
 												if (vtrail.getName().contains("default-cli")) {
+													// TODO: is different for each Subnet
 													default_cliId = vtrail.getId();
 												}
 												if (vtrail.getName().contains("default-mvs")) {
+													// TODO: is different for each Subnet
 													default_mvsId = vtrail.getId();
 												}
 
@@ -940,55 +946,58 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		logger.info("doHealthCheck in QconnectionService");
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
 		TopologyService service = builder.build(TopologyService.class);
+		service.getVnodesByType(NodeTypeEnum.OXC, ar -> {
+			if (ar.succeeded()) {
+				for (Vnode node : ar.result()) {
+					if (node.getStatus() == StatusEnum.ADMIN_DOWN) {
+						continue;
+					}
+					int switchId = node.getId();
+					String switchIp = node.getMgmtIp(); 
+					checkswitch(switchIp, 2, res -> {
+						if (res.succeeded()) {
+							if (res.result() == StatusEnum.UP) {
+								logger.info("call updateNodeStatus");
+								service.updateNodeStatus(switchId, StatusEnum.UP, up -> {
+									if (up.succeeded()) {
+										periodDiscPerSwitchId.put(switchId, 0);
+										logger.info(
+												"Switch: " + switchIp + ", status set to :" + res.result().getValue());
+									}
+								});
+							} else if (res.result() == StatusEnum.DISCONN) {
+								if (!periodDiscPerSwitchId.containsKey(switchId)) {
+									periodDiscPerSwitchId.put(switchId, 0);
+								}
+								if (periodDiscPerSwitchId.get(switchId) == 3) {
+									logger.info("call updateNodeStatus");
+									service.updateNodeStatus(switchId, StatusEnum.DOWN, down -> {
+										if (down.succeeded()) {
+											logger.info("The switch: " + switchIp
+													+ " has been DISCONNECTED for too long, turn its status to DOWN");
+										}
+									});
 
-//		healthCheckTimerId = vertx.setPeriodic(60 * 1000, id -> {
-		for (Entry<Integer, String> entry : mgmtIpbyswitchId.entrySet()) {
-			checkswitch(entry.getValue(), 2, res -> {
-				if (res.succeeded()) {
-					if (res.result() == StatusEnum.UP
-					// && switchStatusbyswitchId.get(entry.getKey()) != StatusEnum.UP
-					) {
-						logger.info("call updateNodeStatus");
-						service.updateNodeStatus(entry.getKey(), StatusEnum.UP, up -> {
-							if (up.succeeded()) {
-								periodDiscPerSwitchId.put(entry.getKey(), 0);
-								logger.info(
-										"Switch: " + entry.getValue() + ", status set to :" + res.result().getValue());
+								} else {
+									int p = periodDiscPerSwitchId.get(switchId) + 1;
+									periodDiscPerSwitchId.put(switchId, p);
+									logger.info("call updateNodeStatus");
+									service.updateNodeStatus(switchId, StatusEnum.DISCONN, disconn -> {
+										if (disconn.succeeded()) {
+											logger.info("Switch: " + switchIp + ", status set to :"
+													+ res.result().getValue());
+										}
+
+									});
+								}
 							}
-						});
-					}
-
-					else if (res.result() == StatusEnum.DISCONN) {
-						if (!periodDiscPerSwitchId.containsKey(entry.getKey())) {
-							periodDiscPerSwitchId.put(entry.getKey(), 0);
 						}
-						if (periodDiscPerSwitchId.get(entry.getKey()) == 3) {
-							logger.info("call updateNodeStatus");
-							service.updateNodeStatus(entry.getKey(), StatusEnum.DOWN, down -> {
-								if (down.succeeded()) {
-									logger.info("The switch: " + entry.getValue()
-											+ " has been DISCONNECTED for too long, turn its status to DOWN");
-								}
-							});
-
-						} else {
-							int p = periodDiscPerSwitchId.get(entry.getKey()) + 1;
-							periodDiscPerSwitchId.put(entry.getKey(), p);
-							logger.info("call updateNodeStatus");
-							service.updateNodeStatus(entry.getKey(), StatusEnum.DISCONN, disconn -> {
-								if (disconn.succeeded()) {
-									logger.info("Switch: " + entry.getValue() + ", status set to :"
-											+ res.result().getValue());
-								}
-
-							});
-						}
-					}
+					});
 				}
-			});
-		}
-//		});
-
+			} else {
+				resultHandler.handle(Future.failedFuture(ar.cause()));
+			}
+		});
 		return this;
 	}
 }
