@@ -9,12 +9,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.type.ResolvedRecursiveType;
 
-import io.nms.central.microservice.qconnection.model.PolatisCrossConnect;
-import io.nms.central.microservice.qconnection.model.CrossConnect;
-import io.nms.central.microservice.qconnection.model.PolatisPair;
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import io.nms.central.microservice.common.BaseMicroserviceVerticle;
 import io.nms.central.microservice.common.functional.JsonUtils;
 import io.nms.central.microservice.notification.NotificationService;
@@ -22,6 +19,9 @@ import io.nms.central.microservice.notification.model.Status;
 import io.nms.central.microservice.notification.model.Status.ResTypeEnum;
 import io.nms.central.microservice.notification.model.Status.StatusEnum;
 import io.nms.central.microservice.qconnection.QconnectionService;
+import io.nms.central.microservice.qconnection.model.CrossConnect;
+import io.nms.central.microservice.qconnection.model.PolatisCrossConnect;
+import io.nms.central.microservice.qconnection.model.PolatisPair;
 import io.nms.central.microservice.qconnection.model.Trail;
 import io.nms.central.microservice.topology.TopologyService;
 import io.nms.central.microservice.topology.model.VcrossConnect;
@@ -57,18 +57,21 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 	private final Vertx vertx;
 	private final MongoClient client;
 
+	private Map<Integer, Vnode> switchById = new HashMap<Integer, Vnode>();
 	private Map<String, Integer> crossConnectsCreated = new HashMap<String, Integer>();
-	private Map<Integer, String> mgmtIpbyswitchId = new HashMap<Integer, String>();
-	private Map<Integer, StatusEnum> switchStatusbyswitchId = new HashMap<Integer, StatusEnum>();
+	// private Map<Integer, String> mgmtIpbyswitchId = new
+	// HashMap<Integer,String>();
+	// private Map<Integer, StatusEnum> switchStatusbyswitchId = new
+	// HashMap<Integer, StatusEnum>();
 	private Map<Integer, String> portNbbyportId = new HashMap<Integer, String>();
 	private Map<Integer, List<VcrossConnect>> dbOXCsbytrailId = new HashMap<Integer, List<VcrossConnect>>();
 	private Map<Integer, List<VcrossConnect>> voxcsbySwitchId = new HashMap<Integer, List<VcrossConnect>>();
 	private Map<Integer, List<Integer>> portIdbySwitchId = new HashMap<Integer, List<Integer>>();
 	private Map<Integer, Integer> periodDiscPerSwitchId = new HashMap<Integer, Integer>();
 
-	private int default_cliId = 0;
-	private int default_mvsId = 0;
-	
+	// private int default_cliId = 0;
+	// private int default_mvsId = 0;
+
 	private Map<Integer, Integer> defaultCliIdBySubnet = new HashMap<Integer, Integer>();
 	private Map<Integer, Integer> defaultMvsIdBySubnet = new HashMap<Integer, Integer>();
 
@@ -102,17 +105,17 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		});
 
 		vertx.setTimer(1 * 60 * 1000, new Handler<Long>() {
-		    @Override
-		    public void handle(Long aLong) {
-		    update_network_db(res -> {
-				if (res.failed()) {
-					logger.warn("update failed " + res.cause());
-					// TODO: inform other services
-				} else {
-					logger.info("Synchronization done successfuly");
-				}
-			});
-		    }
+			@Override
+			public void handle(Long aLong) {
+				update_network_db(res -> {
+					if (res.failed()) {
+						logger.warn("update failed " + res.cause());
+						// TODO: inform other services
+					} else {
+						logger.info("Synchronization done successfuly");
+					}
+				});
+			}
 		});
 		return this;
 	}
@@ -122,7 +125,8 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 		// every 2min + random(-2s, +2s):
 		// 1. get the topology 2. run the synchronization
-		// TODO: 1. get list of voxcs 2. get list of oxcs 3. set those lists as parameters to synchro 
+		// TODO: 1. get list of voxcs 2. get list of oxcs 3. set those lists as
+		// parameters to synchro
 		getOpticalNetwork(re -> {
 			if (re.succeeded()) {
 				synchNetworkWithTopology(resultHandler);
@@ -134,11 +138,12 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 		Random rand = new Random();
 		vertx.setTimer(2 * 60 * 1000 + (rand.nextInt(4) - 2) * 1000, new Handler<Long>() {
-		    @Override
-		    public void handle(Long aLong) {
-		    	logger.info("update time");
-		    	update_network_db(ig -> {});
-		    }
+			@Override
+			public void handle(Long aLong) {
+				logger.info("update time");
+				update_network_db(ig -> {
+				});
+			}
 		});
 		return this;
 	}
@@ -146,12 +151,13 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 	public QconnectionService getOpticalNetwork(Handler<AsyncResult<Void>> resultHandler) {
 		logger.info("getOpticalNetwork in QconnectionService");
 
+		switchById.clear();
 		dbOXCsbytrailId.clear();
-		mgmtIpbyswitchId.clear();
+		// mgmtIpbyswitchId.clear();
 		portNbbyportId.clear();
 		voxcsbySwitchId.clear();
 		portIdbySwitchId.clear();
-		switchStatusbyswitchId.clear();
+		// switchStatusbyswitchId.clear();
 
 		defaultCliIdBySubnet.clear();
 		defaultMvsIdBySubnet.clear();
@@ -167,8 +173,9 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 					if (node.getStatus() == StatusEnum.ADMIN_DOWN) {
 						continue;
 					}
-					switchStatusbyswitchId.put(node.getId(), node.getStatus());
-					mgmtIpbyswitchId.put(node.getId(), node.getMgmtIp()); // TODO: keep all node object
+					// switchStatusbyswitchId.put(node.getId(), node.getStatus());
+					// mgmtIpbyswitchId.put(node.getId(), node.getMgmtIp());
+					switchById.put(node.getId(), node);
 					Promise<Void> pVltpRead = Promise.promise();
 					allVltpsReadVcrossconnectsRead.add(pVltpRead.future());
 
@@ -221,11 +228,11 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 											List<Future> allVoxcsRead = new ArrayList<Future>();
 											for (Vtrail vtrail : vtrails) {
 												if (vtrail.getName().contains("default-cli")) {
-													default_cliId = vtrail.getId();
+													// default_cliId = vtrail.getId();
 													defaultCliIdBySubnet.put(vsubnet.getId(), vtrail.getId());
 												}
 												if (vtrail.getName().contains("default-mvs")) {
-													default_mvsId = vtrail.getId();
+													// default_mvsId = vtrail.getId();
 													defaultMvsIdBySubnet.put(vsubnet.getId(), vtrail.getId());
 												}
 
@@ -301,145 +308,146 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 						resultHandler.handle(Future.succeededFuture());
 						return;
 					}
-					logger.info("polatisPairbySwitchId" + polatisPairbySwitchId );
+					logger.info("polatisPairbySwitchId" + polatisPairbySwitchId);
 					logger.info("dbPolatispairBySwitchId" + dbPolatispairBySwitchId);
 					for (Entry<Integer, List<PolatisPair>> switchEntry : polatisPairbySwitchId.entrySet()) {
+						int defaultCliTrailId = defaultCliIdBySubnet
+								.get(switchById.get(switchEntry.getKey()).getVsubnetId());
+						int defaultMvsTrailId = defaultMvsIdBySubnet
+								.get(switchById.get(switchEntry.getKey()).getVsubnetId());
+
 						// TODO: if dbPolatispairBySwitchId.get(switchEntry.getKey());
-						for (Entry<Integer, List<PolatisPair>> dbEntry : dbPolatispairBySwitchId.entrySet()) {
-							if (switchEntry.getKey() == dbEntry.getKey()) {// same switch
-								
-								List<PolatisPair> onlySwitchPolatisPair = new ArrayList<PolatisPair>();
-								onlySwitchPolatisPair.addAll(switchEntry.getValue());
-								onlySwitchPolatisPair.removeAll(dbEntry.getValue()); // onlySwitchPolatisPair has oxs
-																						// that are
-																						// in switch but not in DB
-								// add oxcs of onlySwitchPolatisPair to trail.name = default-cli
-								logger.info("onlySwitchPolatisPair = " + onlySwitchPolatisPair);
-								if (onlySwitchPolatisPair.size() > 0) {
+						// for (Entry<Integer, List<PolatisPair>> dbEntry :
+						// dbPolatispairBySwitchId.entrySet()) {
+						// if (switchEntry.getKey() == dbEntry.getKey()) {// same switch
+						List<PolatisPair> dbEntry = dbPolatispairBySwitchId.get(switchEntry.getKey());
 
-									List<Future> allOXCsAdded = new ArrayList<Future>();
-									for (PolatisPair polatisPair : onlySwitchPolatisPair) {
+						List<PolatisPair> onlySwitchPolatisPair = new ArrayList<PolatisPair>();
+						onlySwitchPolatisPair.addAll(switchEntry.getValue());
+						onlySwitchPolatisPair.removeAll(dbEntry); // onlySwitchPolatisPair has oxs
+																	// that are
+																	// in switch but not in DB
+						// add oxcs of onlySwitchPolatisPair to trail.name = default-cli
+						logger.info("onlySwitchPolatisPair = " + onlySwitchPolatisPair);
+						if (onlySwitchPolatisPair.size() > 0) {
 
-										Promise<Void> pOXCAdded = Promise.promise();
-										allOXCsAdded.add(pOXCAdded.future());
-										VcrossConnect vcrossConnect = new VcrossConnect();
-										vcrossConnect.setName("default-cli" + ""); // TODO: name must be unique
-										vcrossConnect.setLabel("");
-										vcrossConnect.setDescription("");
-										vcrossConnect.setTrailId(default_cliId);  // TODO: get trailID
-										vcrossConnect.setSwitchId(switchEntry.getKey());
-										List<Integer> portsId = portIdbySwitchId.get(switchEntry.getKey());
-										for (Integer key : portNbbyportId.keySet()) {
-											if (portsId.contains(key) && portNbbyportId.get(key)
-													.equals(String.valueOf(polatisPair.getIngress()))) {
-												vcrossConnect.setIngressPortId(key);
-											}
-											if (portsId.contains(key) && portNbbyportId.get(key)
-													.equals(String.valueOf((polatisPair.getEgress() - 8)))) {
-												vcrossConnect.setEgressPortId(key);
-											}
-										}
-										vcrossConnect.setStatus(StatusEnum.UP);
-										service.addVcrossConnect(vcrossConnect, ar -> {
-											if (ar.succeeded()) {
-												pOXCAdded.complete();
-												logger.info("VcrossConnect added succesfully");
-											} else {
-												logger.info(
-														"fail to add Vcrossconnects to topology service" + ar.cause());
-												pOXCAdded.fail(ar.cause());
-											}
-										});
+							List<Future> allOXCsAdded = new ArrayList<Future>();
+							for (PolatisPair polatisPair : onlySwitchPolatisPair) {
+
+								Promise<Void> pOXCAdded = Promise.promise();
+								allOXCsAdded.add(pOXCAdded.future());
+								VcrossConnect vcrossConnect = new VcrossConnect();
+								vcrossConnect.setLabel("");
+								vcrossConnect.setDescription("");
+								vcrossConnect.setTrailId(defaultCliTrailId);
+								vcrossConnect.setSwitchId(switchEntry.getKey());
+								List<Integer> portsId = portIdbySwitchId.get(switchEntry.getKey());
+								for (Integer key : portNbbyportId.keySet()) {
+									if (portsId.contains(key) && portNbbyportId.get(key)
+											.equals(String.valueOf(polatisPair.getIngress()))) {
+										vcrossConnect.setIngressPortId(key);
 									}
-									CompositeFuture.all(allOXCsAdded).map((Void) null).onComplete(re -> {
-										if (res.succeeded()) {
-											logger.info("onlySwitchPolatisPair in switchid=" + switchEntry.getKey()
-													+ " added succesfully to DB");
-										} else {
-											logger.info("fail to add cli vcrossconnects to DB" + re.cause());
-
-										}
-									});
+									if (portsId.contains(key) && portNbbyportId.get(key)
+											.equals(String.valueOf((polatisPair.getEgress() - 8)))) {
+										vcrossConnect.setEgressPortId(key);
+									}
 								}
-								List<PolatisPair> onlyDBPolatisPair = new ArrayList<PolatisPair>();
-								onlyDBPolatisPair.addAll(dbEntry.getValue());
-								onlyDBPolatisPair.removeAll(switchEntry.getValue()); // onlyDBPolatisPair has oxs that
-																						// are in DB
-																						// but not in switch
+								vcrossConnect.setName("oxc-" + defaultCliTrailId + "-" + switchEntry.getKey() + "-"
+										+ vcrossConnect.getIngressPortId());
+								vcrossConnect.setStatus(StatusEnum.UP);
+								service.addVcrossConnect(vcrossConnect, ar -> {
+									if (ar.succeeded()) {
+										pOXCAdded.complete();
+										logger.info("VcrossConnect added succesfully");
+									} else {
+										logger.info("fail to add Vcrossconnects to topology service" + ar.cause());
+										pOXCAdded.fail(ar.cause());
+									}
+								});
+							}
+							CompositeFuture.all(allOXCsAdded).map((Void) null).onComplete(re -> {
+								if (res.succeeded()) {
+									logger.info("onlySwitchPolatisPair in switchid=" + switchEntry.getKey()
+											+ " added succesfully to DB");
+								} else {
+									logger.info("fail to add cli vcrossconnects to DB" + re.cause());
 
-								if (onlyDBPolatisPair.size() > 0) {
-									List<Future> allTrailsUP = new ArrayList<Future>();
-									for (PolatisPair polatisPair : onlyDBPolatisPair) {
-										for (Entry<Integer, List<VcrossConnect>> entry : dbOXCsbytrailId.entrySet()) {
-											Promise<Void> pTrailRestored = Promise.promise();
-											allTrailsUP.add(pTrailRestored.future());
-											CompletableFuture<Void> stage = CompletableFuture.completedFuture(null);
-											for (VcrossConnect vcrossConnect : entry.getValue()) {
-												int egressportnb = Integer.valueOf(
-														portNbbyportId.get(vcrossConnect.getEgressPortId())) + 8;
-												// oxcs in default-cli --> delete from trail default-cli
-												if (entry.getKey() == default_cliId) {
-													if ((vcrossConnect.getSwitchId() == switchEntry.getKey())
-															&& (polatisPair.getIngress() == Integer
-																	.valueOf(portNbbyportId
-																			.get(vcrossConnect.getIngressPortId())))
-															&& polatisPair.getEgress() == (Integer.valueOf(
-																	portNbbyportId.get(vcrossConnect.getEgressPortId()))
-																	+ 8)) {// trail.name=
-																			// default-cli
-																			// delete
-																			// oxc
-																			// from
+								}
+							});
+						}
+						List<PolatisPair> onlyDBPolatisPair = new ArrayList<PolatisPair>();
+						onlyDBPolatisPair.addAll(dbEntry);
+						onlyDBPolatisPair.removeAll(switchEntry.getValue()); // onlyDBPolatisPair has oxs that
+																				// are in DB
+																				// but not in switch
+
+						if (onlyDBPolatisPair.size() > 0) {
+							List<Future> allTrailsUP = new ArrayList<Future>();
+							for (PolatisPair polatisPair : onlyDBPolatisPair) {
+								for (Entry<Integer, List<VcrossConnect>> entry : dbOXCsbytrailId.entrySet()) {
+									Promise<Void> pTrailRestored = Promise.promise();
+									allTrailsUP.add(pTrailRestored.future());
+									CompletableFuture<Void> stage = CompletableFuture.completedFuture(null);
+									for (VcrossConnect vcrossConnect : entry.getValue()) {
+										int egressportnb = Integer
+												.valueOf(portNbbyportId.get(vcrossConnect.getEgressPortId())) + 8;
+										// oxcs in default-cli --> delete from trail default-cli
+										if (entry.getKey() == defaultCliTrailId) {
+											if ((vcrossConnect.getSwitchId() == switchEntry.getKey())
+													&& (polatisPair.getIngress() == Integer.valueOf(
+															portNbbyportId.get(vcrossConnect.getIngressPortId())))
+													&& polatisPair.getEgress() == (Integer.valueOf(
+															portNbbyportId.get(vcrossConnect.getEgressPortId())) + 8)) {// trail.name=
+																														// default-cli
+																														// delete
+																														// oxc
+																														// from
 //														logger.warn("OXC: " + polatisPair.toString() + " deleted by CLI"); // DB
-														service.deleteVcrossConnect(
-																String.valueOf(vcrossConnect.getId()), r -> {
-																	if (res.succeeded()) {
-																		logger.info(
-																				"vcrossconnect deleted successfully from default-cli");
-																	} else {
-																		logger.info(
-																				"error in deleting vcrossconnect from default-cli");
-																	}
-																});
-													}
-												}
-												// oxcs in default-mvs --> delete from trail default-mvs
-												if (entry.getKey() == default_mvsId) {
-													if ((vcrossConnect.getSwitchId() == switchEntry.getKey())
-															&& (polatisPair.getIngress() == Integer
-																	.valueOf(portNbbyportId
-																			.get(vcrossConnect.getIngressPortId())))
-															&& polatisPair.getEgress() == (Integer.valueOf(
-																	portNbbyportId.get(vcrossConnect.getEgressPortId()))
-																	+ 8)) {// trail.name=
-																			// default-mvs
-																			// delete
-																			// oxc
-																			// from
-																			// DB
-//															logger.warn("OXC: " + polatisPair.toString() + " deleted by MVS");
-														service.deleteVcrossConnect(
-																String.valueOf(vcrossConnect.getId()), s -> {
-																	if (res.succeeded()) {
-																		logger.info(
-																				"vcrossconnect deleted successfully from default-mvs");
-																	} else {
-																		logger.info(
-																				"error in deleting vcrossconnect from default-mvs");
-																	}
-																});
-													}
-												}
-												// oxcs of trail in DB not in switch --> delete the trail
-												if (entry.getKey() != default_mvsId
-														&& entry.getKey() != default_cliId) {
-													logger.info("delete trail");
-													deletePath(String.valueOf(entry.getKey()), q -> {
-													});
-												}
-
+												service.deleteVcrossConnect(String.valueOf(vcrossConnect.getId()),
+														r -> {
+															if (res.succeeded()) {
+																logger.info(
+																		"vcrossconnect deleted successfully from default-cli");
+															} else {
+																logger.info(
+																		"error in deleting vcrossconnect from default-cli");
+															}
+														});
 											}
 										}
+										// oxcs in default-mvs --> delete from trail default-mvs
+										if (entry.getKey() == defaultMvsTrailId) {
+											if ((vcrossConnect.getSwitchId() == switchEntry.getKey())
+													&& (polatisPair.getIngress() == Integer.valueOf(
+															portNbbyportId.get(vcrossConnect.getIngressPortId())))
+													&& polatisPair.getEgress() == (Integer.valueOf(
+															portNbbyportId.get(vcrossConnect.getEgressPortId())) + 8)) {// trail.name=
+																														// default-mvs
+																														// delete
+																														// oxc
+																														// from
+																														// DB
+//															logger.warn("OXC: " + polatisPair.toString() + " deleted by MVS");
+												service.deleteVcrossConnect(String.valueOf(vcrossConnect.getId()),
+														s -> {
+															if (res.succeeded()) {
+																logger.info(
+																		"vcrossconnect deleted successfully from default-mvs");
+															} else {
+																logger.info(
+																		"error in deleting vcrossconnect from default-mvs");
+															}
+														});
+											}
+										}
+										// oxcs of trail in DB not in switch --> delete the trail
+										if (entry.getKey() != defaultMvsTrailId
+												&& entry.getKey() != defaultCliTrailId) {
+											logger.info("delete trail");
+											deletePath(String.valueOf(entry.getKey()), q -> {
+											});
+										}
+
 									}
 								}
 							}
@@ -459,11 +467,11 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		List<Future> allOxcsRead = new ArrayList<Future>();
 		Map<Integer, List<PolatisPair>> polatisPairbySwitchId = new HashMap<Integer, List<PolatisPair>>();
 
-		for (Entry<Integer, String> entry : mgmtIpbyswitchId.entrySet()) {
+		for (Entry<Integer, Vnode> entry : switchById.entrySet()) {
 			Promise<Void> pOxcsRead = Promise.promise();
 			allOxcsRead.add(pOxcsRead.future());
-			if (switchStatusbyswitchId.get(entry.getKey()) == StatusEnum.UP) {
-				getallOXC(entry.getValue(), res -> {
+			if (entry.getValue().getStatus() == StatusEnum.UP) {
+				getallOXC(entry.getValue().getMgmtIp(), res -> {
 					if (res.succeeded()) {
 						vertx.executeBlocking(future -> {
 							polatisPairbySwitchId.put(entry.getKey(), res.result());
@@ -480,7 +488,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 				});
 			}
 			// if switch is DISCONN: node.oxcs = voxcs
-			if (switchStatusbyswitchId.get(entry.getKey()) == StatusEnum.DISCONN) {
+			if (entry.getValue().getStatus() == StatusEnum.DISCONN) {
 				vertx.executeBlocking(future -> {
 					List<PolatisPair> dboxcspair = new ArrayList<PolatisPair>();
 					System.out.println("(voxcsbySwitchId.containsKey(node.getId())) = "
@@ -505,7 +513,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 			}
 			// if switch is DOWN: node.oxcs = []
-			if (switchStatusbyswitchId.get(entry.getKey()) == StatusEnum.DOWN) {
+			if (entry.getValue().getStatus() == StatusEnum.DOWN) {
 				vertx.executeBlocking(future -> {
 					polatisPairbySwitchId.put(entry.getKey(), new ArrayList<PolatisPair>());
 					future.complete();
@@ -544,12 +552,11 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		// do necessary verifications -- param of trail and finish
 		logger.info("createPath in QconnectionService");
 		for (CrossConnect crossConnect : trail.getOxcs()) {
-			if (switchStatusbyswitchId.get(crossConnect.getSwitchId()) != StatusEnum.UP) {
-				resultHandler.handle(
-						Future.failedFuture("Switch is " + switchStatusbyswitchId.get(crossConnect.getSwitchId())));
+			if (switchById.get(crossConnect.getSwitchId()).getStatus() != StatusEnum.UP) {
+				resultHandler.handle(Future.failedFuture("Switch is not UP"));
 				return this;
 			}
-			// TODO: can be done without 2 for ???
+			// TODO: improve using oxc by switch Id
 			for (Entry<Integer, List<VcrossConnect>> entry : dbOXCsbytrailId.entrySet()) {
 				for (VcrossConnect vcrossConnect : entry.getValue()) {
 					logger.info("vcrossConnect.getIngressPortId()= " + vcrossConnect.getIngressPortId());
@@ -598,8 +605,8 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 					int i = Integer.parseInt(portNbbyportId.get(crossconnect.getEgressPortId())) + 8;
 					PolatisPair.setEgress(i);
 
-					stage = stage
-							.thenCompose(r -> createOXC(mgmtIpbyswitchId.get(crossconnect.getSwitchId()), PolatisPair));
+					stage = stage.thenCompose(
+							r -> createOXC(switchById.get(crossconnect.getSwitchId()).getMgmtIp(), PolatisPair));
 				}
 
 				stage.whenComplete((result, error) -> {
@@ -760,7 +767,9 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 	public QconnectionService deletePath(String trailId, Handler<AsyncResult<Void>> resultHandler) {
 		logger.info("deletePath in QconnectionService");
-		if (Integer.valueOf(trailId) == default_cliId) { // TODO: check default-mvs too
+		int intIrailId = Integer.valueOf(trailId);
+		if (defaultCliIdBySubnet.values().contains((int) intIrailId)
+				|| defaultMvsIdBySubnet.values().contains((int) intIrailId)) {
 			resultHandler.handle(Future.failedFuture("FORBIDDEN: Cannot delete default trail"));
 			return this;
 		}
@@ -773,7 +782,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 				CompletableFuture<Void> stage = CompletableFuture.completedFuture(null);
 
 				for (VcrossConnect vcrossConnect : ar.result()) {
-					stage = stage.thenCompose(r -> deleteOXC(mgmtIpbyswitchId.get(vcrossConnect.getSwitchId()),
+					stage = stage.thenCompose(r -> deleteOXC(switchById.get(vcrossConnect.getSwitchId()).getMgmtIp(),
 							Integer.parseInt(portNbbyportId.get(vcrossConnect.getIngressPortId()))));
 				}
 
@@ -835,17 +844,20 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		int i = Integer.parseInt(portNbbyportId.get(crossConnect.getEgressPortId())) + 8;
 		PolatisPair.setEgress(i);
 		CompletableFuture<Void> stage = CompletableFuture.completedFuture(null);
-		stage = stage.thenCompose(r -> createOXC(mgmtIpbyswitchId.get(crossConnect.getSwitchId()), PolatisPair));
+		stage = stage.thenCompose(r -> createOXC(switchById.get(crossConnect.getSwitchId()).getMgmtIp(), PolatisPair));
 		stage.whenComplete((result, error) -> {
 			if (error != null) {
 				logger.info("fail to create crossconnect on switche " + error.getCause());
 				resultHandler.handle(Future.failedFuture(error.getCause()));
 			} else {
+				int defaultMvsTrailId = defaultMvsIdBySubnet
+						.get(switchById.get(crossConnect.getSwitchId()).getVsubnetId());
 				VcrossConnect vcrossConnect = new VcrossConnect();
-				vcrossConnect.setName("default_mvs" + "");
+				vcrossConnect.setName("oxc-" + defaultMvsTrailId + "-" + crossConnect.getSwitchId() + "-"
+						+ crossConnect.getIngressPortId());
 				vcrossConnect.setLabel("");
 				vcrossConnect.setDescription("");
-				vcrossConnect.setTrailId(default_mvsId);
+				vcrossConnect.setTrailId(defaultMvsTrailId);
 				vcrossConnect.setSwitchId(crossConnect.getSwitchId());
 				vcrossConnect.setIngressPortId(crossConnect.getIngressPortId());
 				vcrossConnect.setEgressPortId(crossConnect.getEgressPortId());
@@ -857,7 +869,8 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 						resultHandler.handle(Future.succeededFuture(oxcId));
 					} else {
 						logger.info("fail to add Vcrossconnect to default-mvs DB " + ar.cause());
-						deleteOXC(mgmtIpbyswitchId.get(crossConnect.getSwitchId()), crossConnect.getIngressPortId());
+						deleteOXC(switchById.get(crossConnect.getSwitchId()).getMgmtIp(),
+								crossConnect.getIngressPortId());
 						resultHandler.handle(Future.failedFuture(ar.cause()));
 					}
 				});
@@ -876,7 +889,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 			if (ar.succeeded()) {
 				VcrossConnect vcrossConnect = ar.result();
 				CompletableFuture<Void> stage = CompletableFuture.completedFuture(null);
-				stage = stage.thenCompose(r -> deleteOXC(mgmtIpbyswitchId.get(vcrossConnect.getSwitchId()),
+				stage = stage.thenCompose(r -> deleteOXC(switchById.get(vcrossConnect.getSwitchId()).getMgmtIp(),
 						Integer.parseInt(portNbbyportId.get(vcrossConnect.getIngressPortId()))));
 
 				stage.whenComplete((result, error) -> {
@@ -941,61 +954,54 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		logger.info("doHealthCheck in QconnectionService");
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
 		TopologyService service = builder.build(TopologyService.class);
-		service.getVnodesByType(NodeTypeEnum.OXC, ar -> {
-			if (ar.succeeded()) {
-				for (Vnode node : ar.result()) {
-					if (node.getStatus() == StatusEnum.ADMIN_DOWN) {
-						continue;
-					}
-					int switchId = node.getId();
-					String switchIp = node.getMgmtIp(); 
-					checkswitch(switchIp, 2, res -> {
-						if (res.succeeded()) {
-							if (res.result() == StatusEnum.UP) {
-								logger.info("call updateNodeStatus");
-								service.updateNodeStatus(switchId, StatusEnum.UP, up -> {
-									if (up.succeeded()) {
-										// TODO: switchStatusbyswitchId.put(switchId, StatusEnum.UP);
-										periodDiscPerSwitchId.put(switchId, 0);
-										logger.info(
-												"Switch: " + switchIp + ", status set to :" + res.result().getValue());
-									}
-								});
-							} else if (res.result() == StatusEnum.DISCONN) {
-								if (!periodDiscPerSwitchId.containsKey(switchId)) {
-									periodDiscPerSwitchId.put(switchId, 0);
-								}
-								if (periodDiscPerSwitchId.get(switchId) == 3) {
-									logger.info("call updateNodeStatus");
-									service.updateNodeStatus(switchId, StatusEnum.DOWN, down -> {
-										if (down.succeeded()) {
-											// TODO: switchStatusbyswitchId.put(switchId, StatusEnum.DOWN);
-											logger.info("The switch: " + switchIp
-													+ " has been DISCONNECTED for too long, turn its status to DOWN");
-										}
-									});
 
-								} else {
-									int p = periodDiscPerSwitchId.get(switchId) + 1;
-									periodDiscPerSwitchId.put(switchId, p);
-									logger.info("call updateNodeStatus");
-									service.updateNodeStatus(switchId, StatusEnum.DISCONN, disconn -> {
-										if (disconn.succeeded()) {
-											// TODO: switchStatusbyswitchId.put(switchId, StatusEnum.DISCONN);
-											logger.info("Switch: " + switchIp + ", status set to :"
-													+ res.result().getValue());
-										}
-
-									});
-								}
-							}
-						}
-					});
-				}
-			} else {
-				resultHandler.handle(Future.failedFuture(ar.cause()));
+		for (Vnode node : switchById.values()) {
+			if (node.getStatus() == StatusEnum.ADMIN_DOWN) {
+				continue;
 			}
-		});
+			int switchId = node.getId();
+			String switchIp = node.getMgmtIp();
+			checkswitch(switchIp, 2, res -> {
+				if (res.succeeded()) {
+					if (res.result() == StatusEnum.UP) {
+						logger.info("call updateNodeStatus");
+						service.updateNodeStatus(switchId, StatusEnum.UP, up -> {
+							if (up.succeeded()) {
+								switchById.get(switchId).setStatus(StatusEnum.UP);
+								periodDiscPerSwitchId.put(switchId, 0);
+								logger.info("Switch: " + switchIp + ", status set to :" + res.result().getValue());
+							}
+						});
+					} else if (res.result() == StatusEnum.DISCONN) {
+						if (!periodDiscPerSwitchId.containsKey(switchId)) {
+							periodDiscPerSwitchId.put(switchId, 0);
+						}
+						if (periodDiscPerSwitchId.get(switchId) == 3) {
+							logger.info("call updateNodeStatus");
+							service.updateNodeStatus(switchId, StatusEnum.DOWN, down -> {
+								if (down.succeeded()) {
+									switchById.get(switchId).setStatus(StatusEnum.DOWN);
+									logger.info("The switch: " + switchIp
+											+ " has been DISCONNECTED for too long, turn its status to DOWN");
+								}
+							});
+
+						} else {
+							int p = periodDiscPerSwitchId.get(switchId) + 1;
+							periodDiscPerSwitchId.put(switchId, p);
+							logger.info("call updateNodeStatus");
+							service.updateNodeStatus(switchId, StatusEnum.DISCONN, disconn -> {
+								if (disconn.succeeded()) {
+									switchById.get(switchId).setStatus(StatusEnum.DISCONN);
+									logger.info("Switch: " + switchIp + ", status set to :" + res.result().getValue());
+								}
+
+							});
+						}
+					}
+				}
+			});
+		}
 		return this;
 	}
 }
