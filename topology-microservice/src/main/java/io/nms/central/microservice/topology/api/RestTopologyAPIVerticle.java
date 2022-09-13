@@ -261,7 +261,12 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 	private void apiUpdateNode(RoutingContext context) {
 		String id = context.request().getParam("nodeId");
 		final Vnode vnode = Json.decodeValue(context.getBodyAsString(), Vnode.class);
-		service.updateVnode(id, vnode, resultVoidHandler(context, 200));
+		service.updateVnode(id, vnode, res -> {
+			if (res.succeeded()) {
+				notifyTopologyChange();
+			}
+			resultVoidHandler(context, 200).handle(res);
+		});
 	}
 
 	// Ltp API
@@ -436,7 +441,7 @@ public class RestTopologyAPIVerticle extends RestAPIVerticle {
 		service.getVconnectionsByVsubnetByType(subnetId, ConnTypeEnum.valueOf(type), 
 				resultHandler(context, Json::encodePrettily));		
 	}
-	private void apiGetConnectionsBySubnet(RoutingContext context) {	
+	private void apiGetConnectionsBySubnet(RoutingContext context) {
 		String subnetId = context.request().getParam("subnetId");		
 		service.getVconnectionsByVsubnet(subnetId, resultHandler(context, Json::encodePrettily));
 	}

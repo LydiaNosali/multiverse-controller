@@ -175,7 +175,7 @@ public class ApiSql {
 			")";
 	public static final String CREATE_TABLE_VCROSS_CONNECT = "CREATE TABLE IF NOT EXISTS `VcrossConnect` (\n" +
 			"    `id` INT NOT NULL AUTO_INCREMENT,\n" +
-			"    `name` VARCHAR(127) NOT NULL,\n" + 
+			"    `name` VARCHAR(127) NOT NULL UNIQUE,\n" + 
 			"    `label` VARCHAR(255) NOT NULL,\n" + 
 			"    `description` VARCHAR(255) NOT NULL,\n" +
 			"	 `info` JSON DEFAULT NULL,\n" +
