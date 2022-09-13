@@ -7,6 +7,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.core.Handler;
 
 public class EventHandler extends BaseMicroserviceVerticle {
 
@@ -24,18 +25,23 @@ public class EventHandler extends BaseMicroserviceVerticle {
 	public void start(Promise<Void> promise) throws Exception {
 		super.start(promise);
 		vertx.eventBus().consumer(TopologyService.EVENT_ADDRESS, event -> {
-			// process topology events
-			qconnectionService.getOpticalNetwork(ar -> {
-				if (ar.succeeded()) {
-					qconnectionService.synchNetworkWithTopology(done -> {
-						if (done.succeeded()) {
-							logger.info("Optical network updated");
+			// wait 10s then update
+			vertx.setTimer(10000, new Handler<Long>() {
+				@Override
+				public void handle(Long aLong) {
+					qconnectionService.getOpticalNetwork(ar -> {
+						if (ar.succeeded()) {
+							qconnectionService.synchNetworkWithTopology(done -> {
+								if (done.succeeded()) {
+									logger.info("Optical network updated");
+								} else {
+									logger.error("Failed to update optical network: " + ar.cause());
+								}
+							});
 						} else {
 							logger.error("Failed to update optical network: " + ar.cause());
 						}
 					});
-				} else {
-					logger.error("Failed to update optical network: " + ar.cause());
 				}
 			});
 		});

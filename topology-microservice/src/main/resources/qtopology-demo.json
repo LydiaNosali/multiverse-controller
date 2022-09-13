@@ -24,10 +24,10 @@
     ],
     "trails": [
         {
-            "name": "default-mvs", "description": "default trail for multiverse-origin oxcs", "oxcs": []   
+            "name": "demo-default-mvs", "description": "default trail for multiverse-origin oxcs", "oxcs": []   
         },
         {
-            "name": "default-cli", "description": "default trail for cli-origin oxcs", "oxcs": []   
+            "name": "demo-default-cli", "description": "default trail for cli-origin oxcs", "oxcs": []   
         }
     ]
 }

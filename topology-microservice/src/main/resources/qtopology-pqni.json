@@ -1,0 +1,14 @@
+{
+    "name": "qnet-pqni",
+    "nodes": [],
+    "links": [],
+    "capabilities": [],
+    "trails": [
+        {
+            "name": "pqni-default-mvs", "description": "default trail for multiverse-origin oxcs", "oxcs": []   
+        },
+        {
+            "name": "pqni-default-cli", "description": "default trail for cli-origin oxcs", "oxcs": []   
+        }
+    ]
+}

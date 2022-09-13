@@ -333,45 +333,51 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 							List<Future> allOXCsAdded = new ArrayList<Future>();
 							for (PolatisPair polatisPair : onlySwitchPolatisPair) {
-
 								Promise<Void> pOXCAdded = Promise.promise();
 								allOXCsAdded.add(pOXCAdded.future());
-								VcrossConnect vcrossConnect = new VcrossConnect();
-								vcrossConnect.setLabel("");
-								vcrossConnect.setDescription("");
-								vcrossConnect.setTrailId(defaultCliTrailId);
-								vcrossConnect.setSwitchId(switchEntry.getKey());
-								List<Integer> portsId = portIdbySwitchId.get(switchEntry.getKey());
-								for (Integer key : portNbbyportId.keySet()) {
-									if (portsId.contains(key) && portNbbyportId.get(key)
+								vertx.executeBlocking(future -> {
+									VcrossConnect vcrossConnect = new VcrossConnect();
+									vcrossConnect.setLabel("");
+									vcrossConnect.setDescription("");
+									vcrossConnect.setTrailId(defaultCliTrailId);
+									vcrossConnect.setSwitchId(switchEntry.getKey());
+									List<Integer> portsId = portIdbySwitchId.get(switchEntry.getKey());
+									for (Integer key : portNbbyportId.keySet()) {
+										if (portsId.contains(key) && portNbbyportId.get(key)
 											.equals(String.valueOf(polatisPair.getIngress()))) {
-										vcrossConnect.setIngressPortId(key);
-									}
-									if (portsId.contains(key) && portNbbyportId.get(key)
+											vcrossConnect.setIngressPortId(key);
+										}
+										if (portsId.contains(key) && portNbbyportId.get(key)
 											.equals(String.valueOf((polatisPair.getEgress() - 8)))) {
-										vcrossConnect.setEgressPortId(key);
+											vcrossConnect.setEgressPortId(key);
+										}
 									}
-								}
-								vcrossConnect.setName("oxc-" + defaultCliTrailId + "-" + switchEntry.getKey() + "-"
-										+ vcrossConnect.getIngressPortId());
-								vcrossConnect.setStatus(StatusEnum.UP);
-								service.addVcrossConnect(vcrossConnect, ar -> {
-									if (ar.succeeded()) {
+									vcrossConnect.setName("oxc-" + defaultCliTrailId + "-" + switchEntry.getKey() + "-"
+											+ vcrossConnect.getIngressPortId());
+									vcrossConnect.setStatus(StatusEnum.UP);
+									service.addVcrossConnect(vcrossConnect, ar -> {
+										if (ar.succeeded()) {
+											future.complete();
+											logger.info("VcrossConnect added succesfully");
+										} else {
+											logger.info("fail to add Vcrossconnects to topology service" + ar.cause());
+											future.fail(ar.cause());
+										}
+									});
+								}, r -> {
+									if (r.succeeded()) {
 										pOXCAdded.complete();
-										logger.info("VcrossConnect added succesfully");
 									} else {
-										logger.info("fail to add Vcrossconnects to topology service" + ar.cause());
-										pOXCAdded.fail(ar.cause());
+										pOXCAdded.fail(r.cause());
 									}
 								});
 							}
 							CompositeFuture.all(allOXCsAdded).map((Void) null).onComplete(re -> {
-								if (res.succeeded()) {
+								if (re.succeeded()) {
 									logger.info("onlySwitchPolatisPair in switchid=" + switchEntry.getKey()
 											+ " added succesfully to DB");
 								} else {
 									logger.info("fail to add cli vcrossconnects to DB" + re.cause());
-
 								}
 							});
 						}
