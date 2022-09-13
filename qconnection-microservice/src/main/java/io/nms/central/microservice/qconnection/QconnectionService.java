@@ -36,6 +36,12 @@ public interface QconnectionService {
 	QconnectionService initialize(Handler<AsyncResult<Void>> resultHandler);
 
 	@Fluent
+	QconnectionService getOpticalNetwork(Handler<AsyncResult<Void>> resultHandler);
+	
+	@Fluent
+	QconnectionService synchNetworkWithTopology(Handler<AsyncResult<Void>> resultHandler);
+
+	@Fluent
 	QconnectionService createPath(Trail path, String finish, Handler<AsyncResult<Integer>> resultHandler);
 
 	@Fluent

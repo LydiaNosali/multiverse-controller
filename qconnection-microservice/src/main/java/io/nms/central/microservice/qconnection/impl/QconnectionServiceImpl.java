@@ -64,11 +64,13 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 	private Map<Integer, List<VcrossConnect>> dbOXCsbytrailId = new HashMap<Integer, List<VcrossConnect>>();
 	private Map<Integer, List<VcrossConnect>> voxcsbySwitchId = new HashMap<Integer, List<VcrossConnect>>();
 	private Map<Integer, List<Integer>> portIdbySwitchId = new HashMap<Integer, List<Integer>>();
-	// private Map<Integer, Long> timerTdbyswitchId = new HashMap<Integer, Long>();
 	private Map<Integer, Integer> periodDiscPerSwitchId = new HashMap<Integer, Integer>();
+
 	private int default_cliId = 0;
 	private int default_mvsId = 0;
-	// private long healthCheckTimerId = 0;
+	
+	private Map<Integer, Integer> defaultCliIdBySubnet = new HashMap<Integer, Integer>();
+	private Map<Integer, Integer> defaultMvsIdBySubnet = new HashMap<Integer, Integer>();
 
 	public QconnectionServiceImpl(Vertx vertx, JsonObject config) {
 		this.vertx = vertx;
@@ -81,19 +83,16 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		logger.info("initialize in QconnectionService");
 		resultHandler.handle(Future.succeededFuture());
 
-		// TODO: listen to topology events and call: getOpticalNetwork()
-
-		// get the topology from the database
+		// ONCE: get the topology from the database
 		getOpticalNetwork(res -> {
 			if (res.succeeded()) {
-				logger.info("Update done successfuly");
 				// every 30s --> run the health check
 				vertx.setPeriodic(30 * 1000, id -> {
 					doHealthCheck(r -> {
 						if (r.succeeded()) {
-							logger.info("HealthCheck succeded = " + r.toString());
+							logger.info("HealthCheck succeded");
 						} else {
-							logger.info("HealthCheck Fail because = " + r.cause());
+							logger.info("HealthCheck Failed: " + r.cause());
 						}
 					});
 				});
@@ -108,16 +107,13 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		    update_network_db(res -> {
 				if (res.failed()) {
 					logger.warn("update failed " + res.cause());
-					// inform other services
+					// TODO: inform other services
 				} else {
 					logger.info("Synchronization done successfuly");
 				}
 			});
 		    }
 		});
-
-		// notification per switch instead of periodic gets on all switches
-		// on PNI laptop
 		return this;
 	}
 
@@ -126,10 +122,9 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 		// every 2min + random(-2s, +2s):
 		// 1. get the topology 2. run the synchronization
-		// TODO 1. get list of voxcs 2. get list of oxcs 3. set those lists as parameters to synchro 
+		// TODO: 1. get list of voxcs 2. get list of oxcs 3. set those lists as parameters to synchro 
 		getOpticalNetwork(re -> {
 			if (re.succeeded()) {
-				logger.info("Update done successfuly");
 				synchNetworkWithTopology(resultHandler);
 			} else {
 				resultHandler.handle(Future.failedFuture(re.cause()));
@@ -148,16 +143,18 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		return this;
 	}
 
-	private QconnectionService getOpticalNetwork(Handler<AsyncResult<Void>> resultHandler) {
+	public QconnectionService getOpticalNetwork(Handler<AsyncResult<Void>> resultHandler) {
 		logger.info("getOpticalNetwork in QconnectionService");
-		
-		// TODO: keep only managed switches
+
 		dbOXCsbytrailId.clear();
 		mgmtIpbyswitchId.clear();
 		portNbbyportId.clear();
 		voxcsbySwitchId.clear();
 		portIdbySwitchId.clear();
 		switchStatusbyswitchId.clear();
+
+		defaultCliIdBySubnet.clear();
+		defaultMvsIdBySubnet.clear();
 
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
 		TopologyService service = builder.build(TopologyService.class);
@@ -167,8 +164,11 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 				List<Vnode> nodes = ar.result();
 				List<Future> allVltpsReadVcrossconnectsRead = new ArrayList<Future>();
 				for (Vnode node : nodes) {
+					if (node.getStatus() == StatusEnum.ADMIN_DOWN) {
+						continue;
+					}
 					switchStatusbyswitchId.put(node.getId(), node.getStatus());
-					mgmtIpbyswitchId.put(node.getId(), node.getMgmtIp());
+					mgmtIpbyswitchId.put(node.getId(), node.getMgmtIp()); // TODO: keep all node object
 					Promise<Void> pVltpRead = Promise.promise();
 					allVltpsReadVcrossconnectsRead.add(pVltpRead.future());
 
@@ -192,8 +192,6 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 						service.getVcrossConnectsByNode(String.valueOf(node.getId()), ar3 -> {
 							if (ar3.succeeded()) {
 								List<VcrossConnect> vcrossConnects = ar3.result();
-								// TODO
-								System.out.println(vcrossConnects);
 								voxcsbySwitchId.put(node.getId(), vcrossConnects);
 							} else {
 								pVcrossconectsRead.fail(ar3.cause());
@@ -222,14 +220,13 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 											List<Future> allVoxcsRead = new ArrayList<Future>();
 											for (Vtrail vtrail : vtrails) {
-//												updateStatus(vtrail.getId(), ResTypeEnum.TRAIL, StatusEnum.UP);
 												if (vtrail.getName().contains("default-cli")) {
-													// TODO: is different for each Subnet
 													default_cliId = vtrail.getId();
+													defaultCliIdBySubnet.put(vsubnet.getId(), vtrail.getId());
 												}
 												if (vtrail.getName().contains("default-mvs")) {
-													// TODO: is different for each Subnet
 													default_mvsId = vtrail.getId();
+													defaultMvsIdBySubnet.put(vsubnet.getId(), vtrail.getId());
 												}
 
 												Promise<Void> pVoxcRead = Promise.promise();
@@ -239,7 +236,6 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 															if (ar3.succeeded()) {
 																List<VcrossConnect> vcrossConnects = ar3.result();
 																dbOXCsbytrailId.put(vtrail.getId(), vcrossConnects);
-
 																pVoxcRead.complete();
 															} else {
 																logger.info("ERROR in get VcrossconnectsbyVtrails: "
@@ -274,7 +270,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 		return this;
 	}
 
-	private QconnectionService synchNetworkWithTopology(Handler<AsyncResult<Void>> resultHandler) {
+	public QconnectionService synchNetworkWithTopology(Handler<AsyncResult<Void>> resultHandler) {
 		logger.info("synchNetworkToTopology in QconnectionService");
 		ServiceProxyBuilder builder = new ServiceProxyBuilder(vertx).setAddress(TopologyService.SERVICE_ADDRESS);
 		TopologyService service = builder.build(TopologyService.class);
@@ -308,7 +304,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 					logger.info("polatisPairbySwitchId" + polatisPairbySwitchId );
 					logger.info("dbPolatispairBySwitchId" + dbPolatispairBySwitchId);
 					for (Entry<Integer, List<PolatisPair>> switchEntry : polatisPairbySwitchId.entrySet()) {
-						//TODO dbPolatispairBySwitchId.get(switchEntry.getKey());
+						// TODO: if dbPolatispairBySwitchId.get(switchEntry.getKey());
 						for (Entry<Integer, List<PolatisPair>> dbEntry : dbPolatispairBySwitchId.entrySet()) {
 							if (switchEntry.getKey() == dbEntry.getKey()) {// same switch
 								
@@ -327,10 +323,10 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 										Promise<Void> pOXCAdded = Promise.promise();
 										allOXCsAdded.add(pOXCAdded.future());
 										VcrossConnect vcrossConnect = new VcrossConnect();
-										vcrossConnect.setName("default-cli" + "");
+										vcrossConnect.setName("default-cli" + ""); // TODO: name must be unique
 										vcrossConnect.setLabel("");
 										vcrossConnect.setDescription("");
-										vcrossConnect.setTrailId(default_cliId);
+										vcrossConnect.setTrailId(default_cliId);  // TODO: get trailID
 										vcrossConnect.setSwitchId(switchEntry.getKey());
 										List<Integer> portsId = portIdbySwitchId.get(switchEntry.getKey());
 										for (Integer key : portNbbyportId.keySet()) {
@@ -344,7 +340,6 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 											}
 										}
 										vcrossConnect.setStatus(StatusEnum.UP);
-//										logger.warn("OXC: " + polatisPair.toString() + " added by CLI");
 										service.addVcrossConnect(vcrossConnect, ar -> {
 											if (ar.succeeded()) {
 												pOXCAdded.complete();
@@ -461,7 +456,6 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 	private QconnectionService getNetworkConfig(Handler<AsyncResult<Map<Integer, List<PolatisPair>>>> resultHandler) {
 		// From network
-
 		List<Future> allOxcsRead = new ArrayList<Future>();
 		Map<Integer, List<PolatisPair>> polatisPairbySwitchId = new HashMap<Integer, List<PolatisPair>>();
 
@@ -555,6 +549,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 						Future.failedFuture("Switch is " + switchStatusbyswitchId.get(crossConnect.getSwitchId())));
 				return this;
 			}
+			// TODO: can be done without 2 for ???
 			for (Entry<Integer, List<VcrossConnect>> entry : dbOXCsbytrailId.entrySet()) {
 				for (VcrossConnect vcrossConnect : entry.getValue()) {
 					logger.info("vcrossConnect.getIngressPortId()= " + vcrossConnect.getIngressPortId());
@@ -765,8 +760,8 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 
 	public QconnectionService deletePath(String trailId, Handler<AsyncResult<Void>> resultHandler) {
 		logger.info("deletePath in QconnectionService");
-		if (Integer.valueOf(trailId) == default_cliId) {
-			resultHandler.handle(Future.failedFuture("CONFLICT Path created with CLI"));
+		if (Integer.valueOf(trailId) == default_cliId) { // TODO: check default-mvs too
+			resultHandler.handle(Future.failedFuture("FORBIDDEN: Cannot delete default trail"));
 			return this;
 		}
 
@@ -960,6 +955,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 								logger.info("call updateNodeStatus");
 								service.updateNodeStatus(switchId, StatusEnum.UP, up -> {
 									if (up.succeeded()) {
+										// TODO: switchStatusbyswitchId.put(switchId, StatusEnum.UP);
 										periodDiscPerSwitchId.put(switchId, 0);
 										logger.info(
 												"Switch: " + switchIp + ", status set to :" + res.result().getValue());
@@ -973,6 +969,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 									logger.info("call updateNodeStatus");
 									service.updateNodeStatus(switchId, StatusEnum.DOWN, down -> {
 										if (down.succeeded()) {
+											// TODO: switchStatusbyswitchId.put(switchId, StatusEnum.DOWN);
 											logger.info("The switch: " + switchIp
 													+ " has been DISCONNECTED for too long, turn its status to DOWN");
 										}
@@ -984,6 +981,7 @@ public class QconnectionServiceImpl extends BaseMicroserviceVerticle implements 
 									logger.info("call updateNodeStatus");
 									service.updateNodeStatus(switchId, StatusEnum.DISCONN, disconn -> {
 										if (disconn.succeeded()) {
+											// TODO: switchStatusbyswitchId.put(switchId, StatusEnum.DISCONN);
 											logger.info("Switch: " + switchIp + ", status set to :"
 													+ res.result().getValue());
 										}
